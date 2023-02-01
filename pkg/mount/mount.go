@@ -20,6 +20,9 @@ type State struct {
 	OverlayDir  []string // e.g. /var
 	BindMounts  []string // e.g. /etc/kubernetes
 	StateDir    string   // e.g. "/usr/local/.state"
+	TargetLabel string   // e.g. COS_ACTIVE
+
+	MountRoot bool // e.g. if true, it tries to find the image to loopback mount
 
 	CustomMounts map[string]string // e.g. diskid : mountpoint
 
@@ -47,33 +50,60 @@ func genOpreference(op string, s []string) (res []string) {
 }
 
 const (
-	opCustomMounts = "custom-mount"
+	opCustomMounts  = "custom-mount"
+	opDiscoverState = "discover-state"
+	opMountState    = "mount-state"
+	opMountRoot     = "mount-root"
 )
 
 func (s *State) Register(g *herd.Graph) error {
 
 	// TODO: add, hooks, fstab, systemd compat
 
-	g.Add("discover-mount",
-		herd.WithDeps("mount-cos-state"),
-		herd.WithCallback(
-			func(ctx context.Context) error {
-				_, err := utils.SH(fmt.Sprintf("losetup --show -f /run/initramfs/cos-state%s", s.TargetImage))
-				return err
-			},
-		))
+	// This is legacy - in UKI we don't need to found the img, this needs to run in a conditional
+	if s.MountRoot {
+		g.Add(opDiscoverState,
+			herd.WithDeps(opMountState),
+			herd.WithCallback(
+				func(ctx context.Context) error {
+					_, err := utils.SH(fmt.Sprintf("losetup --show -f /run/initramfs/cos-state%s", s.TargetImage))
+					return err
+				},
+			))
 
-	g.Add("mount-cos-state",
-		herd.WithCallback(
-			s.MountOP(
-				"/dev/disk/by-label/COS_STATE",
-				s.path("/run/initramfs/cos-state"),
-				"auto",
-				[]string{
-					"ro", // or rw
-				}, 60*time.Second),
-		),
-	)
+		g.Add(opMountState,
+			herd.WithCallback(
+				s.MountOP(
+					"/dev/disk/by-label/COS_STATE",
+					s.path("/run/initramfs/cos-state"),
+					"auto",
+					[]string{
+						"ro", // or rw
+					}, 60*time.Second),
+			),
+		)
+
+		g.Add(opMountRoot,
+			herd.WithDeps(opDiscoverState),
+			herd.WithCallback(
+				s.MountOP(
+					fmt.Sprintf("/dev/disk/by-label/%s", s.TargetLabel),
+					s.Rootdir,
+					"auto",
+					[]string{
+						"ro", // or rw
+						"suid",
+						"dev",
+						"exec",
+						"auto",
+						"nouser",
+						"async",
+					}, 60*time.Second),
+			),
+		)
+
+	}
+	// end sysroot mount
 
 	// overlay mount start
 	if rootFSType(s.Rootdir) != "overlay" {
@@ -152,26 +182,8 @@ func (s *State) Register(g *herd.Graph) error {
 	}
 
 	// overlay mount end
-
-	g.Add("mount-sysroot",
-		herd.WithCallback(
-			s.MountOP(
-				"/dev/disk/by-label/COS_ACTIVE",
-				s.Rootdir,
-				"auto",
-				[]string{
-					"ro", // or rw
-					"suid",
-					"dev",
-					"exec",
-					"auto",
-					"nouser",
-					"async",
-				}, 60*time.Second),
-		),
-	)
-
-	g.Add("mount-oem",
+	g.Add(opMountRoot,
+		herd.ConditionalOption(func() bool { return s.MountRoot }, herd.WithDeps("mount-overlay-base")),
 		herd.WithCallback(
 			s.MountOP(
 				"/dev/disk/by-label/COS_OEM",
