@@ -1,16 +1,19 @@
 package cmd
 
 import (
+	"context"
+
 	"github.com/kairos-io/immucore/pkg/mount"
+	"github.com/spectrocloud-labs/herd"
 	"github.com/urfave/cli"
 )
 
 var Commands = []cli.Command{
 
 	{
-		Name:      "load",
-		Usage:     "notify <event> <config dir>...",
-		UsageText: "emits the given event with a generic event payload",
+		Name:      "start",
+		Usage:     "start",
+		UsageText: "starts",
 		Description: `
 Sends a generic event payload with the configuration found in the scanned directories.
 `,
@@ -18,8 +21,13 @@ Sends a generic event payload with the configuration found in the scanned direct
 		Flags:   []cli.Flag{},
 		Action: func(c *cli.Context) error {
 
-			mount.MountOverlayFS()
-			return nil
+			g := herd.DAG()
+
+			s := &mount.State{Rootdir: "/"}
+
+			s.Register(g)
+
+			return g.Run(context.Background())
 		},
 	},
 }

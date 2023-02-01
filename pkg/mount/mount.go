@@ -1,16 +1,20 @@
 package mount
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/containerd/containerd/mount"
 	"github.com/deniswernert/go-fstab"
 	"github.com/kairos-io/immucore/pkg/profile"
+	"github.com/kairos-io/kairos/pkg/utils"
 	"github.com/moby/sys/mountinfo"
+	"github.com/spectrocloud-labs/herd"
 )
 
 type MountOperation struct {
@@ -27,10 +31,6 @@ func (m MountOperation) Run() error {
 		}
 	}
 	return mount.All([]mount.Mount{m.MountOption}, m.Target)
-}
-
-func MountOverlayFS() {
-	mount.All([]mount.Mount{}, "foo")
 }
 
 // https://github.com/kairos-io/packages/blob/94aa3bef3d1330cb6c6905ae164f5004b6a58b8c/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L129
@@ -206,4 +206,134 @@ func mountWithBaseOverlay(mountpoint, root, base string) (MountOperation, error)
 	}
 
 	return MountOperation{}, fmt.Errorf("already mounted")
+}
+
+type State struct {
+	Rootdir string
+	fstabs  []*fstab.Mount
+}
+
+func (s *State) Register(g *herd.Graph) error {
+
+	g.Add("discover-mount",
+		herd.WithDeps("mount-cos-state"),
+		herd.WithCallback(
+			func(ctx context.Context) error {
+				utils.SH("losetup --show -f /run/initramfs/cos-state/cOS/active.img")
+				return nil
+			},
+		))
+
+	g.Add("mount-cos-state",
+		herd.WithCallback(
+			s.MountOP(
+				"/dev/disk/by-label/COS_STATE",
+				s.path("/run/initramfs/cos-state"),
+				"auto",
+				[]string{
+					"ro", // or rw
+				}, 60*time.Second),
+		),
+	)
+
+	g.Add("mount-sysroot",
+		herd.WithCallback(
+			s.MountOP(
+				"/dev/disk/by-label/COS_ACTIVE",
+				s.path("/sysroot"),
+				"auto",
+				[]string{
+					"ro", // or rw
+					"suid",
+					"dev",
+					"exec",
+					"auto",
+					"nouser",
+					"async",
+				}, 60*time.Second),
+		),
+	)
+
+	g.Add("mount-oem",
+		herd.WithCallback(
+			s.MountOP(
+				"/dev/disk/by-label/COS_OEM",
+				"/oem",
+				"auto",
+				[]string{
+					"rw",
+					"suid",
+					"dev",
+					"exec",
+					"noauto",
+					"nouser",
+					"async",
+				}, 60*time.Second),
+		),
+	)
+
+	g.Add("write-fstab", herd.WithCallback(s.WriteFstab("foo")))
+
+	return nil
+}
+
+func (s *State) path(p ...string) string {
+	return filepath.Join(append([]string{s.Rootdir}, p...)...)
+}
+
+func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
+	return func(ctx context.Context) error {
+		for _, fst := range s.fstabs {
+			select {
+			case <-ctx.Done():
+			default:
+				f, err := os.OpenFile(fstabFile,
+					os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+				if err != nil {
+					return err
+				}
+				defer f.Close()
+				if _, err := f.WriteString(fmt.Sprintf("%s\n", fst.String())); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+}
+
+func (s *State) MountOP(what, where, t string, options []string, timeout time.Duration) func(context.Context) error {
+	return func(c context.Context) error {
+		for {
+			select {
+			default:
+				time.Sleep(1 * time.Second)
+				mountPoint := mount.Mount{
+					Type:    t,
+					Source:  what,
+					Options: options,
+				}
+				fstab := mountToStab(mountPoint)
+				fstab.File = where
+				op := MountOperation{
+					MountOption: mountPoint,
+					FstabEntry:  *fstab,
+					Target:      where,
+				}
+
+				err := op.Run()
+				if err != nil {
+					continue
+				}
+
+				s.fstabs = append(s.fstabs, fstab)
+
+				return nil
+			case <-c.Done():
+				return fmt.Errorf("context canceled")
+			case <-time.After(timeout):
+				return fmt.Errorf("timeout exhausted")
+			}
+		}
+	}
 }
