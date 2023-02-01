@@ -219,7 +219,33 @@ type State struct {
 	fstabs []*fstab.Mount
 }
 
+func genOpreferenceName(op, s string) string {
+	return fmt.Sprintf("%s-%s", op, s)
+}
+
+func genOpreferenceFromMap(op string, m map[string]string) (res []string) {
+	values := []string{}
+	for _, n := range m {
+		values = append(values, n)
+	}
+
+	res = genOpreference(op, values)
+	return
+}
+func genOpreference(op string, s []string) (res []string) {
+	for _, n := range s {
+		res = append(res, genOpreferenceName(op, n))
+	}
+	return
+}
+
+const (
+	opCustomMounts = "custom-mount"
+)
+
 func (s *State) Register(g *herd.Graph) error {
+
+	// TODO: add, hooks, fstab, systemd compat
 
 	g.Add("discover-mount",
 		herd.WithDeps("mount-cos-state"),
@@ -277,7 +303,8 @@ func (s *State) Register(g *herd.Graph) error {
 
 	// custom mounts TODO: disk/path
 	for id, mountpoint := range s.CustomMounts {
-		g.Add("mount-custom",
+		g.Add(
+			genOpreferenceName(opCustomMounts, mountpoint),
 			herd.WithCallback(
 				s.MountOP(
 					id,
@@ -291,8 +318,11 @@ func (s *State) Register(g *herd.Graph) error {
 	}
 
 	// mount state
+	// mount state is defined over a custom mount (/usr/local/.state for instance, needs to be mounted over a device)
 	for _, p := range s.BindMounts {
-		g.Add("mount-state",
+		g.Add(
+			genOpreferenceName("mount-state", p),
+			herd.WithDeps(genOpreferenceFromMap(opCustomMounts, s.CustomMounts)...),
 			herd.WithCallback(
 				func(ctx context.Context) error {
 					op, err := mountBind(p, s.Rootdir, "/usr/local/.state")
