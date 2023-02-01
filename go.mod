@@ -7,7 +7,7 @@ require (
 	github.com/deniswernert/go-fstab v0.0.0-20141204152952-eb4090f26517
 	github.com/kairos-io/kairos v1.5.0
 	github.com/moby/sys/mountinfo v0.5.0
-	github.com/spectrocloud-labs/herd v0.1.2-0.20230201084705-8e524743ec9c
+	github.com/spectrocloud-labs/herd v0.2.1
 	github.com/urfave/cli v1.22.10
 )
 
