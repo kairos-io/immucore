@@ -209,8 +209,14 @@ func mountWithBaseOverlay(mountpoint, root, base string) (MountOperation, error)
 }
 
 type State struct {
-	Rootdir string
-	fstabs  []*fstab.Mount
+	Rootdir     string
+	TargetImage string   // e.g. /cOS/active.img
+	OverlayDir  []string // e.g. /var
+	BindMounts  []string // e.g. /etc/kubernetes
+
+	CustomMounts map[string]string // e.g. diskid : mountpoint
+
+	fstabs []*fstab.Mount
 }
 
 func (s *State) Register(g *herd.Graph) error {
@@ -219,8 +225,8 @@ func (s *State) Register(g *herd.Graph) error {
 		herd.WithDeps("mount-cos-state"),
 		herd.WithCallback(
 			func(ctx context.Context) error {
-				utils.SH("losetup --show -f /run/initramfs/cos-state/cOS/active.img")
-				return nil
+				_, err := utils.SH(fmt.Sprintf("losetup --show -f /run/initramfs/cos-state%s", s.TargetImage))
+				return err
 			},
 		))
 
@@ -236,6 +242,69 @@ func (s *State) Register(g *herd.Graph) error {
 		),
 	)
 
+	g.Add("mount-overlay-base",
+		herd.WithCallback(
+			func(ctx context.Context) error {
+				op, err := BaseOverlay(profile.Overlay{
+					Base:        "/run/overlay",
+					BackingBase: "tmpfs:20%",
+				})
+				if err != nil {
+					return err
+				}
+				s.fstabs = append(s.fstabs, &op.FstabEntry)
+				return op.Run()
+			},
+		),
+	)
+
+	// TODO: Add fsck
+	// mount overlay
+	for _, p := range s.OverlayDir {
+		g.Add("mount-overlays-base",
+			herd.WithCallback(
+				func(ctx context.Context) error {
+					op, err := mountWithBaseOverlay(p, s.Rootdir, "/run/overlay")
+					if err != nil {
+						return err
+					}
+					s.fstabs = append(s.fstabs, &op.FstabEntry)
+					return op.Run()
+				},
+			),
+		)
+	}
+
+	// custom mounts TODO: disk/path
+	for id, mountpoint := range s.CustomMounts {
+		g.Add("mount-custom",
+			herd.WithCallback(
+				s.MountOP(
+					id,
+					s.path(mountpoint),
+					"auto",
+					[]string{
+						"ro", // or rw
+					}, 60*time.Second),
+			),
+		)
+	}
+
+	// mount state
+	for _, p := range s.BindMounts {
+		g.Add("mount-state",
+			herd.WithCallback(
+				func(ctx context.Context) error {
+					op, err := mountBind(p, s.Rootdir, "/usr/local/.state")
+					if err != nil {
+						return err
+					}
+					s.fstabs = append(s.fstabs, &op.FstabEntry)
+					return op.Run()
+				},
+			),
+		)
+	}
 	g.Add("mount-sysroot",
 		herd.WithCallback(
 			s.MountOP(
