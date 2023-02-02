@@ -7,6 +7,7 @@ require (
 	github.com/deniswernert/go-fstab v0.0.0-20141204152952-eb4090f26517
 	github.com/kairos-io/kairos v1.5.0
 	github.com/moby/sys/mountinfo v0.5.0
+	github.com/rs/zerolog v1.29.0
 	github.com/spectrocloud-labs/herd v0.2.1
 	github.com/urfave/cli v1.22.10
 )
@@ -26,6 +27,7 @@ require (
 	github.com/joho/godotenv v1.4.0 // indirect
 	github.com/kendru/darwin/go/depgraph v0.0.0-20221105232959-877d6a81060c // indirect
 	github.com/lithammer/fuzzysearch v1.1.5 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
