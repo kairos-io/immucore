@@ -29,7 +29,8 @@ Sends a generic event payload with the configuration found in the scanned direct
 			s := &mount.State{Rootdir: "/"}
 
 			s.Register(g)
-			writeDag(g.Analyze())
+
+			log.Print(s.WriteDAG(g))
 			return nil
 			//return g.Run(context.Background())
 		},
@@ -41,9 +42,9 @@ func writeDag(d [][]herd.GraphEntry) {
 		log.Printf("%d.", (i + 1))
 		for _, op := range layer {
 			if op.Error != nil {
-				log.Printf(" <%s> (error: %s) (background: %t)", op.Name, op.Error.Error(), op.Background)
+				log.Printf(" <%s> (error: %s) (background: %t) (weak: %t)", op.Name, op.Error.Error(), op.Background, op.WeakDeps)
 			} else {
-				log.Printf(" <%s> (background: %t)", op.Name, op.Background)
+				log.Printf(" <%s> (background: %t) (weak: %t)", op.Name, op.Background, op.WeakDeps)
 			}
 		}
 		log.Print("")

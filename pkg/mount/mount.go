@@ -56,6 +56,7 @@ const (
 	opOverlayMount     = "overlay-mount"
 	opWriteFstab       = "write-fstab"
 	opMountBaseOverlay = "mount-base-overlay"
+	opMountOEM         = "mount-oem"
 )
 
 func (s *State) path(p ...string) string {
@@ -119,6 +120,20 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 	}
 }
 
+func (s *State) WriteDAG(g *herd.Graph) (out string) {
+	for i, layer := range g.Analyze() {
+		out += fmt.Sprintf("%d.\n", (i + 1))
+		for _, op := range layer {
+			if op.Error != nil {
+				out += fmt.Sprintf(" <%s> (error: %s) (background: %t) (weak: %t)\n", op.Name, op.Error.Error(), op.Background, op.WeakDeps)
+			} else {
+				out += fmt.Sprintf(" <%s> (background: %t) (weak: %t)\n", op.Name, op.Background, op.WeakDeps)
+			}
+		}
+	}
+	return
+}
+
 func (s *State) Register(g *herd.Graph) error {
 
 	// TODO: add, hooks, fstab, systemd compat
@@ -166,6 +181,9 @@ func (s *State) Register(g *herd.Graph) error {
 		)
 
 	}
+
+	mountRootCondition := herd.ConditionalOption(func() bool { return s.MountRoot }, herd.WithDeps(opMountRoot))
+
 	// end sysroot mount
 
 	// overlay mount start
@@ -195,6 +213,7 @@ func (s *State) Register(g *herd.Graph) error {
 		g.Add(
 			genOpreferenceName(opOverlayMount, p),
 			overlayCondition,
+			mountRootCondition,
 			herd.WithCallback(
 				func(ctx context.Context) error {
 					op, err := mountWithBaseOverlay(p, s.Rootdir, "/run/overlay")
@@ -212,6 +231,7 @@ func (s *State) Register(g *herd.Graph) error {
 	for id, mountpoint := range s.CustomMounts {
 		g.Add(
 			genOpreferenceName(opCustomMounts, mountpoint),
+			mountRootCondition,
 			overlayCondition,
 			herd.WithCallback(
 				s.MountOP(
@@ -231,6 +251,7 @@ func (s *State) Register(g *herd.Graph) error {
 		g.Add(
 			genOpreferenceName(opMountState, p),
 			overlayCondition,
+			mountRootCondition,
 			herd.WithDeps(genOpreferenceFromMap(opCustomMounts, s.CustomMounts)...),
 			herd.WithCallback(
 				func(ctx context.Context) error {
@@ -246,8 +267,9 @@ func (s *State) Register(g *herd.Graph) error {
 	}
 
 	// overlay mount end
-	g.Add(opMountRoot,
-		herd.ConditionalOption(func() bool { return s.MountRoot }, herd.WithDeps("mount-overlay-base")),
+	g.Add(opMountOEM,
+		overlayCondition,
+		mountRootCondition,
 		herd.WithCallback(
 			s.MountOP(
 				"/dev/disk/by-label/COS_OEM",
@@ -268,7 +290,8 @@ func (s *State) Register(g *herd.Graph) error {
 	g.Add(opWriteFstab,
 		overlayCondition,
 		herd.ConditionalOption(func() bool { return s.MountRoot }, herd.WithDeps(opMountRoot)),
-		herd.WithDeps(opMountRoot),
+		herd.WithDeps(opMountOEM),
+		herd.WeakDeps,
 		herd.WithDeps(genOpreferenceFromMap(opCustomMounts, s.CustomMounts)...),
 		herd.WithDeps(genOpreference(opMountState, s.BindMounts)...),
 		herd.WithDeps(genOpreference(opOverlayMount, s.OverlayDir)...),
