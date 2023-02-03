@@ -10,7 +10,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.7.1
 	github.com/onsi/gomega v1.26.0
 	github.com/rs/zerolog v1.29.0
-	github.com/spectrocloud-labs/herd v0.2.1
+	github.com/spectrocloud-labs/herd v0.3.0
 	github.com/urfave/cli v1.22.10
 )
 
@@ -28,6 +28,8 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/gookit/color v1.5.2 // indirect
+	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/joho/godotenv v1.4.0 // indirect
 	github.com/kendru/darwin/go/depgraph v0.0.0-20221105232959-877d6a81060c // indirect
 	github.com/lithammer/fuzzysearch v1.1.5 // indirect
