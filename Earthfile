@@ -72,19 +72,18 @@ build-dracut:
         dracut -f "/boot/initrd-${kernel}" "${kernel}" && \
         ln -sf "initrd-${kernel}" /boot/initrd
     ARG INITRD=$(readlink -f /boot/initrd)
-    SAVE ARTIFACT $INITRD AS LOCAL build/initrd-$VERSION
+    SAVE ARTIFACT $INITRD Initrd AS LOCAL build/initrd-$VERSION
 
 image:
     FROM $BASE_IMAGE
-    ARG IMAGE=dracut
+    COPY +version/VERSION ./
+    ARG VERSION=$(cat VERSION)
     ARG INITRD=$(readlink -f /boot/initrd)
-    ARG NAME=$(basename $INITRD)
-    COPY +build-dracut/$NAME $INITRD
+    COPY +build-dracut/Initrd $INITRD
     # For initrd use
     COPY +build-immucore/immucore /usr/bin/immucore
     RUN ln -s /usr/lib/systemd/systemd /init
-
-    SAVE IMAGE $IMAGE
+    SAVE IMAGE $FLAVOR-immucore:$VERSION
 
 iso:
     FROM $OSBUILDER_IMAGE
@@ -95,8 +94,8 @@ iso:
     RUN zypper in -y jq docker wget
     RUN mkdir -p files-iso/boot/grub2
     RUN wget https://raw.githubusercontent.com/c3os-io/c3os/master/overlay/files-iso/boot/grub2/grub.cfg -O files-iso/boot/grub2/grub.cfg
-    WITH DOCKER --allow-privileged --load immucore:latest=+image
-        RUN /entrypoint.sh --name $ISO_NAME --debug build-iso --squash-no-compression --date=false --local --overlay-iso /build/files-iso --output /build/ docker:immucore:latest
+    WITH DOCKER --allow-privileged --load $FLAVOR-immucore:$VERSION=+image
+        RUN /entrypoint.sh --name $ISO_NAME --debug build-iso --squash-no-compression --date=false --local --overlay-iso /build/files-iso --output /build/ docker:$FLAVOR-immucore:$VERSION
     END
     SAVE ARTIFACT /build/$ISO_NAME.iso iso AS LOCAL build/$ISO_NAME-$VERSION.iso
     SAVE ARTIFACT /build/$ISO_NAME.iso.sha256 sha256 AS LOCAL build/$ISO_NAME-$VERSION.iso.sha256
