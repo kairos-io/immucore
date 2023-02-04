@@ -1,6 +1,9 @@
 package mount_test
 
 import (
+	"context"
+	"time"
+
 	"github.com/kairos-io/immucore/pkg/mount"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -96,6 +99,14 @@ var _ = Describe("mounting immutable setup", func() {
 
 			Expect(dag[7][0].Name).To(Equal("mount-bind"))
 			Expect(dag[8][0].Name).To(Equal("write-fstab"))
+		})
+
+		It("Mountop timeouts", func() {
+			s := &mount.State{}
+			f := s.MountOP("", "", "", []string{}, 1*time.Second)
+			err := f(context.Background())
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("exhausted"))
 		})
 	})
 })

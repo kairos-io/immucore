@@ -92,6 +92,7 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 func (s *State) MountOP(what, where, t string, options []string, timeout time.Duration) func(context.Context) error {
 	s.Logger.Debug().Str("what", what).Str("where", where).Str("type", t)
 	return func(c context.Context) error {
+		cc := time.After(timeout)
 		for {
 			select {
 			default:
@@ -119,7 +120,7 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 				return nil
 			case <-c.Done():
 				return fmt.Errorf("context canceled")
-			case <-time.After(timeout):
+			case <-cc:
 				return fmt.Errorf("timeout exhausted")
 			}
 		}
