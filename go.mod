@@ -9,7 +9,7 @@ require (
 	github.com/joho/godotenv v1.4.0
 	github.com/kairos-io/kairos v1.5.0
 	github.com/moby/sys/mountinfo v0.6.2
-	github.com/onsi/ginkgo/v2 v2.7.1
+	github.com/onsi/ginkgo/v2 v2.8.0
 	github.com/onsi/gomega v1.26.0
 	github.com/rs/zerolog v1.29.0
 	github.com/spectrocloud-labs/herd v0.3.0
