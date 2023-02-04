@@ -85,17 +85,24 @@ image:
     RUN ln -s /usr/lib/systemd/systemd /init
     SAVE IMAGE $FLAVOR-immucore:$VERSION
 
+image-rootfs:
+    FROM +image
+    SAVE ARTIFACT --keep-own /. rootfs
+
+grub-files:
+    FROM alpine
+    RUN apk add wget
+    RUN wget https://raw.githubusercontent.com/c3os-io/c3os/master/overlay/files-iso/boot/grub2/grub.cfg -O grub.cfg
+    SAVE ARTIFACT --keep-own grub.cfg grub.cfg
+
 iso:
     FROM $OSBUILDER_IMAGE
     ARG ISO_NAME
     COPY +version/VERSION ./
     ARG VERSION=$(cat VERSION)
     WORKDIR /build
-    RUN zypper in -y jq docker wget
-    RUN mkdir -p files-iso/boot/grub2
-    RUN wget https://raw.githubusercontent.com/c3os-io/c3os/master/overlay/files-iso/boot/grub2/grub.cfg -O files-iso/boot/grub2/grub.cfg
-    WITH DOCKER --allow-privileged --load $FLAVOR-immucore:$VERSION=+image
-        RUN /entrypoint.sh --name $ISO_NAME --debug build-iso --squash-no-compression --date=false --local --overlay-iso /build/files-iso --output /build/ docker:$FLAVOR-immucore:$VERSION
-    END
+    COPY --keep-own +grub-files/grub.cfg /build/files-iso/boot/grub2/grub.cfg
+    COPY --keep-own +image-rootfs/rootfs /build/rootfs
+    RUN /entrypoint.sh --name $ISO_NAME --debug build-iso --squash-no-compression --date=false --local --overlay-iso /build/files-iso --output /build/ dir:/build/rootfs
     SAVE ARTIFACT /build/$ISO_NAME.iso iso AS LOCAL build/$ISO_NAME-$VERSION.iso
     SAVE ARTIFACT /build/$ISO_NAME.iso.sha256 sha256 AS LOCAL build/$ISO_NAME-$VERSION.iso.sha256
