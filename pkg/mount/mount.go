@@ -159,6 +159,7 @@ func readEnv(file string) (map[string]string, error) {
 }
 
 func (s *State) Register(g *herd.Graph) error {
+	var err error
 
 	// TODO: add hooks, fstab (might have missed some), systemd compat
 	// TODO: We should also set tmpfs here (not -related)
@@ -171,7 +172,7 @@ func (s *State) Register(g *herd.Graph) error {
 	if s.MountRoot {
 		// setup loopback mount for the image target for booting
 		s.Logger.Debug().Str("what", opDiscoverState).Msg("Add operation")
-		g.Add(opDiscoverState,
+		err = g.Add(opDiscoverState,
 			herd.WithDeps(opMountState),
 			herd.WithCallback(
 				func(ctx context.Context) error {
@@ -179,10 +180,13 @@ func (s *State) Register(g *herd.Graph) error {
 					return err
 				},
 			))
+		if err != nil {
+			s.Logger.Err(err)
+		}
 
 		// mount the state partition so to find the loopback device
 		s.Logger.Debug().Str("what", opMountState).Msg("Add operation")
-		g.Add(opMountState,
+		err = g.Add(opMountState,
 			herd.WithCallback(
 				s.MountOP(
 					"/dev/disk/by-label/COS_STATE",
@@ -193,10 +197,13 @@ func (s *State) Register(g *herd.Graph) error {
 					}, 60*time.Second),
 			),
 		)
+		if err != nil {
+			s.Logger.Err(err)
+		}
 
 		// mount the loopback device as root of the fs
 		s.Logger.Debug().Str("what", opMountRoot).Msg("Add operation")
-		g.Add(opMountRoot,
+		err = g.Add(opMountRoot,
 			herd.WithDeps(opDiscoverState),
 			herd.WithCallback(
 				s.MountOP(
@@ -214,6 +221,9 @@ func (s *State) Register(g *herd.Graph) error {
 					}, 60*time.Second),
 			),
 		)
+		if err != nil {
+			s.Logger.Err(err)
+		}
 
 	}
 
@@ -225,12 +235,15 @@ func (s *State) Register(g *herd.Graph) error {
 	// TODO: add symlink if Rootdir != ""
 	// TODO: chroot?
 	s.Logger.Debug().Str("what", opRootfsHook).Msg("Add operation")
-	g.Add(opRootfsHook, mountRootCondition, herd.WithDeps(opMountOEM), herd.WithCallback(s.RunStageOp("rootfs")))
+	err = g.Add(opRootfsHook, mountRootCondition, herd.WithDeps(opMountOEM), herd.WithCallback(s.RunStageOp("rootfs")))
+	if err != nil {
+		s.Logger.Err(err)
+	}
 
 	// /run/cos-layout.env
 	// populate state bindmounts, overlaymounts, custommounts
 	s.Logger.Debug().Str("what", opLoadConfig).Msg("Add operation")
-	g.Add(opLoadConfig,
+	err = g.Add(opLoadConfig,
 		herd.WithDeps(opRootfsHook),
 		herd.WithCallback(func(ctx context.Context) error {
 
@@ -249,13 +262,15 @@ func (s *State) Register(g *herd.Graph) error {
 			//	s.CustomMounts = strings.Split(env["VOLUMES"], " ")
 			return nil
 		}))
-
+	if err != nil {
+		s.Logger.Err(err)
+	}
 	// end sysroot mount
 
 	// overlay mount start
 	if rootFSType(s.Rootdir) != "overlay" {
 		s.Logger.Debug().Str("what", opMountBaseOverlay).Msg("Add operation")
-		g.Add(opMountBaseOverlay,
+		err = g.Add(opMountBaseOverlay,
 			herd.WithCallback(
 				func(ctx context.Context) error {
 					op, err := baseOverlay(profile.Overlay{
@@ -270,13 +285,16 @@ func (s *State) Register(g *herd.Graph) error {
 				},
 			),
 		)
+		if err != nil {
+			s.Logger.Err(err)
+		}
 	}
 
 	overlayCondition := herd.ConditionalOption(func() bool { return rootFSType(s.Rootdir) != "overlay" }, herd.WithDeps(opMountBaseOverlay))
 	// TODO: Add fsck
 	// mount overlay
 	s.Logger.Debug().Str("what", opOverlayMount).Msg("Add operation")
-	g.Add(
+	err = g.Add(
 		opOverlayMount,
 		overlayCondition,
 		herd.WithDeps(opLoadConfig),
@@ -297,8 +315,11 @@ func (s *State) Register(g *herd.Graph) error {
 			},
 		),
 	)
+	if err != nil {
+		s.Logger.Err(err)
+	}
 	s.Logger.Debug().Str("what", opCustomMounts).Msg("Add operation")
-	g.Add(
+	err = g.Add(
 		opCustomMounts,
 		mountRootCondition,
 		overlayCondition,
@@ -322,10 +343,13 @@ func (s *State) Register(g *herd.Graph) error {
 			return err
 		}),
 	)
+	if err != nil {
+		s.Logger.Err(err)
+	}
 
 	// mount state is defined over a custom mount (/usr/local/.state for instance, needs to be mounted over a device)
 	s.Logger.Debug().Str("what", opMountBind).Msg("Add operation")
-	g.Add(
+	err = g.Add(
 		opMountBind,
 		overlayCondition,
 		mountRootCondition,
@@ -347,10 +371,13 @@ func (s *State) Register(g *herd.Graph) error {
 			},
 		),
 	)
+	if err != nil {
+		s.Logger.Err(err)
+	}
 
 	// overlay mount end
 	s.Logger.Debug().Str("what", opMountOEM).Msg("Add operation")
-	g.Add(opMountOEM,
+	err = g.Add(opMountOEM,
 		overlayCondition,
 		mountRootCondition,
 		herd.WithCallback(
@@ -369,13 +396,18 @@ func (s *State) Register(g *herd.Graph) error {
 				}, 60*time.Second),
 		),
 	)
+	if err != nil {
+		s.Logger.Err(err)
+	}
 	s.Logger.Debug().Str("what", opWriteFstab).Msg("Add operation")
-	g.Add(opWriteFstab,
+	err = g.Add(opWriteFstab,
 		overlayCondition,
 		mountRootCondition,
 		herd.WithDeps(opMountOEM, opCustomMounts, opMountBind, opOverlayMount),
 		herd.WeakDeps,
 		herd.WithCallback(s.WriteFstab(s.FStabFile)))
-
-	return nil
+	if err != nil {
+		s.Logger.Err(err)
+	}
+	return err
 }

@@ -28,10 +28,14 @@ Sends a generic event payload with the configuration found in the scanned direct
 
 			s := &mount.State{Logger: log.Logger, Rootdir: "/"}
 
-			s.Register(g)
+			err := s.Register(g)
+			if err != nil {
+				s.Logger.Err(err)
+				return err
+			}
 
 			log.Print(s.WriteDAG(g))
-			return nil
+			return err
 			//return g.Run(context.Background())
 		},
 	},
