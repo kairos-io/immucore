@@ -13,7 +13,7 @@ require (
 	github.com/onsi/gomega v1.26.0
 	github.com/rs/zerolog v1.29.0
 	github.com/spectrocloud-labs/herd v0.3.0
-	github.com/urfave/cli v1.22.10
+	github.com/urfave/cli v1.22.12
 )
 
 require (
