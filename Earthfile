@@ -2,10 +2,28 @@ VERSION 0.6
 # Note the base image needs to have dracut.
 # TODO: This needs to come from pre-built kernels in c3os repos, immucore included.
 # Framework images should use our initrd
-ARG BASE_IMAGE=quay.io/kairos/core-opensuse-leap
+ARG FLAVOR=core-opensuse-leap
+ARG BASE_IMAGE=quay.io/kairos/$FLAVOR
+ARG OSBUILDER_IMAGE=quay.io/kairos/osbuilder-tools
+ARG ISO_NAME=$FLAVOR-immucore
 
 ARG GO_VERSION=1.18
-ARG GOLINT_VERSION=1.47.3
+ARG GOLINT_VERSION=v1.47.3
+
+version:
+    FROM alpine
+    RUN apk add git
+    COPY . ./
+    RUN --no-cache echo $(git describe --always --tags --dirty) > VERSION
+    ARG VERSION=$(cat VERSION)
+    SAVE ARTIFACT VERSION VERSION
+
+golang-image:
+    ARG GO_VERSION
+    FROM golang:$GO_VERSION
+    WORKDIR /build
+    COPY go.mod go.sum ./
+    RUN go mod download
 
 go-deps:
     ARG GO_VERSION
@@ -18,7 +36,7 @@ go-deps:
     SAVE ARTIFACT go.sum AS LOCAL go.sum
 
 test:
-    FROM +go-deps
+    FROM +golang-image
     WORKDIR /build
     RUN go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo
     COPY . .
@@ -26,25 +44,25 @@ test:
     SAVE ARTIFACT coverage.out AS LOCAL coverage.out
 
 lint:
-    ARG GO_VERSION
-    FROM golang:$GO_VERSION
     ARG GOLINT_VERSION
-    RUN wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v$GOLINT_VERSION
+    FROM golangci/golangci-lint:$GOLINT_VERSION
     WORKDIR /build
     COPY . .
     RUN golangci-lint run
 
 build-immucore:
-    FROM golang:alpine
-    RUN apk add git
-    COPY . /work
+    FROM +golang-image
+    COPY +version/VERSION ./
+    ARG VERSION=$(cat VERSION)
     WORKDIR /work
-    ARG VERSION="$(git describe --tags)"
+    COPY . /work
     RUN CGO_ENABLED=0 go build -o immucore -ldflags "-X main.Version=$VERSION"
-    SAVE ARTIFACT /work/immucore AS LOCAL immucore
+    SAVE ARTIFACT /work/immucore AS LOCAL build/immucore-$VERSION
 
 build-dracut:
     FROM $BASE_IMAGE
+    COPY +version/VERSION ./
+    ARG VERSION=$(cat VERSION)
     COPY . /work
     COPY +build-immucore/immucore /usr/bin/immucore
     WORKDIR /work
@@ -54,32 +72,37 @@ build-dracut:
         dracut -f "/boot/initrd-${kernel}" "${kernel}" && \
         ln -sf "initrd-${kernel}" /boot/initrd
     ARG INITRD=$(readlink -f /boot/initrd)
-    SAVE ARTIFACT $INITRD AS LOCAL initrd
+    SAVE ARTIFACT $INITRD Initrd AS LOCAL build/initrd-$VERSION
 
 image:
     FROM $BASE_IMAGE
-    ARG IMAGE=dracut
+    COPY +version/VERSION ./
+    ARG VERSION=$(cat VERSION)
     ARG INITRD=$(readlink -f /boot/initrd)
-    ARG NAME=$(basename $INITRD)
-    COPY +build-dracut/$NAME $INITRD
+    COPY +build-dracut/Initrd $INITRD
     # For initrd use
     COPY +build-immucore/immucore /usr/bin/immucore
     RUN ln -s /usr/lib/systemd/systemd /init
+    SAVE IMAGE $FLAVOR-immucore:$VERSION
 
-    SAVE IMAGE $IMAGE
+image-rootfs:
+    FROM +image
+    SAVE ARTIFACT --keep-own /. rootfs
 
-iso: 
-    ARG ISO_NAME=test
-    FROM quay.io/kairos/osbuilder-tools
+grub-files:
+    FROM alpine
+    RUN apk add wget
+    RUN wget https://raw.githubusercontent.com/c3os-io/c3os/master/overlay/files-iso/boot/grub2/grub.cfg -O grub.cfg
+    SAVE ARTIFACT --keep-own grub.cfg grub.cfg
 
+iso:
+    FROM $OSBUILDER_IMAGE
+    ARG ISO_NAME
+    COPY +version/VERSION ./
+    ARG VERSION=$(cat VERSION)
     WORKDIR /build
-    RUN zypper in -y jq docker wget
-    RUN mkdir -p files-iso/boot/grub2
-    RUN wget https://raw.githubusercontent.com/c3os-io/c3os/master/overlay/files-iso/boot/grub2/grub.cfg -O files-iso/boot/grub2/grub.cfg
-    WITH DOCKER --allow-privileged --load $IMG=(+image)
-        RUN /entrypoint.sh --name $ISO_NAME --debug build-iso --date=false --local --overlay-iso /build/files-iso dracut:latest --output /build/
-    END
-   # See: https://github.com/rancher/elemental-cli/issues/228
-    RUN sha256sum $ISO_NAME.iso > $ISO_NAME.iso.sha256
-    SAVE ARTIFACT /build/$ISO_NAME.iso iso AS LOCAL build/$ISO_NAME.iso
-    SAVE ARTIFACT /build/$ISO_NAME.iso.sha256 sha256 AS LOCAL build/$ISO_NAME.iso.sha256
+    COPY --keep-own +grub-files/grub.cfg /build/files-iso/boot/grub2/grub.cfg
+    COPY --keep-own +image-rootfs/rootfs /build/rootfs
+    RUN /entrypoint.sh --name $ISO_NAME --debug build-iso --squash-no-compression --date=false --local --overlay-iso /build/files-iso --output /build/ dir:/build/rootfs
+    SAVE ARTIFACT /build/$ISO_NAME.iso iso AS LOCAL build/$ISO_NAME-$VERSION.iso
+    SAVE ARTIFACT /build/$ISO_NAME.iso.sha256 sha256 AS LOCAL build/$ISO_NAME-$VERSION.iso.sha256

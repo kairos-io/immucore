@@ -5,6 +5,8 @@ go 1.19
 require (
 	github.com/containerd/containerd v1.6.15
 	github.com/deniswernert/go-fstab v0.0.0-20141204152952-eb4090f26517
+	github.com/hashicorp/go-multierror v1.1.1
+	github.com/joho/godotenv v1.4.0
 	github.com/kairos-io/kairos v1.5.0
 	github.com/moby/sys/mountinfo v0.5.0
 	github.com/onsi/ginkgo/v2 v2.7.1
@@ -29,8 +31,6 @@ require (
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/gookit/color v1.5.2 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
-	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/joho/godotenv v1.4.0 // indirect
 	github.com/kendru/darwin/go/depgraph v0.0.0-20221105232959-877d6a81060c // indirect
 	github.com/lithammer/fuzzysearch v1.1.5 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect

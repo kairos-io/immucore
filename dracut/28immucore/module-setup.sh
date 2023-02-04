@@ -23,7 +23,6 @@ install() {
     declare moddir=${moddir}
     declare systemdutildir=${systemdutildir}
     declare systemdsystemunitdir=${systemdsystemunitdir}
-    declare initdir="${initdir}"
 
     inst_multiple \
         immucore
