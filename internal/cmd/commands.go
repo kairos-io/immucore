@@ -23,10 +23,10 @@ Sends a generic event payload with the configuration found in the scanned direct
 		Aliases: []string{},
 		Flags:   []cli.Flag{},
 		Action: func(c *cli.Context) error {
-			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
 			g := herd.DAG()
 
-			s := &mount.State{Rootdir: "/"}
+			s := &mount.State{Logger: log.Logger, Rootdir: "/"}
 
 			s.Register(g)
 
