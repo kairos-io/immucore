@@ -29,8 +29,8 @@ oem_label=$(getarg rd.cos.oemlabel=)
     echo "After=sysroot.mount"
     echo "[Service]"
     echo "Type=oneshot"
-    echo "RemainAfterExit=no"
-    echo "ExecStart=/usr/bin/immucore start"
+    echo "RemainAfterExit=yes"
+    echo "ExecStart=/usr/bin/immucore start --dry-run"
 } > "$GENERATOR_DIR"/immucore.service
 
 

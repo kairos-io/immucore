@@ -203,8 +203,11 @@ func (s *State) Register(g *herd.Graph) error {
 				func(ctx context.Context) error {
 					log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
 					cmd := fmt.Sprintf("losetup --show -f %s", s.path("/run/initramfs/cos-state", s.TargetImage))
-					log.Logger.Debug().Str("targetImage", s.TargetImage).Str("fullcmd", cmd).Msg("Mounting image")
+					log.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("fullcmd", cmd).Msg("Mounting image")
 					_, err := utils.SH(cmd)
+					if err != nil {
+						log.Logger.Debug().Err(err).Msg("")
+					}
 					return err
 				},
 			))
@@ -238,14 +241,14 @@ func (s *State) Register(g *herd.Graph) error {
 				s.MountOP(
 					fmt.Sprintf("/dev/disk/by-label/%s", s.TargetLabel),
 					s.Rootdir,
-					"ext2", // are images always ext2?
+					"ext4", // are images always ext2?
 					[]string{
 						"ro", // or rw
 						"suid",
 						"dev",
 						"exec",
 						"auto",
-						"nouser",
+						//"nouser",
 						"async",
 					}, 60*time.Second),
 			),
