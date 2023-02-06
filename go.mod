@@ -14,6 +14,7 @@ require (
 	github.com/rs/zerolog v1.29.0
 	github.com/spectrocloud-labs/herd v0.3.0
 	github.com/twpayne/go-vfs v1.7.2
+	github.com/twpayne/go-vfs/v4 v4.1.0
 	github.com/urfave/cli/v2 v2.24.3
 )
 
