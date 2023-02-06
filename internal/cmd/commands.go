@@ -9,7 +9,6 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spectrocloud-labs/herd"
-	"github.com/twpayne/go-vfs"
 	"github.com/urfave/cli/v2"
 )
 
@@ -33,9 +32,13 @@ Sends a generic event payload with the configuration found in the scanned direct
 		Action: func(c *cli.Context) (err error) {
 			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
 			g := herd.DAG()
-			s := &mount.State{Logger: log.Logger, Rootdir: "/"}
-
-			fs := vfs.OSFS
+			s := &mount.State{
+				Logger:      log.Logger,
+				Rootdir:     utils.GetRootDir(),
+				MountRoot:   true,
+				TargetLabel: utils.BootStateToLabel(),
+				TargetImage: utils.BootStateToImage(),
+			}
 
 			err = s.Register(g)
 			if err != nil {
@@ -49,7 +52,7 @@ Sends a generic event payload with the configuration found in the scanned direct
 				return err
 			}
 
-			cdBoot, err := utils.BootedFromCD(fs)
+			cdBoot, err := utils.BootedFromCD()
 			if err != nil {
 				s.Logger.Err(err)
 				return err

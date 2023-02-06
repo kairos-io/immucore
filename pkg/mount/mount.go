@@ -3,7 +3,9 @@ package mount
 import (
 	"context"
 	"fmt"
+	"github.com/kairos-io/kairos/sdk/state"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,6 +17,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/kairos-io/immucore/pkg/profile"
 	"github.com/kairos-io/kairos/pkg/utils"
+	"github.com/sanity-io/litter"
 	"github.com/spectrocloud-labs/herd"
 )
 
@@ -57,11 +60,13 @@ func (s *State) path(p ...string) string {
 }
 
 func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
 	return func(ctx context.Context) error {
 		for _, fst := range s.fstabs {
 			select {
 			case <-ctx.Done():
 			default:
+				log.Logger.Debug().Str("fstabline", litter.Sdump(fst)).Str("fstabfile", fstabFile).Msg("Writing fstab line")
 				f, err := os.OpenFile(fstabFile,
 					os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 				if err != nil {
@@ -73,6 +78,7 @@ func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 				if _, err := f.WriteString(toWrite); err != nil {
 					return err
 				}
+				log.Logger.Debug().Str("fstabline", litter.Sdump(fst)).Str("fstabfile", fstabFile).Msg("Done fstab line")
 			}
 		}
 		return nil
@@ -90,12 +96,21 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 }
 
 func (s *State) MountOP(what, where, t string, options []string, timeout time.Duration) func(context.Context) error {
-	s.Logger.Debug().Str("what", what).Str("where", where).Str("type", t)
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+
 	return func(c context.Context) error {
 		cc := time.After(timeout)
 		for {
 			select {
 			default:
+				if _, err := os.Stat(where); os.IsNotExist(err) {
+					log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Msg("Mount point does not exist, creating")
+					err = os.MkdirAll(where, os.ModeDir|os.ModePerm)
+					if err != nil {
+						log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Err(err).Msg("")
+						continue
+					}
+				}
 				time.Sleep(1 * time.Second)
 				mountPoint := mount.Mount{
 					Type:    t,
@@ -112,16 +127,21 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 
 				err := op.run()
 				if err != nil {
+					log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Err(err).Msg("")
 					continue
 				}
 
 				s.fstabs = append(s.fstabs, tmpFstab)
-
+				log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Msg("Mounted")
 				return nil
 			case <-c.Done():
-				return fmt.Errorf("context canceled")
+				e := fmt.Errorf("context canceled")
+				log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Err(e).Msg("")
+				return e
 			case <-cc:
-				return fmt.Errorf("timeout exhausted")
+				e := fmt.Errorf("timeout exhausted")
+				log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Err(e).Msg("")
+				return e
 			}
 		}
 	}
@@ -162,6 +182,11 @@ func readEnv(file string) (map[string]string, error) {
 func (s *State) Register(g *herd.Graph) error {
 	var err error
 
+	runtime, err := state.NewRuntime()
+	if err != nil {
+		return err
+	}
+
 	// TODO: add hooks, fstab (might have missed some), systemd compat
 	// TODO: We should also set tmpfs here (not -related)
 
@@ -177,7 +202,10 @@ func (s *State) Register(g *herd.Graph) error {
 			herd.WithDeps(opMountState),
 			herd.WithCallback(
 				func(ctx context.Context) error {
-					_, err := utils.SH(fmt.Sprintf("losetup --show -f /run/initramfs/cos-state%s", s.TargetImage))
+					log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+					cmd := fmt.Sprintf("losetup --show -f /run/initramfs/cos-state%s", s.TargetImage)
+					log.Logger.Debug().Str("targetImage", s.TargetImage).Str("fullcmd", cmd).Msg("Mounting image")
+					_, err := utils.SH(cmd)
 					return err
 				},
 			))
@@ -186,13 +214,14 @@ func (s *State) Register(g *herd.Graph) error {
 		}
 
 		// mount the state partition so to find the loopback device
+		// Itxaka: what if its recovery?
 		s.Logger.Debug().Str("what", opMountState).Msg("Add operation")
 		err = g.Add(opMountState,
 			herd.WithCallback(
 				s.MountOP(
-					"/dev/disk/by-label/COS_STATE",
+					runtime.State.Name,
 					s.path("/run/initramfs/cos-state"),
-					"auto",
+					runtime.State.Type,
 					[]string{
 						"ro", // or rw
 					}, 60*time.Second),
@@ -210,7 +239,7 @@ func (s *State) Register(g *herd.Graph) error {
 				s.MountOP(
 					fmt.Sprintf("/dev/disk/by-label/%s", s.TargetLabel),
 					s.Rootdir,
-					"auto",
+					"ext2", // are images always ext2?
 					[]string{
 						"ro", // or rw
 						"suid",
@@ -247,12 +276,12 @@ func (s *State) Register(g *herd.Graph) error {
 	err = g.Add(opLoadConfig,
 		herd.WithDeps(opRootfsHook),
 		herd.WithCallback(func(ctx context.Context) error {
-
+			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
 			env, err := readEnv("/run/cos-layout.env")
 			if err != nil {
 				return err
 			}
-
+			log.Logger.Debug().Str("envfile", litter.Sdump(env)).Msg("loading cos layout")
 			// populate from env here
 			s.OverlayDir = strings.Split(env["RW_PATHS"], " ")
 
@@ -383,9 +412,9 @@ func (s *State) Register(g *herd.Graph) error {
 		mountRootCondition,
 		herd.WithCallback(
 			s.MountOP(
-				"/dev/disk/by-label/COS_OEM",
+				runtime.OEM.Label,
 				s.path("/oem"),
-				"auto",
+				runtime.OEM.Type,
 				[]string{
 					"rw",
 					"suid",
@@ -394,7 +423,7 @@ func (s *State) Register(g *herd.Graph) error {
 					"noauto",
 					"nouser",
 					"async",
-				}, 60*time.Second),
+				}, 10*time.Second),
 		),
 	)
 	if err != nil {
