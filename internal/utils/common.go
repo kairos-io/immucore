@@ -1,20 +1,15 @@
 package utils
 
 import (
-	"regexp"
-
+	"github.com/kairos-io/kairos/sdk/state"
 	"github.com/twpayne/go-vfs"
 )
 
-func BootedFromCD(fs vfs.FS) bool {
-	cdlabel := regexp.MustCompile("root=live:CDLABEL=")
-	cmdLine, err := fs.ReadFile("/proc/cmdline")
+func BootedFromCD(fs vfs.FS) (bool, error) {
+	runtime, err := state.NewRuntime()
 	if err != nil {
-		return false
+		return false, err
 	}
 
-	if cdlabel.MatchString(string(cmdLine)) {
-		return true
-	}
-	return false
+	return runtime.BootState == state.LiveCD, nil
 }

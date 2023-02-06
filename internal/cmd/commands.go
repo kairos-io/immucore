@@ -49,9 +49,15 @@ Sends a generic event payload with the configuration found in the scanned direct
 				return err
 			}
 
-			if utils.BootedFromCD(fs) {
-				log.Info().Msg("Seems we booted from CD, doing nothing. Bye!")
+			cdBoot, err := utils.BootedFromCD(fs)
+			if err != nil {
+				s.Logger.Err(err)
 				return err
+			}
+
+			if cdBoot {
+				log.Info().Msg("Seems we booted from CD, doing nothing. Bye!")
+				return nil
 			}
 
 			log.Print("Calling dag")
