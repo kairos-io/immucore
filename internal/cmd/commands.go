@@ -8,10 +8,10 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spectrocloud-labs/herd"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
-var Commands = []cli.Command{
+var Commands = []*cli.Command{
 
 	{
 		Name:      "start",
@@ -22,9 +22,9 @@ Sends a generic event payload with the configuration found in the scanned direct
 `,
 		Aliases: []string{},
 		Flags: []cli.Flag{
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name:     "dry-run",
-				EnvVar:   "IMMUCORE_DRY_RUN",
+				EnvVars:  []string{"IMMUCORE_DRY_RUN"},
 				Required: false,
 			},
 		},
