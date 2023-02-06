@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -20,4 +21,20 @@ func ParseMount(s string) string {
 	default:
 		return s
 	}
+}
+
+func ReadCMDLineArg(arg string) []string {
+	cmdLine, err := os.ReadFile("/proc/cmdline")
+	if err != nil {
+		return []string{}
+	}
+	res := []string{}
+	fields := strings.Fields(string(cmdLine))
+	for _, f := range fields {
+		if strings.HasPrefix(f, arg) {
+			dat := strings.Split(f, arg)
+			res = append(res, dat[1])
+		}
+	}
+	return res
 }

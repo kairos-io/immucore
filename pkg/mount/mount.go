@@ -272,16 +272,17 @@ func (s *State) Register(g *herd.Graph) error {
 			// https://github.com/kairos-io/packages/blob/7c3581a8ba6371e5ce10c3a98bae54fde6a505af/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-generator.sh#L71
 			// https://github.com/kairos-io/packages/blob/7c3581a8ba6371e5ce10c3a98bae54fde6a505af/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L80
 
-			for _, v := range strings.Split(env["VOLUMES"], " ") {
-				mountLine := internalUtils.ParseMount(v)
-				dat := strings.Split(mountLine, ":")
+			addLine := func(d string) {
+				dat := strings.Split(d, ":")
 				if len(dat) == 2 {
 					disk := dat[0]
 					path := dat[1]
 					s.CustomMounts[disk] = path
 				}
 			}
-			// TODO CMDLINE
+			for _, v := range append(internalUtils.ReadCMDLineArg("rd.cos.mount="), strings.Split(env["VOLUMES"], " ")...) {
+				addLine(internalUtils.ParseMount(v))
+			}
 
 			return nil
 		}))
