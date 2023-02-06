@@ -11,7 +11,6 @@ import (
 
 	"github.com/containerd/containerd/mount"
 	"github.com/deniswernert/go-fstab"
-	"github.com/kairos-io/immucore/pkg/profile"
 	"github.com/kairos-io/kairos/pkg/utils"
 	"github.com/moby/sys/mountinfo"
 )
@@ -37,8 +36,7 @@ func appendSlash(path string) string {
 }
 
 // https://github.com/kairos-io/packages/blob/94aa3bef3d1330cb6c6905ae164f5004b6a58b8c/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L129
-func baseOverlay(overlay profile.Overlay) (mountOperation, error) {
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+func baseOverlay(overlay Overlay) (mountOperation, error) {
 	if err := os.MkdirAll(overlay.Base, 0700); err != nil {
 		return mountOperation{}, err
 	}

@@ -3,19 +3,19 @@ package mount
 import (
 	"context"
 	"fmt"
-	"github.com/kairos-io/kairos/sdk/state"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/rs/zerolog"
+  "github.com/rs/zerolog/log"
+	"github.com/kairos-io/kairos/sdk/state"
 	"github.com/containerd/containerd/mount"
 	"github.com/deniswernert/go-fstab"
 	"github.com/hashicorp/go-multierror"
 	"github.com/joho/godotenv"
-	"github.com/kairos-io/immucore/pkg/profile"
+	internalUtils "github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/kairos/pkg/utils"
 	"github.com/sanity-io/litter"
 	"github.com/spectrocloud-labs/herd"
@@ -290,8 +290,29 @@ func (s *State) Register(g *herd.Graph) error {
 			// TODO: PERSISTENT_STATE_TARGET /usr/local/.state
 			s.BindMounts = strings.Split(env["PERSISTENT_STATE_PATHS"], " ")
 
-			// TODO: this needs to be parsed
-			//	s.CustomMounts = strings.Split(env["VOLUMES"], " ")
+			s.StateDir = env["PERSISTENT_STATE_TARGET"]
+			if s.StateDir == "" {
+				s.StateDir = "/usr/local/.state"
+			}
+
+			// s.CustomMounts is special:
+			// It gets parsed by the cmdline (TODO)
+			// and from the env var
+			// https://github.com/kairos-io/packages/blob/7c3581a8ba6371e5ce10c3a98bae54fde6a505af/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-generator.sh#L71
+			// https://github.com/kairos-io/packages/blob/7c3581a8ba6371e5ce10c3a98bae54fde6a505af/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L80
+
+			addLine := func(d string) {
+				dat := strings.Split(d, ":")
+				if len(dat) == 2 {
+					disk := dat[0]
+					path := dat[1]
+					s.CustomMounts[disk] = path
+				}
+			}
+			for _, v := range append(internalUtils.ReadCMDLineArg("rd.cos.mount="), strings.Split(env["VOLUMES"], " ")...) {
+				addLine(internalUtils.ParseMount(v))
+			}
+
 			return nil
 		}))
 	if err != nil {
@@ -305,7 +326,7 @@ func (s *State) Register(g *herd.Graph) error {
 		err = g.Add(opMountBaseOverlay,
 			herd.WithCallback(
 				func(ctx context.Context) error {
-					op, err := baseOverlay(profile.Overlay{
+					op, err := baseOverlay(Overlay{
 						Base:        "/run/overlay",
 						BackingBase: "tmpfs:20%",
 					})

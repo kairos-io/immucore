@@ -1,4 +1,4 @@
-package profile
+package mount
 
 type Layout struct {
 	Overlay  Overlay
