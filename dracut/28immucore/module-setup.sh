@@ -24,8 +24,9 @@ install() {
     declare systemdutildir=${systemdutildir}
     declare systemdsystemunitdir=${systemdsystemunitdir}
 
+    # Add missing elemental binary, drop once we get yip lib inside immucore as its only needed to run the stages
     inst_multiple \
-        immucore
+        immucore elemental
 
     inst_script "${moddir}/generator.sh" \
         "${systemdutildir}/system-generators/immucore-generator"

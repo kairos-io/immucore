@@ -10,6 +10,9 @@ ARG ISO_NAME=$FLAVOR-immucore
 ARG GO_VERSION=1.18
 ARG GOLINT_VERSION=v1.47.3
 
+# (DEBUGGING) Remove the cos immutable rootfs dracut module
+ARG REMOVE_COS_MODULE
+
 version:
     FROM alpine
     RUN apk add git
@@ -55,7 +58,10 @@ build-immucore:
     COPY +version/VERSION ./
     ARG VERSION=$(cat VERSION)
     WORKDIR /work
-    COPY . /work
+    COPY go.mod go.sum /work
+    COPY main.go /work
+    COPY --dir internal /work
+    COPY --dir pkg /work
     RUN CGO_ENABLED=0 go build -o immucore -ldflags "-X main.Version=$VERSION"
     SAVE ARTIFACT /work/immucore AS LOCAL build/immucore-$VERSION
 
@@ -63,16 +69,23 @@ build-dracut:
     FROM $BASE_IMAGE
     COPY +version/VERSION ./
     ARG VERSION=$(cat VERSION)
-    COPY . /work
+    ARG REMOVE_COS_MODULE
     COPY +build-immucore/immucore /usr/bin/immucore
-    WORKDIR /work
-    RUN cp -r dracut/28immucore /usr/lib/dracut/modules.d
-    RUN cp dracut/dracut.conf /etc/dracut.conf.d/10-immucore.conf
+    COPY --dir dracut/28immucore /usr/lib/dracut/modules.d/
+    COPY dracut/dracut.conf /etc/dracut.conf.d/10-immucore.conf
+    IF [ "$REMOVE_COS_MODULE" != "" ]
+        RUN rm -Rf /usr/lib/dracut/modules.d/30cos-immutable-rootfs/
+        RUN rm /etc/dracut.conf.d/02-cos-immutable-rootfs.conf
+    END
     RUN kernel=$(ls /lib/modules | head -n1) && \
         dracut -f "/boot/initrd-${kernel}" "${kernel}" && \
         ln -sf "initrd-${kernel}" /boot/initrd
     ARG INITRD=$(readlink -f /boot/initrd)
     SAVE ARTIFACT $INITRD Initrd AS LOCAL build/initrd-$VERSION
+
+elemental:
+    FROM $OSBUILDER_IMAGE
+    SAVE ARTIFACT --keep-own /usr/bin/elemental elemental
 
 image:
     FROM $BASE_IMAGE
@@ -82,6 +95,7 @@ image:
     COPY +build-dracut/Initrd $INITRD
     # For initrd use
     COPY +build-immucore/immucore /usr/bin/immucore
+    COPY +elemental/elemental /usr/bin/elemental
     RUN ln -s /usr/lib/systemd/systemd /init
     SAVE IMAGE $FLAVOR-immucore:$VERSION
 
