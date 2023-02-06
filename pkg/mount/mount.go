@@ -8,15 +8,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rs/zerolog"
-  "github.com/rs/zerolog/log"
-	"github.com/kairos-io/kairos/sdk/state"
 	"github.com/containerd/containerd/mount"
 	"github.com/deniswernert/go-fstab"
 	"github.com/hashicorp/go-multierror"
 	"github.com/joho/godotenv"
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/kairos/pkg/utils"
+	"github.com/kairos-io/kairos/sdk/state"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/sanity-io/litter"
 	"github.com/spectrocloud-labs/herd"
 )
@@ -247,7 +247,7 @@ func (s *State) Register(g *herd.Graph) error {
 						"suid",
 						"dev",
 						"exec",
-						"auto",
+						// "auto",
 						//"nouser",
 						"async",
 					}, 60*time.Second),
