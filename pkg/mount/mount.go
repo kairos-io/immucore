@@ -87,9 +87,11 @@ func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 // ln -sf -t / /sysroot/system
 func (s *State) RunStageOp(stage string) func(context.Context) error {
 	return func(ctx context.Context) error {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
 		cmd := fmt.Sprintf("elemental run-stage %s", stage)
-		s.Logger.Debug().Str("cmd", cmd)
-		_, err := utils.SH(cmd)
+		log.Logger.Debug().Str("cmd", cmd).Msg("")
+		output, err := utils.SH(cmd)
+		log.Logger.Debug().Str("output", output).Msg("")
 		return err
 	}
 }
@@ -183,8 +185,10 @@ func (s *State) Register(g *herd.Graph) error {
 
 	runtime, err := state.NewRuntime()
 	if err != nil {
+		s.Logger.Debug().Err(err).Msg("")
 		return err
 	}
+	s.Logger.Debug().Str("state", litter.Sdump(runtime)).Msg("Register")
 
 	// TODO: add hooks, fstab (might have missed some), systemd compat
 	// TODO: We should also set tmpfs here (not -related)
@@ -250,7 +254,7 @@ func (s *State) Register(g *herd.Graph) error {
 						// "auto",
 						//"nouser",
 						"async",
-					}, 60*time.Second),
+					}, 10*time.Second),
 			),
 		)
 		if err != nil {
@@ -389,7 +393,7 @@ func (s *State) Register(g *herd.Graph) error {
 					[]string{
 						"ro", // or rw
 					},
-					60*time.Second,
+					10*time.Second,
 				)(ctx))
 
 			}
@@ -435,7 +439,7 @@ func (s *State) Register(g *herd.Graph) error {
 		mountRootCondition,
 		herd.WithCallback(
 			s.MountOP(
-				runtime.OEM.Label,
+				runtime.OEM.Name,
 				s.path("/oem"),
 				runtime.OEM.Type,
 				[]string{
@@ -443,8 +447,8 @@ func (s *State) Register(g *herd.Graph) error {
 					"suid",
 					"dev",
 					"exec",
-					"noauto",
-					"nouser",
+					//"noauto",
+					//"nouser",
 					"async",
 				}, 10*time.Second),
 		),

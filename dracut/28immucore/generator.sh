@@ -1,32 +1,26 @@
 #!/bin/bash
 
+set +x
+
 type getarg >/dev/null 2>&1 || . /lib/dracut-lib.sh
 
 GENERATOR_DIR="$2"
-
 [ -z "$GENERATOR_DIR" ] && exit 1
 [ -d "$GENERATOR_DIR" ] || mkdir "$GENERATOR_DIR"
 
-# See https://github.com/kairos-io/packages/blob/d12b12b043a71d8471454f7b4fc84c3181d2bf60/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-generator.sh#L29
+
+## GENERATE SYSROOT
+cos_img=$(getarg cos-img/filename=)
+[ -z "${cos_img}" ] && exit 0
+
 {
     echo "[Unit]"
+    echo "Before=initrd-root-fs.target"
     echo "DefaultDependencies=no"
-    echo "Before=initrd-fs.target"
-    echo "Conflicts=initrd-switch-root.target"
-    echo "Requires=initrd-root-fs.target"
-    echo "After=initrd-root-fs.target cos-setup-rootfs.service"
-    echo "[Service]"
-    echo "Type=oneshot"
-    echo "RemainAfterExit=yes"
-    echo "ExecStart=/usr/bin/immucore start"
+    echo "[Mount]"
+    echo "Where=/sysroot"
+    echo "What=/run/initramfs/cos-state/${cos_img#/}"
+    echo "Options=ro,suid,dev,exec,auto,nouser,async"
+} > "$GENERATOR_DIR"/sysroot.mount
 
-    echo "[Install]"
-    echo "RequiredBy=initrd-fs.target"
-} > "$GENERATOR_DIR"/immucore.service
-
-
-if [ ! -e "$GENERATOR_DIR/initrd-fs.target.requires/immucore.service" ]; then
-    mkdir -p "$GENERATOR_DIR"/initrd-fs.target.requires
-    ln -s "$GENERATOR_DIR"/immucore.service \
-        "$GENERATOR_DIR"/initrd-fs.target.requires/immucore.service
-fi
+## END GENERATE SYSROOT

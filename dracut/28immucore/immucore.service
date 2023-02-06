@@ -1,0 +1,14 @@
+[Unit]
+Description=immucore
+DefaultDependencies=no
+After=systemd-udev-settle.service
+Requires=systemd-udev-settle.service
+Before=dracut-initqueue.service
+Conflicts=initrd-switch-root.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+StandardOutput=journal+console
+ExecStartPre=-/usr/bin/systemctl stop oem.mount
+ExecStart=/usr/bin/immucore start

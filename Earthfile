@@ -55,14 +55,16 @@ lint:
 
 build-immucore:
     FROM +golang-image
-    COPY +version/VERSION ./
-    ARG VERSION=$(cat VERSION)
     WORKDIR /work
     COPY go.mod go.sum /work
     COPY main.go /work
     COPY --dir internal /work
     COPY --dir pkg /work
-    RUN CGO_ENABLED=0 go build -o immucore -ldflags "-X internal/version.Version=$VERSION"
+    COPY +version/VERSION ./
+    ARG VERSION=$(cat VERSION)
+    ARG LDFLAGS="-s -w -X github.com/kairos-io/immucore/internal/version.Version=$VERSION"
+    RUN echo ${LDFLAGS}
+    RUN CGO_ENABLED=0 go build -o immucore -ldflags "${LDFLAGS}"
     SAVE ARTIFACT /work/immucore AS LOCAL build/immucore-$VERSION
 
 build-dracut:
