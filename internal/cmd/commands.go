@@ -1,13 +1,15 @@
 package cmd
 
 import (
+	"context"
 	"os"
 
+	"github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/immucore/pkg/mount"
-
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spectrocloud-labs/herd"
+	"github.com/twpayne/go-vfs"
 	"github.com/urfave/cli/v2"
 )
 
@@ -31,8 +33,9 @@ Sends a generic event payload with the configuration found in the scanned direct
 		Action: func(c *cli.Context) (err error) {
 			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
 			g := herd.DAG()
-
 			s := &mount.State{Logger: log.Logger, Rootdir: "/"}
+
+			fs := vfs.OSFS
 
 			err = s.Register(g)
 			if err != nil {
@@ -46,9 +49,13 @@ Sends a generic event payload with the configuration found in the scanned direct
 				return err
 			}
 
-			//log.Print("Calling dag")
-			//return g.Run(context.Background())
-			return err
+			if utils.BootedFromCD(fs) {
+				log.Info().Msg("Seems we booted from CD, doing nothing. Bye!")
+				return err
+			}
+
+			log.Print("Calling dag")
+			return g.Run(context.Background())
 		},
 	},
 }
