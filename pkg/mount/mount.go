@@ -33,7 +33,6 @@ type State struct {
 	CustomMounts map[string]string // e.g. diskid : mountpoint
 
 	StateDir  string // e.g. "/usr/local/.state"
-	FStabFile string // e.g. /etc/fstab
 	MountRoot bool   // e.g. if true, it tries to find the image to loopback mount
 
 	fstabs []*fstab.Mount
@@ -203,7 +202,7 @@ func (s *State) Register(g *herd.Graph) error {
 			herd.WithCallback(
 				func(ctx context.Context) error {
 					log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
-					cmd := fmt.Sprintf("losetup --show -f /run/initramfs/cos-state%s", s.TargetImage)
+					cmd := fmt.Sprintf("losetup --show -f %s", s.path("/run/initramfs/cos-state", s.TargetImage))
 					log.Logger.Debug().Str("targetImage", s.TargetImage).Str("fullcmd", cmd).Msg("Mounting image")
 					_, err := utils.SH(cmd)
 					return err
@@ -435,7 +434,7 @@ func (s *State) Register(g *herd.Graph) error {
 		mountRootCondition,
 		herd.WithDeps(opMountOEM, opCustomMounts, opMountBind, opOverlayMount),
 		herd.WeakDeps,
-		herd.WithCallback(s.WriteFstab(s.FStabFile)))
+		herd.WithCallback(s.WriteFstab(s.path("/etc/fstab"))))
 	if err != nil {
 		s.Logger.Err(err)
 	}
