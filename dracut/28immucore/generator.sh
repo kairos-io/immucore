@@ -33,6 +33,9 @@ oem_label=$(getarg rd.cos.oemlabel=)
     echo "Type=oneshot"
     echo "RemainAfterExit=yes"
     echo "ExecStart=/usr/bin/immucore start"
+
+    echo "[Install]"
+    echo "RequiredBy=initrd-fs.target"
 } > "$GENERATOR_DIR"/immucore.service
 
 
