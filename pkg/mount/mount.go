@@ -14,6 +14,8 @@ import (
 	"github.com/deniswernert/go-fstab"
 	"github.com/hashicorp/go-multierror"
 	"github.com/joho/godotenv"
+	internalUtils "github.com/kairos-io/immucore/internal/utils"
+
 	"github.com/kairos-io/kairos/pkg/utils"
 	"github.com/spectrocloud-labs/herd"
 )
@@ -259,8 +261,28 @@ func (s *State) Register(g *herd.Graph) error {
 			// TODO: PERSISTENT_STATE_TARGET /usr/local/.state
 			s.BindMounts = strings.Split(env["PERSISTENT_STATE_PATHS"], " ")
 
-			// TODO: this needs to be parsed
-			//	s.CustomMounts = strings.Split(env["VOLUMES"], " ")
+			s.StateDir = env["PERSISTENT_STATE_TARGET"]
+			if s.StateDir == "" {
+				s.StateDir = "/usr/local/.state"
+			}
+
+			// s.CustomMounts is special:
+			// It gets parsed by the cmdline (TODO)
+			// and from the env var
+			// https://github.com/kairos-io/packages/blob/7c3581a8ba6371e5ce10c3a98bae54fde6a505af/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-generator.sh#L71
+			// https://github.com/kairos-io/packages/blob/7c3581a8ba6371e5ce10c3a98bae54fde6a505af/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L80
+
+			for _, v := range strings.Split(env["VOLUMES"], " ") {
+				mountLine := internalUtils.ParseMount(v)
+				dat := strings.Split(mountLine, ":")
+				if len(dat) == 2 {
+					disk := dat[0]
+					path := dat[1]
+					s.CustomMounts[disk] = path
+				}
+			}
+			// TODO CMDLINE
+
 			return nil
 		}))
 	if err != nil {
