@@ -13,24 +13,16 @@ oem_label=$(getarg rd.cos.oemlabel=)
 {
     echo "[Unit]"
     echo "DefaultDependencies=no"
-    echo "Before=cos-immutable-rootfs.service"
+    echo "After=initrd-root-fs.target"
+    echo "Requires=initrd-root-fs.target"
     echo "Conflicts=initrd-switch-root.target"
-    if getargbool 0 rd.neednet; then
-        echo "Wants=network-online.target"
-        echo "After=network-online.target"
-        echo "Description=immucore online mount"
-    else
-        echo "Description=immucore mount"
-    fi
-    # OEM is special as immucore plugins might need that in order to unlock other partitions and plugins can reside in /oem as well and immucore needs to find them
-    if [ -n "${oem_label}" ]; then
-        echo "After=oem.mount"
-    fi
-    echo "After=sysroot.mount"
     echo "[Service]"
     echo "Type=oneshot"
-    echo "RemainAfterExit=yes"
-    echo "ExecStart=/usr/bin/immucore start --dry-run"
+    echo "RemainAfterExit=no"
+    echo "ExecStart=/usr/bin/immucore start"
+
+    echo "[Install]"
+    echo "RequiredBy=initrd-fs.target"
 } > "$GENERATOR_DIR"/immucore.service
 
 
