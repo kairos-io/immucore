@@ -21,22 +21,34 @@ var Commands = []cli.Command{
 Sends a generic event payload with the configuration found in the scanned directories.
 `,
 		Aliases: []string{},
-		Flags:   []cli.Flag{},
-		Action: func(c *cli.Context) error {
+		Flags: []cli.Flag{
+			cli.BoolFlag{
+				Name:     "dry-run",
+				EnvVar:   "IMMUCORE_DRY_RUN",
+				Required: false,
+			},
+		},
+		Action: func(c *cli.Context) (err error) {
 			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
 			g := herd.DAG()
 
 			s := &mount.State{Logger: log.Logger, Rootdir: "/"}
 
-			err := s.Register(g)
+			err = s.Register(g)
 			if err != nil {
 				s.Logger.Err(err)
 				return err
 			}
 
 			log.Print(s.WriteDAG(g))
-			return err
+
+			if c.Bool("dry-run") {
+				return err
+			}
+
+			//log.Print("Calling dag")
 			//return g.Run(context.Background())
+			return err
 		},
 	},
 }
