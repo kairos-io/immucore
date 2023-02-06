@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/kairos-io/immucore/internal/version"
 	"os"
 
 	"github.com/kairos-io/immucore/internal/cmd"
@@ -23,6 +24,8 @@ func main() {
 
 		Commands: cmd.Commands,
 	}
+	
+	fmt.Println(version.Get())
 
 	err := app.Run(os.Args)
 	if err != nil {

@@ -2,6 +2,8 @@ package mount
 
 import (
 	"fmt"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -48,26 +50,26 @@ func baseOverlay(overlay Overlay) (mountOperation, error) {
 	t := dat[0]
 	switch t {
 	case "tmpfs":
-		tmpMount := mount.Mount{Type: "tmpfs", Source: "tmpfs", Options: []string{"defaults", fmt.Sprintf("size=%s", dat[1])}}
+		tmpMount := mount.Mount{Type: "tmpfs", Source: "tmpfs", Options: []string{fmt.Sprintf("size=%s", dat[1])}}
 		err := mount.All([]mount.Mount{tmpMount}, overlay.Base)
-		fstab := mountToStab(tmpMount)
-		fstab.File = overlay.BackingBase
+		tmpFstab := mountToStab(tmpMount)
+		tmpFstab.File = overlay.BackingBase
 		return mountOperation{
 			MountOption: tmpMount,
-			FstabEntry:  *fstab,
+			FstabEntry:  *tmpFstab,
 			Target:      overlay.Base,
 		}, err
 	case "block":
 		blockMount := mount.Mount{Type: "auto", Source: dat[1]}
 		err := mount.All([]mount.Mount{blockMount}, overlay.Base)
 
-		fstab := mountToStab(blockMount)
-		fstab.File = overlay.BackingBase
-		fstab.MntOps["default"] = ""
+		tmpFstab := mountToStab(blockMount)
+		tmpFstab.File = overlay.BackingBase
+		tmpFstab.MntOps["default"] = ""
 
 		return mountOperation{
 			MountOption: blockMount,
-			FstabEntry:  *fstab,
+			FstabEntry:  *tmpFstab,
 			Target:      overlay.Base,
 		}, err
 	default:
@@ -114,12 +116,12 @@ func mountBind(mountpoint, root, stateTarget string) (mountOperation, error) {
 			},
 		}
 
-		fstab := mountToStab(tmpMount)
-		fstab.File = fmt.Sprintf("/%s", mountpoint)
-		fstab.Spec = strings.ReplaceAll(fstab.Spec, root, "")
+		tmpFstab := mountToStab(tmpMount)
+		tmpFstab.File = fmt.Sprintf("/%s", mountpoint)
+		tmpFstab.Spec = strings.ReplaceAll(tmpFstab.Spec, root, "")
 		return mountOperation{
 			MountOption: tmpMount,
-			FstabEntry:  *fstab,
+			FstabEntry:  *tmpFstab,
 			Target:      rootMount,
 			PrepareCallback: func() error {
 				if err := createIfNotExists(rootMount); err != nil {
@@ -143,6 +145,8 @@ func syncState(src, dst string) error {
 
 // https://github.com/kairos-io/packages/blob/94aa3bef3d1330cb6c6905ae164f5004b6a58b8c/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L145
 func mountWithBaseOverlay(mountpoint, root, base string) (mountOperation, error) {
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+	log.Debug().Str("mountpoint", mountpoint).Str("root", root).Str("base", base).Msg("mount with base overlay")
 	mountpoint = strings.TrimLeft(mountpoint, "/") // normalize, remove / upfront as we are going to re-use it in subdirs
 	rootMount := filepath.Join(root, mountpoint)
 	bindMountPath := strings.ReplaceAll(mountpoint, "/", "-")
@@ -163,14 +167,14 @@ func mountWithBaseOverlay(mountpoint, root, base string) (mountOperation, error)
 			},
 		}
 
-		fstab := mountToStab(tmpMount)
-		fstab.File = rootMount
+		tmpFstab := mountToStab(tmpMount)
+		tmpFstab.File = rootMount
 
 		// TODO: update fstab with x-systemd info
 		// https://github.com/kairos-io/packages/blob/94aa3bef3d1330cb6c6905ae164f5004b6a58b8c/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L170
 		return mountOperation{
 			MountOption: tmpMount,
-			FstabEntry:  *fstab,
+			FstabEntry:  *tmpFstab,
 			Target:      rootMount,
 			PrepareCallback: func() error {
 				// Make sure workdir and/or upper exists

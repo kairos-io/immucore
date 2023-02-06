@@ -62,7 +62,7 @@ build-immucore:
     COPY main.go /work
     COPY --dir internal /work
     COPY --dir pkg /work
-    RUN CGO_ENABLED=0 go build -o immucore -ldflags "-X main.Version=$VERSION"
+    RUN CGO_ENABLED=0 go build -o immucore -ldflags "-X internal/version.Version=$VERSION"
     SAVE ARTIFACT /work/immucore AS LOCAL build/immucore-$VERSION
 
 build-dracut:

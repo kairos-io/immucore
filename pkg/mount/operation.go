@@ -18,5 +18,6 @@ func (m mountOperation) run() error {
 			return err
 		}
 	}
+
 	return mount.All([]mount.Mount{m.MountOption}, m.Target)
 }
