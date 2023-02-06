@@ -6,7 +6,7 @@ import (
 
 	"github.com/kairos-io/immucore/internal/cmd"
 
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 // Apply Immutability profiles.
@@ -14,7 +14,7 @@ func main() {
 	app := &cli.App{
 		Name:    "immucore",
 		Version: "0.1",
-		Author:  "Kairos authors",
+		Authors: []*cli.Author{{Name: "Kairos authors"}},
 		Usage:   "kairos agent start",
 		Description: `
 `,
