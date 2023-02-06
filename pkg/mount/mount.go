@@ -3,17 +3,17 @@ package mount
 import (
 	"context"
 	"fmt"
-	"github.com/rs/zerolog"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/rs/zerolog"
+
 	"github.com/containerd/containerd/mount"
 	"github.com/deniswernert/go-fstab"
 	"github.com/hashicorp/go-multierror"
 	"github.com/joho/godotenv"
-	"github.com/kairos-io/immucore/pkg/profile"
 	"github.com/kairos-io/kairos/pkg/utils"
 	"github.com/spectrocloud-labs/herd"
 )
@@ -274,7 +274,7 @@ func (s *State) Register(g *herd.Graph) error {
 		err = g.Add(opMountBaseOverlay,
 			herd.WithCallback(
 				func(ctx context.Context) error {
-					op, err := baseOverlay(profile.Overlay{
+					op, err := baseOverlay(Overlay{
 						Base:        "/run/overlay",
 						BackingBase: "tmpfs:20%",
 					})
