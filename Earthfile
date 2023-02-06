@@ -78,7 +78,7 @@ build-dracut:
         RUN rm /etc/dracut.conf.d/02-cos-immutable-rootfs.conf
     END
     RUN kernel=$(ls /lib/modules | head -n1) && \
-        dracut -f "/boot/initrd-${kernel}" "${kernel}" && \
+        dracut -v -f "/boot/initrd-${kernel}" "${kernel}" && \
         ln -sf "initrd-${kernel}" /boot/initrd
     ARG INITRD=$(readlink -f /boot/initrd)
     SAVE ARTIFACT $INITRD Initrd AS LOCAL build/initrd-$VERSION
