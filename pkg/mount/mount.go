@@ -88,7 +88,7 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 	return func(ctx context.Context) error {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
 		if stage == "rootfs" {
-			err := os.Symlink("/sysroot/system/", "/system/")
+			err := os.Symlink("/sysroot/system", "/system")
 			if err != nil {
 				s.Logger.Err(err).Msg("creating symlink")
 				return err
@@ -278,7 +278,7 @@ func (s *State) Register(g *herd.Graph) error {
 	// TODO: add symlink if Rootdir != ""
 	// TODO: chroot?
 	s.Logger.Debug().Str("what", opRootfsHook).Msg("Add operation")
-	err = g.Add(opRootfsHook, mountRootCondition, herd.WithDeps(opMountOEM), herd.WithCallback(s.RunStageOp("rootfs")))
+	err = g.Add(opRootfsHook, mountRootCondition, herd.WithDeps(opMountRoot), herd.WithCallback(s.RunStageOp("rootfs")))
 	if err != nil {
 		s.Logger.Err(err).Msg("")
 	}
