@@ -84,10 +84,17 @@ func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 	}
 }
 
-// ln -sf -t / /sysroot/system
 func (s *State) RunStageOp(stage string) func(context.Context) error {
 	return func(ctx context.Context) error {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+		if stage == "rootfs" {
+			err := os.Symlink("/sysroot/system/", "/system/")
+			if err != nil {
+				s.Logger.Err(err).Msg("creating symlink")
+				return err
+			}
+		}
+
 		cmd := fmt.Sprintf("elemental run-stage %s", stage)
 		log.Logger.Debug().Str("cmd", cmd).Msg("")
 		output, err := utils.SH(cmd)
@@ -273,7 +280,7 @@ func (s *State) Register(g *herd.Graph) error {
 	s.Logger.Debug().Str("what", opRootfsHook).Msg("Add operation")
 	err = g.Add(opRootfsHook, mountRootCondition, herd.WithDeps(opMountOEM), herd.WithCallback(s.RunStageOp("rootfs")))
 	if err != nil {
-		s.Logger.Err(err)
+		s.Logger.Err(err).Msg("")
 	}
 
 	// /run/cos-layout.env
