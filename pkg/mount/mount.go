@@ -274,24 +274,23 @@ func (s *State) Register(g *herd.Graph) error {
 	// This is building the mountRoot dependendency if it was enabled
 	mountRootCondition := herd.ConditionalOption(func() bool { return s.MountRoot }, herd.WithDeps(opMountRoot))
 
-	// TODO: this needs to be run after state is discovered
-	// TODO: add symlink if Rootdir != ""
-	// TODO: chroot?
+	// TODO: this needs to be run after sysroot so we can link to /sysroot/system/oem and after /oem mounted
 	s.Logger.Debug().Str("what", opRootfsHook).Msg("Add operation")
-	err = g.Add(opRootfsHook, mountRootCondition, herd.WithDeps(opMountRoot), herd.WithCallback(s.RunStageOp("rootfs")))
+	err = g.Add(opRootfsHook, mountRootCondition, herd.WithDeps(opMountRoot, opMountOEM), herd.WithCallback(s.RunStageOp("rootfs")))
 	if err != nil {
-		s.Logger.Err(err).Msg("")
+		s.Logger.Err(err).Msg("running rootfs stage")
 	}
 
-	// /run/cos-layout.env
+	// /run/cos/cos-layout.env
 	// populate state bindmounts, overlaymounts, custommounts
 	s.Logger.Debug().Str("what", opLoadConfig).Msg("Add operation")
 	err = g.Add(opLoadConfig,
 		herd.WithDeps(opRootfsHook),
 		herd.WithCallback(func(ctx context.Context) error {
 			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
-			env, err := readEnv("/run/cos-layout.env")
+			env, err := readEnv("/run/cos/cos-layout.env")
 			if err != nil {
+				s.Logger.Err(err).Msg("Reading env")
 				return err
 			}
 			log.Logger.Debug().Str("envfile", litter.Sdump(env)).Msg("loading cos layout")
