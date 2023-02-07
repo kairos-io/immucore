@@ -267,7 +267,7 @@ func (s *State) Register(g *herd.Graph) error {
 	// TODO: add symlink if Rootdir != ""
 	// TODO: chroot?
 	s.Logger.Debug().Str("what", opRootfsHook).Msg("Add operation")
-	err = g.Add(opRootfsHook, mountRootCondition, herd.WithDeps(opMountOEM), herd.WithCallback(s.RunStageOp("rootfs")))
+	err = g.Add(opRootfsHook, mountRootCondition, herd.WeakDeps, herd.WithDeps(opMountOEM), herd.WithCallback(s.RunStageOp("rootfs")))
 	if err != nil {
 		s.Logger.Err(err)
 	}
