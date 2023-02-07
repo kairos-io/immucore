@@ -288,9 +288,12 @@ func (s *State) Register(g *herd.Graph) error {
 		herd.WithDeps(opRootfsHook),
 		herd.WithCallback(func(ctx context.Context) error {
 			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+			if s.CustomMounts == nil {
+				s.CustomMounts = map[string]string{}
+			}
 			env, err := readEnv("/run/cos/cos-layout.env")
 			if err != nil {
-				s.Logger.Err(err).Msg("Reading env")
+				log.Logger.Err(err).Msg("Reading env")
 				return err
 			}
 			log.Logger.Debug().Str("envfile", litter.Sdump(env)).Msg("loading cos layout")
