@@ -55,14 +55,16 @@ lint:
 
 build-immucore:
     FROM +golang-image
-    COPY +version/VERSION ./
-    ARG VERSION=$(cat VERSION)
     WORKDIR /work
     COPY go.mod go.sum /work
     COPY main.go /work
     COPY --dir internal /work
     COPY --dir pkg /work
-    RUN CGO_ENABLED=0 go build -o immucore -ldflags "-X internal/version.Version=$VERSION"
+    COPY +version/VERSION ./
+    ARG VERSION=$(cat VERSION)
+    ARG LDFLAGS="-s -w -X github.com/kairos-io/immucore/internal/version.Version=$VERSION"
+    RUN echo ${LDFLAGS}
+    RUN CGO_ENABLED=0 go build -o immucore -ldflags "${LDFLAGS}"
     SAVE ARTIFACT /work/immucore AS LOCAL build/immucore-$VERSION
 
 build-dracut:
@@ -78,7 +80,7 @@ build-dracut:
         RUN rm /etc/dracut.conf.d/02-cos-immutable-rootfs.conf
     END
     RUN kernel=$(ls /lib/modules | head -n1) && \
-        dracut -f "/boot/initrd-${kernel}" "${kernel}" && \
+        dracut -v -f "/boot/initrd-${kernel}" "${kernel}" && \
         ln -sf "initrd-${kernel}" /boot/initrd
     ARG INITRD=$(readlink -f /boot/initrd)
     SAVE ARTIFACT $INITRD Initrd AS LOCAL build/initrd-$VERSION

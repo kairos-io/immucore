@@ -84,12 +84,21 @@ func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 	}
 }
 
-// ln -sf -t / /sysroot/system
 func (s *State) RunStageOp(stage string) func(context.Context) error {
 	return func(ctx context.Context) error {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+		if stage == "rootfs" {
+			err := os.Symlink("/sysroot/system", "/system")
+			if err != nil {
+				s.Logger.Err(err).Msg("creating symlink")
+				return err
+			}
+		}
+
 		cmd := fmt.Sprintf("elemental run-stage %s", stage)
-		s.Logger.Debug().Str("cmd", cmd)
-		_, err := utils.SH(cmd)
+		log.Logger.Debug().Str("cmd", cmd).Msg("")
+		output, err := utils.SH(cmd)
+		log.Logger.Debug().Str("output", output).Msg("")
 		return err
 	}
 }
@@ -183,8 +192,10 @@ func (s *State) Register(g *herd.Graph) error {
 
 	runtime, err := state.NewRuntime()
 	if err != nil {
+		s.Logger.Debug().Err(err).Msg("")
 		return err
 	}
+	s.Logger.Debug().Str("state", litter.Sdump(runtime)).Msg("Register")
 
 	// TODO: add hooks, fstab (might have missed some), systemd compat
 	// TODO: We should also set tmpfs here (not -related)
@@ -250,7 +261,7 @@ func (s *State) Register(g *herd.Graph) error {
 						// "auto",
 						//"nouser",
 						"async",
-					}, 60*time.Second),
+					}, 10*time.Second),
 			),
 		)
 		if err != nil {
@@ -263,24 +274,26 @@ func (s *State) Register(g *herd.Graph) error {
 	// This is building the mountRoot dependendency if it was enabled
 	mountRootCondition := herd.ConditionalOption(func() bool { return s.MountRoot }, herd.WithDeps(opMountRoot))
 
-	// TODO: this needs to be run after state is discovered
-	// TODO: add symlink if Rootdir != ""
-	// TODO: chroot?
+	// TODO: this needs to be run after sysroot so we can link to /sysroot/system/oem and after /oem mounted
 	s.Logger.Debug().Str("what", opRootfsHook).Msg("Add operation")
-	err = g.Add(opRootfsHook, mountRootCondition, herd.WithDeps(opMountOEM), herd.WithCallback(s.RunStageOp("rootfs")))
+	err = g.Add(opRootfsHook, mountRootCondition, herd.WithDeps(opMountRoot, opMountOEM), herd.WithCallback(s.RunStageOp("rootfs")))
 	if err != nil {
-		s.Logger.Err(err)
+		s.Logger.Err(err).Msg("running rootfs stage")
 	}
 
-	// /run/cos-layout.env
+	// /run/cos/cos-layout.env
 	// populate state bindmounts, overlaymounts, custommounts
 	s.Logger.Debug().Str("what", opLoadConfig).Msg("Add operation")
 	err = g.Add(opLoadConfig,
 		herd.WithDeps(opRootfsHook),
 		herd.WithCallback(func(ctx context.Context) error {
 			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
-			env, err := readEnv("/run/cos-layout.env")
+			if s.CustomMounts == nil {
+				s.CustomMounts = map[string]string{}
+			}
+			env, err := readEnv("/run/cos/cos-layout.env")
 			if err != nil {
+				log.Logger.Err(err).Msg("Reading env")
 				return err
 			}
 			log.Logger.Debug().Str("envfile", litter.Sdump(env)).Msg("loading cos layout")
@@ -389,7 +402,7 @@ func (s *State) Register(g *herd.Graph) error {
 					[]string{
 						"ro", // or rw
 					},
-					60*time.Second,
+					10*time.Second,
 				)(ctx))
 
 			}
@@ -435,7 +448,7 @@ func (s *State) Register(g *herd.Graph) error {
 		mountRootCondition,
 		herd.WithCallback(
 			s.MountOP(
-				runtime.OEM.Label,
+				runtime.OEM.Name,
 				s.path("/oem"),
 				runtime.OEM.Type,
 				[]string{
@@ -443,8 +456,8 @@ func (s *State) Register(g *herd.Graph) error {
 					"suid",
 					"dev",
 					"exec",
-					"noauto",
-					"nouser",
+					//"noauto",
+					//"nouser",
 					"async",
 				}, 10*time.Second),
 		),
