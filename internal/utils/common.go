@@ -43,7 +43,7 @@ func BootStateToImage() string {
 	case "passive_boot":
 		return "/cOS/passive.img"
 	case "recovery_boot":
-		return "/recovery.img"
+		return "/cOS/recovery.img"
 	default:
 		return ""
 	}
