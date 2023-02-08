@@ -231,12 +231,20 @@ func (s *State) Register(g *herd.Graph) error {
 		// mount the state partition so to find the loopback device
 		// Itxaka: what if its recovery?
 		s.Logger.Debug().Str("what", opMountState).Msg("Add operation")
+
+		stateName := runtime.State.Name
+		stateFs := runtime.State.Type
+		// Recovery is a different partition
+		if s.TargetLabel == "COS_RECOVERY" {
+			stateName = runtime.Recovery.Name
+			stateFs = runtime.Recovery.Type
+		}
 		err = g.Add(opMountState,
 			herd.WithCallback(
 				s.MountOP(
-					runtime.State.Name,
+					stateName,
 					s.path("/run/initramfs/cos-state"),
-					runtime.State.Type,
+					stateFs,
 					[]string{
 						"ro", // or rw
 					}, 60*time.Second),
