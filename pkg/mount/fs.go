@@ -160,7 +160,7 @@ func mountWithBaseOverlay(mountpoint, root, base string) (mountOperation, error)
 			Type:   "overlay",
 			Source: "overlay",
 			Options: []string{
-				"defaults",
+				//"defaults",
 				fmt.Sprintf("lowerdir=%s", rootMount),
 				fmt.Sprintf("upperdir=%s", upperdir),
 				fmt.Sprintf("workdir=%s", workdir),
