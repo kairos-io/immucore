@@ -31,13 +31,16 @@ Sends a generic event payload with the configuration found in the scanned direct
 		},
 		Action: func(c *cli.Context) (err error) {
 			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
+			img := utils.ReadCMDLineArg("cos-img/filename=")
+			log.Debug().Strs("TargetImage", img).Msg("Target image")
 			g := herd.DAG()
 			s := &mount.State{
 				Logger:      log.Logger,
 				Rootdir:     utils.GetRootDir(),
 				MountRoot:   true,
 				TargetLabel: utils.BootStateToLabel(),
-				TargetImage: utils.BootStateToImage(),
+				TargetImage: img[0],
+				IsRecovery:  utils.IsRecovery(),
 			}
 
 			err = s.Register(g)

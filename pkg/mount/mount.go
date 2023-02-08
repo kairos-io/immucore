@@ -35,7 +35,8 @@ type State struct {
 	StateDir  string // e.g. "/usr/local/.state"
 	MountRoot bool   // e.g. if true, it tries to find the image to loopback mount
 
-	fstabs []*fstab.Mount
+	fstabs     []*fstab.Mount
+	IsRecovery bool // if its recovery it needs different stuff
 }
 
 const (
@@ -235,7 +236,7 @@ func (s *State) Register(g *herd.Graph) error {
 		stateName := runtime.State.Name
 		stateFs := runtime.State.Type
 		// Recovery is a different partition
-		if s.TargetLabel == "COS_RECOVERY" {
+		if s.IsRecovery {
 			stateName = runtime.Recovery.Name
 			stateFs = runtime.Recovery.Type
 		}
@@ -282,7 +283,7 @@ func (s *State) Register(g *herd.Graph) error {
 
 	// depending on /run/cos-layout.env
 	// This is building the mountRoot dependendency if it was enabled
-	mountRootCondition := herd.ConditionalOption(func() bool { return s.MountRoot }, herd.WithDeps(opMountRoot))
+	mountRootCondition := herd.ConditionalOption(func() bool { return s.MountRoot && !s.IsRecovery }, herd.WithDeps(opMountRoot))
 	s.Logger.Debug().Bool("mountRootCondition", s.MountRoot).Msg("condition")
 
 	// TODO: this needs to be run after sysroot so we can link to /sysroot/system/oem and after /oem mounted
@@ -369,7 +370,7 @@ func (s *State) Register(g *herd.Graph) error {
 		}
 	}
 
-	overlayCondition := herd.ConditionalOption(func() bool { return rootFSType(s.Rootdir) != "overlay" }, herd.WithDeps(opMountBaseOverlay))
+	overlayCondition := herd.ConditionalOption(func() bool { return rootFSType(s.Rootdir) != "overlay" && !s.IsRecovery }, herd.WithDeps(opMountBaseOverlay))
 	s.Logger.Debug().Bool("overlaycondition", rootFSType(s.Rootdir) != "overlay").Msg("condition")
 	// TODO: Add fsck
 	// mount overlay

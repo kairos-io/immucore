@@ -32,20 +32,16 @@ func BootStateToLabel() string {
 	}
 }
 
-func BootStateToImage() string {
+func IsRecovery() bool {
 	runtime, err := state.NewRuntime()
 	if err != nil {
-		return ""
+		return false
 	}
 	switch runtime.BootState {
-	case "active_boot":
-		return "/cOS/active.img"
-	case "passive_boot":
-		return "/cOS/passive.img"
 	case "recovery_boot":
-		return "/cOS/recovery.img"
+		return true
 	default:
-		return ""
+		return false
 	}
 }
 
