@@ -441,10 +441,7 @@ func (s *State) Register(g *herd.Graph) error {
 			func(ctx context.Context) error {
 				var err error
 				log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
-				log.Logger.Debug().Msg("Start" + opMountBind)
-				log.Logger.Debug().Msg("Mounting bind")
 				log.Logger.Debug().Strs("binds", s.BindMounts).Msg("Mounting bind")
-
 				for _, p := range s.BindMounts {
 					// TODO: Check why p can be empty, Example:
 					/*
@@ -469,10 +466,15 @@ func (s *State) Register(g *herd.Graph) error {
 					}
 					log.Logger.Debug().Str("what", p).Str("where", s.StateDir).Msg("Mounting bind")
 					op := mountBind(p, s.Rootdir, s.StateDir)
-					s.fstabs = append(s.fstabs, &op.FstabEntry)
-					err = multierror.Append(err, op.run())
+					err2 := op.run()
+					if err2 != nil {
+						log.Logger.Err(err2).Send()
+						err = multierror.Append(err, err2)
+					} else {
+						// Only append to fstabs if there was no error, otherwise we will try to mount it after switch_root
+						s.fstabs = append(s.fstabs, &op.FstabEntry)
+					}
 				}
-				log.Logger.Debug().Msg("End" + opMountBind)
 				log.Logger.Err(err).Send()
 				return err
 			},
