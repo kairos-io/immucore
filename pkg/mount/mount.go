@@ -394,16 +394,18 @@ func (s *State) Register(g *herd.Graph) error {
 			var err error
 
 			for what, where := range s.CustomMounts {
+				fstype := "auto"
 				// Translate label to disk for COS_PERSISTENT
 				if what == "/dev/disk/by-label/COS_PERSISTENT" {
 					what = runtime.Persistent.Name
+					fstype = runtime.Persistent.Type
 				}
-				s.Logger.Debug().Str("what", what).Str("where", s.path(where)).Msg("mounting custom mounts")
+				s.Logger.Debug().Str("what", what).Str("where", s.path(where)).Str("type", fstype).Msg("mounting custom mounts")
 
 				err = multierror.Append(err, s.MountOP(
 					what,
 					s.path(where),
-					"auto",
+					fstype,
 					[]string{
 						"ro", // or rw
 					},
