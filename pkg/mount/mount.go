@@ -115,7 +115,7 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 					log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Msg("Mount point does not exist, creating")
 					err = os.MkdirAll(where, os.ModeDir|os.ModePerm)
 					if err != nil {
-						log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Err(err).Msg("")
+						log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Err(err).Msg("Creating dir")
 						continue
 					}
 				}
@@ -135,7 +135,7 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 
 				err := op.run()
 				if err != nil {
-					log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Err(err).Msg("")
+					log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Err(err).Msg("mounting")
 					continue
 				}
 
@@ -144,11 +144,11 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 				return nil
 			case <-c.Done():
 				e := fmt.Errorf("context canceled")
-				log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Err(e).Msg("")
+				log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Err(e).Msg("mount canceled")
 				return e
 			case <-cc:
 				e := fmt.Errorf("timeout exhausted")
-				log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Err(e).Msg("")
+				log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Err(e).Msg("Mount timeout")
 				return e
 			}
 		}
@@ -394,6 +394,7 @@ func (s *State) Register(g *herd.Graph) error {
 			var err error
 
 			for id, mountpoint := range s.CustomMounts {
+				s.Logger.Debug().Str("what", id).Str("where", s.path(mountpoint)).Msg("mounting custom mounts")
 
 				err = multierror.Append(err, s.MountOP(
 					id,
