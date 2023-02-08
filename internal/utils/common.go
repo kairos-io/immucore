@@ -26,7 +26,7 @@ func BootStateToLabel() string {
 	case "passive_boot":
 		return "COS_PASSIVE"
 	case "recovery_boot":
-		return "COS_RECOVERY"
+		return "COS_SYSTEM"
 	default:
 		return ""
 	}
