@@ -17,7 +17,6 @@ import (
 	"github.com/kairos-io/kairos/sdk/state"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/sanity-io/litter"
 	"github.com/spectrocloud-labs/herd"
 )
 
@@ -66,7 +65,6 @@ func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 			select {
 			case <-ctx.Done():
 			default:
-				log.Logger.Debug().Str("fstabline", litter.Sdump(fst)).Str("fstabfile", fstabFile).Msg("Writing fstab line")
 				f, err := os.OpenFile(fstabFile,
 					os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 				if err != nil {
@@ -80,7 +78,6 @@ func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 				if _, err := f.WriteString(toWrite); err != nil {
 					return err
 				}
-				log.Logger.Debug().Str("fstabline", fstCleaned).Str("fstabfile", fstabFile).Msg("Done fstab line")
 			}
 		}
 		return nil
@@ -92,7 +89,6 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
 		if stage == "rootfs" {
 			if _, err := os.Stat("/system"); os.IsNotExist(err) {
-				s.Logger.Debug().Str("from", "/sysroot/system").Str("to", "/system").Msg("Creating symlink")
 				err = os.Symlink("/sysroot/system", "/system")
 				if err != nil {
 					s.Logger.Err(err).Msg("creating symlink")
@@ -102,9 +98,12 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 		}
 
 		cmd := fmt.Sprintf("elemental run-stage %s", stage)
-		log.Logger.Debug().Str("cmd", cmd).Msg("")
+		// If we set the level to debug, also call elemental with debug
+		if log.Logger.GetLevel() == zerolog.DebugLevel {
+			cmd = fmt.Sprintf("%s --debug", cmd)
+		}
 		output, err := utils.SH(cmd)
-		log.Info().Msg(output)
+		log.Debug().Msg(output)
 		return err
 	}
 }
@@ -118,7 +117,6 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 			select {
 			default:
 				if _, err := os.Stat(where); os.IsNotExist(err) {
-					log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Msg("Mount point does not exist, creating")
 					err = os.MkdirAll(where, os.ModeDir|os.ModePerm)
 					if err != nil {
 						log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Err(err).Msg("Creating dir")
@@ -141,12 +139,10 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 
 				err := op.run()
 				if err != nil {
-					log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Err(err).Msg("mounting")
 					continue
 				}
 
 				s.fstabs = append(s.fstabs, tmpFstab)
-				log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Msg("Mounted")
 				return nil
 			case <-c.Done():
 				e := fmt.Errorf("context canceled")
@@ -204,7 +200,6 @@ func (s *State) Register(g *herd.Graph) error {
 		s.Logger.Debug().Err(err).Msg("")
 		return err
 	}
-	s.Logger.Debug().Str("state", litter.Sdump(runtime)).Msg("Register")
 
 	// TODO: add hooks, fstab (might have missed some), systemd compat
 	// TODO: We should also set tmpfs here (not -related)
@@ -213,7 +208,6 @@ func (s *State) Register(g *herd.Graph) error {
 	// This is legacy - in UKI we don't need to found the img, this needs to run in a conditional
 	if s.MountRoot {
 		// setup loopback mount for the image target for booting
-		s.Logger.Debug().Str("what", opDiscoverState).Msg("Add operation")
 		err = g.Add(opDiscoverState,
 			herd.WithDeps(opMountState),
 			herd.WithCallback(
@@ -225,7 +219,6 @@ func (s *State) Register(g *herd.Graph) error {
 						return nil
 					}
 					cmd := fmt.Sprintf("losetup --show -f %s", s.path("/run/initramfs/cos-state", s.TargetImage))
-					log.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("fullcmd", cmd).Msg("Mounting image")
 					_, err := utils.SH(cmd)
 					if err != nil {
 						log.Logger.Debug().Err(err).Msg("")
@@ -238,9 +231,6 @@ func (s *State) Register(g *herd.Graph) error {
 		}
 
 		// mount the state partition so to find the loopback device
-		// Itxaka: what if its recovery?
-		s.Logger.Debug().Str("what", opMountState).Msg("Add operation")
-
 		stateName := runtime.State.Name
 		stateFs := runtime.State.Type
 		// Recovery is a different partition
@@ -264,7 +254,6 @@ func (s *State) Register(g *herd.Graph) error {
 		}
 
 		// mount the loopback device as root of the fs
-		s.Logger.Debug().Str("what", opMountRoot).Msg("Add operation")
 		err = g.Add(opMountRoot,
 			herd.WithDeps(opDiscoverState),
 			herd.WithCallback(
@@ -292,10 +281,8 @@ func (s *State) Register(g *herd.Graph) error {
 	// depending on /run/cos-layout.env
 	// This is building the mountRoot dependendency if it was enabled
 	mountRootCondition := herd.ConditionalOption(func() bool { return s.MountRoot }, herd.WithDeps(opMountRoot))
-	s.Logger.Debug().Bool("mountRootCondition", s.MountRoot).Msg("condition")
 
 	// TODO: this needs to be run after sysroot so we can link to /sysroot/system/oem and after /oem mounted
-	s.Logger.Debug().Str("what", opRootfsHook).Msg("Add operation")
 	err = g.Add(opRootfsHook, mountRootCondition, herd.WithDeps(opMountRoot, opMountOEM), herd.WithCallback(s.RunStageOp("rootfs")))
 	if err != nil {
 		s.Logger.Err(err).Msg("running rootfs stage")
@@ -303,7 +290,6 @@ func (s *State) Register(g *herd.Graph) error {
 
 	// /run/cos/cos-layout.env
 	// populate state bindmounts, overlaymounts, custommounts
-	s.Logger.Debug().Str("what", opLoadConfig).Msg("Add operation")
 	err = g.Add(opLoadConfig,
 		herd.WithDeps(opRootfsHook),
 		herd.WithCallback(func(ctx context.Context) error {
@@ -317,7 +303,6 @@ func (s *State) Register(g *herd.Graph) error {
 				log.Logger.Err(err).Msg("Reading env")
 				return err
 			}
-			log.Logger.Debug().Str("envfile", litter.Sdump(env)).Msg("loading cos layout")
 			// populate from env here
 			s.OverlayDirs = append(s.OverlayDirs, strings.Split(env["RW_PATHS"], " ")...)
 			// Remove any duplicates
@@ -327,8 +312,6 @@ func (s *State) Register(g *herd.Graph) error {
 			s.BindMounts = strings.Split(env["PERSISTENT_STATE_PATHS"], " ")
 			// Remove any duplicates
 			s.BindMounts = internalUtils.UniqueSlice(s.BindMounts)
-			log.Logger.Debug().Strs("paths", s.BindMounts).Msg("persistent paths")
-			log.Logger.Debug().Str("pathsraw", env["PERSISTENT_STATE_PATHS"]).Msg("persistent paths")
 
 			s.StateDir = env["PERSISTENT_STATE_TARGET"]
 			if s.StateDir == "" {
@@ -362,7 +345,6 @@ func (s *State) Register(g *herd.Graph) error {
 
 	// overlay mount start
 	if rootFSType(s.Rootdir) != "overlay" {
-		s.Logger.Debug().Str("what", opMountBaseOverlay).Msg("Add operation")
 		err = g.Add(opMountBaseOverlay,
 			herd.WithCallback(
 				func(ctx context.Context) error {
@@ -384,10 +366,8 @@ func (s *State) Register(g *herd.Graph) error {
 	}
 
 	overlayCondition := herd.ConditionalOption(func() bool { return rootFSType(s.Rootdir) != "overlay" }, herd.WithDeps(opMountBaseOverlay))
-	s.Logger.Debug().Bool("overlaycondition", rootFSType(s.Rootdir) != "overlay").Msg("condition")
 	// TODO: Add fsck
 	// mount overlay
-	s.Logger.Debug().Str("what", opOverlayMount).Msg("Add operation")
 	err = g.Add(
 		opOverlayMount,
 		overlayCondition,
@@ -412,14 +392,12 @@ func (s *State) Register(g *herd.Graph) error {
 	if err != nil {
 		s.Logger.Err(err)
 	}
-	s.Logger.Debug().Str("what", opCustomMounts).Msg("Add operation")
 	err = g.Add(
 		opCustomMounts,
 		mountRootCondition,
 		overlayCondition,
 		herd.WithDeps(opLoadConfig),
 		herd.WithCallback(func(ctx context.Context) error {
-			s.Logger.Debug().Msg("Start" + opCustomMounts)
 			var err *multierror.Error
 
 			for what, where := range s.CustomMounts {
@@ -432,7 +410,6 @@ func (s *State) Register(g *herd.Graph) error {
 					fstype = runtime.Persistent.Type
 					mountOptions = []string{"rw"}
 				}
-				s.Logger.Debug().Str("what", what).Str("where", s.path(where)).Str("type", fstype).Msg("mounting custom mounts")
 				err = multierror.Append(err, s.MountOP(
 					what,
 					s.path(where),
@@ -442,7 +419,6 @@ func (s *State) Register(g *herd.Graph) error {
 				)(ctx))
 
 			}
-			s.Logger.Debug().Msg("End" + opCustomMounts)
 			s.Logger.Err(err.ErrorOrNil()).Send()
 
 			return err.ErrorOrNil()
@@ -453,7 +429,6 @@ func (s *State) Register(g *herd.Graph) error {
 	}
 
 	// mount state is defined over a custom mount (/usr/local/.state for instance, needs to be mounted over a device)
-	s.Logger.Debug().Str("what", opMountBind).Msg("Add operation")
 	err = g.Add(
 		opMountBind,
 		overlayCondition,
@@ -461,9 +436,7 @@ func (s *State) Register(g *herd.Graph) error {
 		herd.WithDeps(opCustomMounts, opLoadConfig),
 		herd.WithCallback(
 			func(ctx context.Context) error {
-				var err error
-				log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
-				log.Logger.Debug().Strs("binds", s.BindMounts).Msg("Mounting bind")
+				var err *multierror.Error
 				for _, p := range s.BindMounts {
 					// TODO: Check why p can be empty, Example:
 					/*
@@ -486,7 +459,6 @@ func (s *State) Register(g *herd.Graph) error {
 					if p == "" {
 						continue
 					}
-					log.Logger.Debug().Str("what", p).Str("where", s.StateDir).Msg("Mounting bind")
 					op := mountBind(p, s.Rootdir, s.StateDir)
 					err2 := op.run()
 					if err2 != nil {
@@ -497,8 +469,8 @@ func (s *State) Register(g *herd.Graph) error {
 						s.fstabs = append(s.fstabs, &op.FstabEntry)
 					}
 				}
-				log.Logger.Err(err).Send()
-				return err
+				log.Logger.Err(err.ErrorOrNil()).Send()
+				return err.ErrorOrNil()
 			},
 		),
 	)
@@ -507,7 +479,6 @@ func (s *State) Register(g *herd.Graph) error {
 	}
 
 	// overlay mount end
-	s.Logger.Debug().Str("what", opMountOEM).Msg("Add operation")
 	err = g.Add(opMountOEM,
 		overlayCondition,
 		mountRootCondition,
@@ -530,7 +501,6 @@ func (s *State) Register(g *herd.Graph) error {
 	if err != nil {
 		s.Logger.Err(err)
 	}
-	s.Logger.Debug().Str("what", opWriteFstab).Msg("Add operation")
 	err = g.Add(opWriteFstab,
 		overlayCondition,
 		mountRootCondition,

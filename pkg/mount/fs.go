@@ -2,8 +2,6 @@ package mount
 
 import (
 	"fmt"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -123,17 +121,13 @@ func mountBind(mountpoint, root, stateTarget string) mountOperation {
 		FstabEntry:  *tmpFstab,
 		Target:      rootMount,
 		PrepareCallback: func() error {
-			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
 			if err := createIfNotExists(rootMount); err != nil {
-				log.Logger.Err(err).Str("what", rootMount).Msg("create if not exists")
 				return err
 			}
 
 			if err := createIfNotExists(stateDir); err != nil {
-				log.Logger.Err(err).Str("what", stateDir).Msg("create if not exists")
 				return err
 			}
-			log.Logger.Debug().Str("what", tmpMount.Source).Str("where", rootMount).Str("type", tmpMount.Type).Strs("options", tmpMount.Options).Msg("create if not exists")
 			return syncState(appendSlash(rootMount), appendSlash(stateDir))
 		},
 	}
@@ -145,8 +139,6 @@ func syncState(src, dst string) error {
 
 // https://github.com/kairos-io/packages/blob/94aa3bef3d1330cb6c6905ae164f5004b6a58b8c/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L145
 func mountWithBaseOverlay(mountpoint, root, base string) (mountOperation, error) {
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
-	log.Debug().Str("mountpoint", mountpoint).Str("root", root).Str("base", base).Msg("mount with base overlay")
 	mountpoint = strings.TrimLeft(mountpoint, "/") // normalize, remove / upfront as we are going to re-use it in subdirs
 	rootMount := filepath.Join(root, mountpoint)
 	bindMountPath := strings.ReplaceAll(mountpoint, "/", "-")

@@ -67,15 +67,14 @@ Sends a generic event payload with the configuration found in the scanned direct
 				return err
 			}
 
-			log.Print(s.WriteDAG(g))
+			log.Info().Msg(s.WriteDAG(g))
 
 			if c.Bool("dry-run") {
 				return err
 			}
 
-			log.Print("Calling dag")
 			err = g.Run(context.Background())
-			log.Print(s.WriteDAG(g))
+			log.Info().Msg(s.WriteDAG(g))
 			return err
 		},
 	},
