@@ -203,9 +203,6 @@ func (s *State) Register(g *herd.Graph) error {
 	// TODO: add hooks, fstab (might have missed some), systemd compat
 	// TODO: We should also set tmpfs here (not -related)
 
-	// symlink
-	// execute the rootfs hook
-
 	// All of this below need to run after rootfs stage runs (so the layout file is created)
 	// This is legacy - in UKI we don't need to found the img, this needs to run in a conditional
 	if s.MountRoot {
@@ -396,12 +393,16 @@ func (s *State) Register(g *herd.Graph) error {
 		herd.WithCallback(func(ctx context.Context) error {
 			var err error
 
-			for id, mountpoint := range s.CustomMounts {
-				s.Logger.Debug().Str("what", id).Str("where", s.path(mountpoint)).Msg("mounting custom mounts")
+			for what, where := range s.CustomMounts {
+				// Translate label to disk for COS_PERSISTENT
+				if what == "/dev/disk/by-label/COS_PERSISTENT" {
+					what = runtime.Persistent.Name
+				}
+				s.Logger.Debug().Str("what", what).Str("where", s.path(where)).Msg("mounting custom mounts")
 
 				err = multierror.Append(err, s.MountOP(
-					id,
-					s.path(mountpoint),
+					what,
+					s.path(where),
 					"auto",
 					[]string{
 						"ro", // or rw
