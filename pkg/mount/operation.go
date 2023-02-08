@@ -17,7 +17,7 @@ type mountOperation struct {
 }
 
 func (m mountOperation) run() error {
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
 	if m.PrepareCallback != nil {
 		if err := m.PrepareCallback(); err != nil {
 			log.Logger.Err(err).Str("what", m.MountOption.Source).Str("where", m.Target).Str("type", m.MountOption.Type).Msg("executing mount callback")

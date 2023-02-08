@@ -64,7 +64,9 @@ Sends a generic event payload with the configuration found in the scanned direct
 			}
 
 			log.Print("Calling dag")
-			return g.Run(context.Background())
+			err = g.Run(context.Background())
+			log.Print(s.WriteDAG(g))
+			return err
 		},
 	},
 }

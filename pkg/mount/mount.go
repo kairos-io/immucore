@@ -398,7 +398,7 @@ func (s *State) Register(g *herd.Graph) error {
 		herd.WithDeps(opLoadConfig),
 		herd.WithCallback(func(ctx context.Context) error {
 			s.Logger.Debug().Msg("Start" + opCustomMounts)
-			var err error
+			var err *multierror.Error
 
 			for what, where := range s.CustomMounts {
 				// TODO: scan for the custom mount disk to know the underlying fs and set it proper
@@ -408,7 +408,6 @@ func (s *State) Register(g *herd.Graph) error {
 					fstype = runtime.Persistent.Type
 				}
 				s.Logger.Debug().Str("what", what).Str("where", s.path(where)).Str("type", fstype).Msg("mounting custom mounts")
-
 				err = multierror.Append(err, s.MountOP(
 					what,
 					s.path(where),
@@ -421,7 +420,9 @@ func (s *State) Register(g *herd.Graph) error {
 
 			}
 			s.Logger.Debug().Msg("End" + opCustomMounts)
-			return err
+			s.Logger.Err(err).Str("error", err.Error()).Send()
+
+			return err.ErrorOrNil()
 		}),
 	)
 	if err != nil {
