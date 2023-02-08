@@ -111,7 +111,7 @@ func mountBind(mountpoint, root, stateTarget string) (mountOperation, error) {
 			Type:   "overlay",
 			Source: stateDir,
 			Options: []string{
-				"defaults",
+				//"defaults",
 				"bind",
 			},
 		}

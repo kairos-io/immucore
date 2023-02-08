@@ -79,7 +79,7 @@ func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 				if _, err := f.WriteString(toWrite); err != nil {
 					return err
 				}
-				log.Logger.Debug().Str("fstabline", litter.Sdump(fstCleaned)).Str("fstabfile", fstabFile).Msg("Done fstab line")
+				log.Logger.Debug().Str("fstabline", fstCleaned).Str("fstabfile", fstabFile).Msg("Done fstab line")
 			}
 		}
 		return nil
@@ -117,10 +117,10 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 			select {
 			default:
 				if _, err := os.Stat(where); os.IsNotExist(err) {
-					log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Msg("Mount point does not exist, creating")
+					log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Msg("Mount point does not exist, creating")
 					err = os.MkdirAll(where, os.ModeDir|os.ModePerm)
 					if err != nil {
-						log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Err(err).Msg("Creating dir")
+						log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Err(err).Msg("Creating dir")
 						continue
 					}
 				}
@@ -140,20 +140,20 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 
 				err := op.run()
 				if err != nil {
-					log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Err(err).Msg("mounting")
+					log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Err(err).Msg("mounting")
 					continue
 				}
 
 				s.fstabs = append(s.fstabs, tmpFstab)
-				log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Msg("Mounted")
+				log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Msg("Mounted")
 				return nil
 			case <-c.Done():
 				e := fmt.Errorf("context canceled")
-				log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Err(e).Msg("mount canceled")
+				log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Err(e).Msg("mount canceled")
 				return e
 			case <-cc:
 				e := fmt.Errorf("timeout exhausted")
-				log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Err(e).Msg("Mount timeout")
+				log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Err(e).Msg("Mount timeout")
 				return e
 			}
 		}
@@ -275,6 +275,7 @@ func (s *State) Register(g *herd.Graph) error {
 	// depending on /run/cos-layout.env
 	// This is building the mountRoot dependendency if it was enabled
 	mountRootCondition := herd.ConditionalOption(func() bool { return s.MountRoot }, herd.WithDeps(opMountRoot))
+	s.Logger.Debug().Bool("mountRootCondition", s.MountRoot).Msg("condition")
 
 	// TODO: this needs to be run after sysroot so we can link to /sysroot/system/oem and after /oem mounted
 	s.Logger.Debug().Str("what", opRootfsHook).Msg("Add operation")
@@ -304,6 +305,8 @@ func (s *State) Register(g *herd.Graph) error {
 
 			// TODO: PERSISTENT_STATE_TARGET /usr/local/.state
 			s.BindMounts = strings.Split(env["PERSISTENT_STATE_PATHS"], " ")
+			log.Logger.Debug().Strs("paths", s.BindMounts).Msg("persistent paths")
+			log.Logger.Debug().Str("pathsraw", env["PERSISTENT_STATE_PATHS"]).Msg("persistent paths")
 
 			s.StateDir = env["PERSISTENT_STATE_TARGET"]
 			if s.StateDir == "" {
@@ -359,6 +362,7 @@ func (s *State) Register(g *herd.Graph) error {
 	}
 
 	overlayCondition := herd.ConditionalOption(func() bool { return rootFSType(s.Rootdir) != "overlay" }, herd.WithDeps(opMountBaseOverlay))
+	s.Logger.Debug().Bool("overlaycondition", rootFSType(s.Rootdir) != "overlay").Msg("condition")
 	// TODO: Add fsck
 	// mount overlay
 	s.Logger.Debug().Str("what", opOverlayMount).Msg("Add operation")
@@ -432,11 +436,14 @@ func (s *State) Register(g *herd.Graph) error {
 		herd.WithCallback(
 			func(ctx context.Context) error {
 				var err error
+				s.Logger.Debug().Msg("Mounting bind")
+				s.Logger.Debug().Strs("binds", s.BindMounts).Msg("Mounting bind")
 
 				for _, p := range s.BindMounts {
-
+					s.Logger.Debug().Str("what", p).Str("where", s.StateDir).Msg("Mounting bind")
 					op, err := mountBind(p, s.Rootdir, s.StateDir)
 					if err != nil {
+						s.Logger.Err(err).Msg("Mounting bind")
 						return err
 					}
 					s.fstabs = append(s.fstabs, &op.FstabEntry)
