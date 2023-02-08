@@ -30,7 +30,7 @@ Sends a generic event payload with the configuration found in the scanned direct
 			},
 		},
 		Action: func(c *cli.Context) (err error) {
-			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
 			g := herd.DAG()
 			s := &mount.State{
 				Logger:      log.Logger,

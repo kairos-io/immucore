@@ -99,44 +99,41 @@ func mountToStab(m mount.Mount) *fstab.Mount {
 }
 
 // https://github.com/kairos-io/packages/blob/94aa3bef3d1330cb6c6905ae164f5004b6a58b8c/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L183
-func mountBind(mountpoint, root, stateTarget string) (mountOperation, error) {
+func mountBind(mountpoint, root, stateTarget string) mountOperation {
 	mountpoint = strings.TrimLeft(mountpoint, "/") // normalize, remove / upfront as we are going to re-use it in subdirs
 	rootMount := filepath.Join(root, mountpoint)
 	bindMountPath := strings.ReplaceAll(mountpoint, "/", "-")
 
 	stateDir := filepath.Join(root, stateTarget, fmt.Sprintf("%s.bind", bindMountPath))
 
-	if mounted, _ := mountinfo.Mounted(rootMount); !mounted {
-		tmpMount := mount.Mount{
-			Type:   "overlay",
-			Source: stateDir,
-			Options: []string{
-				//"defaults",
-				"bind",
-			},
-		}
-
-		tmpFstab := mountToStab(tmpMount)
-		tmpFstab.File = fmt.Sprintf("/%s", mountpoint)
-		tmpFstab.Spec = strings.ReplaceAll(tmpFstab.Spec, root, "")
-		return mountOperation{
-			MountOption: tmpMount,
-			FstabEntry:  *tmpFstab,
-			Target:      rootMount,
-			PrepareCallback: func() error {
-				if err := createIfNotExists(rootMount); err != nil {
-					return err
-				}
-
-				if err := createIfNotExists(stateDir); err != nil {
-					return err
-				}
-
-				return syncState(appendSlash(rootMount), appendSlash(stateDir))
-			},
-		}, nil
+	tmpMount := mount.Mount{
+		Type:   "overlay",
+		Source: stateDir,
+		Options: []string{
+			//"defaults",
+			"bind",
+		},
 	}
-	return mountOperation{}, fmt.Errorf("already mounted")
+
+	tmpFstab := mountToStab(tmpMount)
+	tmpFstab.File = fmt.Sprintf("/%s", mountpoint)
+	tmpFstab.Spec = strings.ReplaceAll(tmpFstab.Spec, root, "")
+	return mountOperation{
+		MountOption: tmpMount,
+		FstabEntry:  *tmpFstab,
+		Target:      rootMount,
+		PrepareCallback: func() error {
+			if err := createIfNotExists(rootMount); err != nil {
+				return err
+			}
+
+			if err := createIfNotExists(stateDir); err != nil {
+				return err
+			}
+
+			return syncState(appendSlash(rootMount), appendSlash(stateDir))
+		},
+	}
 }
 
 func syncState(src, dst string) error {
@@ -145,7 +142,7 @@ func syncState(src, dst string) error {
 
 // https://github.com/kairos-io/packages/blob/94aa3bef3d1330cb6c6905ae164f5004b6a58b8c/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L145
 func mountWithBaseOverlay(mountpoint, root, base string) (mountOperation, error) {
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
 	log.Debug().Str("mountpoint", mountpoint).Str("root", root).Str("base", base).Msg("mount with base overlay")
 	mountpoint = strings.TrimLeft(mountpoint, "/") // normalize, remove / upfront as we are going to re-use it in subdirs
 	rootMount := filepath.Join(root, mountpoint)

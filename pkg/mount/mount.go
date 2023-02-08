@@ -438,22 +438,19 @@ func (s *State) Register(g *herd.Graph) error {
 		herd.WithCallback(
 			func(ctx context.Context) error {
 				var err error
-				s.Logger.Debug().Msg("Start" + opMountBind)
-				s.Logger.Debug().Msg("Mounting bind")
-				s.Logger.Debug().Strs("binds", s.BindMounts).Msg("Mounting bind")
+				log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
+				log.Logger.Debug().Msg("Start" + opMountBind)
+				log.Logger.Debug().Msg("Mounting bind")
+				log.Logger.Debug().Strs("binds", s.BindMounts).Msg("Mounting bind")
 
 				for _, p := range s.BindMounts {
-					s.Logger.Debug().Str("what", p).Str("where", s.StateDir).Msg("Mounting bind")
-					op, err := mountBind(p, s.Rootdir, s.StateDir)
-					if err != nil {
-						s.Logger.Err(err).Msg("Mounting bind")
-						return err
-					}
+					log.Logger.Debug().Str("what", p).Str("where", s.StateDir).Msg("Mounting bind")
+					op := mountBind(p, s.Rootdir, s.StateDir)
 					s.fstabs = append(s.fstabs, &op.FstabEntry)
 					err = multierror.Append(err, op.run())
 				}
-				s.Logger.Debug().Msg("End" + opMountBind)
-				s.Logger.Err(err).Send()
+				log.Logger.Debug().Msg("End" + opMountBind)
+				log.Logger.Err(err).Send()
 				return err
 			},
 		),
