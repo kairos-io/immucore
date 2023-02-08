@@ -59,7 +59,7 @@ func (s *State) path(p ...string) string {
 }
 
 func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
 	return func(ctx context.Context) error {
 		for _, fst := range s.fstabs {
 			select {
@@ -72,12 +72,14 @@ func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 					return err
 				}
 				defer f.Close()
-				toWrite := fmt.Sprintf("%s\n", fst.String())
-				s.Logger.Debug().Str("fstab", toWrite)
+				// As we mount on /sysroot during initramfs but the fstab file is for the real init process, we need to remove
+				// Any mentions to /sysroot from the fstab lines, otherwise they wont work
+				fstCleaned := strings.ReplaceAll(fst.String(), "/sysroot", "")
+				toWrite := fmt.Sprintf("%s\n", fstCleaned)
 				if _, err := f.WriteString(toWrite); err != nil {
 					return err
 				}
-				log.Logger.Debug().Str("fstabline", litter.Sdump(fst)).Str("fstabfile", fstabFile).Msg("Done fstab line")
+				log.Logger.Debug().Str("fstabline", fstCleaned).Str("fstabfile", fstabFile).Msg("Done fstab line")
 			}
 		}
 		return nil
@@ -86,12 +88,15 @@ func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 
 func (s *State) RunStageOp(stage string) func(context.Context) error {
 	return func(ctx context.Context) error {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
 		if stage == "rootfs" {
-			err := os.Symlink("/sysroot/system", "/system")
-			if err != nil {
-				s.Logger.Err(err).Msg("creating symlink")
-				return err
+			if _, err := os.Stat("/system"); os.IsNotExist(err) {
+				s.Logger.Debug().Str("from", "/sysroot/system").Str("to", "/system").Msg("Creating symlink")
+				err = os.Symlink("/sysroot/system", "/system")
+				if err != nil {
+					s.Logger.Err(err).Msg("creating symlink")
+					return err
+				}
 			}
 		}
 
@@ -104,7 +109,7 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 }
 
 func (s *State) MountOP(what, where, t string, options []string, timeout time.Duration) func(context.Context) error {
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
 
 	return func(c context.Context) error {
 		cc := time.After(timeout)
@@ -112,10 +117,10 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 			select {
 			default:
 				if _, err := os.Stat(where); os.IsNotExist(err) {
-					log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Msg("Mount point does not exist, creating")
+					log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Msg("Mount point does not exist, creating")
 					err = os.MkdirAll(where, os.ModeDir|os.ModePerm)
 					if err != nil {
-						log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Err(err).Msg("")
+						log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Err(err).Msg("Creating dir")
 						continue
 					}
 				}
@@ -135,20 +140,20 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 
 				err := op.run()
 				if err != nil {
-					log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Err(err).Msg("")
+					log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Err(err).Msg("mounting")
 					continue
 				}
 
 				s.fstabs = append(s.fstabs, tmpFstab)
-				log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Msg("Mounted")
+				log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Msg("Mounted")
 				return nil
 			case <-c.Done():
 				e := fmt.Errorf("context canceled")
-				log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Err(e).Msg("")
+				log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Err(e).Msg("mount canceled")
 				return e
 			case <-cc:
 				e := fmt.Errorf("timeout exhausted")
-				log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Str("options", litter.Sdump(options)).Err(e).Msg("")
+				log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Err(e).Msg("Mount timeout")
 				return e
 			}
 		}
@@ -200,9 +205,6 @@ func (s *State) Register(g *herd.Graph) error {
 	// TODO: add hooks, fstab (might have missed some), systemd compat
 	// TODO: We should also set tmpfs here (not -related)
 
-	// symlink
-	// execute the rootfs hook
-
 	// All of this below need to run after rootfs stage runs (so the layout file is created)
 	// This is legacy - in UKI we don't need to found the img, this needs to run in a conditional
 	if s.MountRoot {
@@ -212,7 +214,7 @@ func (s *State) Register(g *herd.Graph) error {
 			herd.WithDeps(opMountState),
 			herd.WithCallback(
 				func(ctx context.Context) error {
-					log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+					log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
 					cmd := fmt.Sprintf("losetup --show -f %s", s.path("/run/initramfs/cos-state", s.TargetImage))
 					log.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("fullcmd", cmd).Msg("Mounting image")
 					_, err := utils.SH(cmd)
@@ -273,6 +275,7 @@ func (s *State) Register(g *herd.Graph) error {
 	// depending on /run/cos-layout.env
 	// This is building the mountRoot dependendency if it was enabled
 	mountRootCondition := herd.ConditionalOption(func() bool { return s.MountRoot }, herd.WithDeps(opMountRoot))
+	s.Logger.Debug().Bool("mountRootCondition", s.MountRoot).Msg("condition")
 
 	// TODO: this needs to be run after sysroot so we can link to /sysroot/system/oem and after /oem mounted
 	s.Logger.Debug().Str("what", opRootfsHook).Msg("Add operation")
@@ -287,7 +290,7 @@ func (s *State) Register(g *herd.Graph) error {
 	err = g.Add(opLoadConfig,
 		herd.WithDeps(opRootfsHook),
 		herd.WithCallback(func(ctx context.Context) error {
-			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
 			if s.CustomMounts == nil {
 				s.CustomMounts = map[string]string{}
 			}
@@ -302,6 +305,8 @@ func (s *State) Register(g *herd.Graph) error {
 
 			// TODO: PERSISTENT_STATE_TARGET /usr/local/.state
 			s.BindMounts = strings.Split(env["PERSISTENT_STATE_PATHS"], " ")
+			log.Logger.Debug().Strs("paths", s.BindMounts).Msg("persistent paths")
+			log.Logger.Debug().Str("pathsraw", env["PERSISTENT_STATE_PATHS"]).Msg("persistent paths")
 
 			s.StateDir = env["PERSISTENT_STATE_TARGET"]
 			if s.StateDir == "" {
@@ -357,6 +362,7 @@ func (s *State) Register(g *herd.Graph) error {
 	}
 
 	overlayCondition := herd.ConditionalOption(func() bool { return rootFSType(s.Rootdir) != "overlay" }, herd.WithDeps(opMountBaseOverlay))
+	s.Logger.Debug().Bool("overlaycondition", rootFSType(s.Rootdir) != "overlay").Msg("condition")
 	// TODO: Add fsck
 	// mount overlay
 	s.Logger.Debug().Str("what", opOverlayMount).Msg("Add operation")
@@ -391,22 +397,33 @@ func (s *State) Register(g *herd.Graph) error {
 		overlayCondition,
 		herd.WithDeps(opLoadConfig),
 		herd.WithCallback(func(ctx context.Context) error {
-			var err error
+			s.Logger.Debug().Msg("Start" + opCustomMounts)
+			var err *multierror.Error
 
-			for id, mountpoint := range s.CustomMounts {
-
+			for what, where := range s.CustomMounts {
+				// TODO: scan for the custom mount disk to know the underlying fs and set it proper
+				fstype := "auto"
+				mountOptions := []string{"ro"}
+				// Translate label to disk for COS_PERSISTENT
+				// Persistent needs to be RW
+				if strings.Contains(what, "COS_PERSISTENT") {
+					fstype = runtime.Persistent.Type
+					mountOptions = []string{"rw"}
+				}
+				s.Logger.Debug().Str("what", what).Str("where", s.path(where)).Str("type", fstype).Msg("mounting custom mounts")
 				err = multierror.Append(err, s.MountOP(
-					id,
-					s.path(mountpoint),
-					"auto",
-					[]string{
-						"ro", // or rw
-					},
+					what,
+					s.path(where),
+					fstype,
+					mountOptions,
 					10*time.Second,
 				)(ctx))
 
 			}
-			return err
+			s.Logger.Debug().Msg("End" + opCustomMounts)
+			s.Logger.Err(err).Str("error", err.Error()).Send()
+
+			return err.ErrorOrNil()
 		}),
 	)
 	if err != nil {
@@ -423,16 +440,42 @@ func (s *State) Register(g *herd.Graph) error {
 		herd.WithCallback(
 			func(ctx context.Context) error {
 				var err error
-
+				log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
+				log.Logger.Debug().Strs("binds", s.BindMounts).Msg("Mounting bind")
 				for _, p := range s.BindMounts {
-
-					op, err := mountBind(p, s.Rootdir, s.StateDir)
-					if err != nil {
-						return err
+					// TODO: Check why p can be empty, Example:
+					/*
+						3:12PM DBG Mounting bind binds=[
+						"/etc/systemd","/etc/modprobe.d",
+						"/etc/rancher","/etc/sysconfig",
+						"/etc/runlevels","/etc/ssh",
+						"/etc/ssl/certs","/etc/iscsi",
+						"",  <----- HERE
+						"/etc/cni","/etc/kubernetes",
+						"/home","/opt","/root","/snap",
+						"/var/snap","/usr/libexec",
+						"/var/log","/var/lib/rancher",
+						"/var/lib/kubelet","/var/lib/snapd"
+						,"/var/lib/wicked","/var/lib/longhorn"
+						,"/var/lib/cni","/usr/share/pki/trust"
+						,"/usr/share/pki/trust/anchors",
+						"/var/lib/ca-certificates"]
+					*/
+					if p == "" {
+						continue
 					}
-					s.fstabs = append(s.fstabs, &op.FstabEntry)
-					err = multierror.Append(err, op.run())
+					log.Logger.Debug().Str("what", p).Str("where", s.StateDir).Msg("Mounting bind")
+					op := mountBind(p, s.Rootdir, s.StateDir)
+					err2 := op.run()
+					if err2 != nil {
+						log.Logger.Err(err2).Send()
+						err = multierror.Append(err, err2)
+					} else {
+						// Only append to fstabs if there was no error, otherwise we will try to mount it after switch_root
+						s.fstabs = append(s.fstabs, &op.FstabEntry)
+					}
 				}
+				log.Logger.Err(err).Send()
 				return err
 			},
 		),

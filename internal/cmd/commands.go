@@ -30,7 +30,7 @@ Sends a generic event payload with the configuration found in the scanned direct
 			},
 		},
 		Action: func(c *cli.Context) (err error) {
-			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
 			g := herd.DAG()
 			s := &mount.State{
 				Logger:      log.Logger,
@@ -64,7 +64,9 @@ Sends a generic event payload with the configuration found in the scanned direct
 			}
 
 			log.Print("Calling dag")
-			return g.Run(context.Background())
+			err = g.Run(context.Background())
+			log.Print(s.WriteDAG(g))
+			return err
 		},
 	},
 }
