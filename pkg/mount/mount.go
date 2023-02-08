@@ -72,12 +72,14 @@ func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 					return err
 				}
 				defer f.Close()
-				toWrite := fmt.Sprintf("%s\n", fst.String())
-				s.Logger.Debug().Str("fstab", toWrite)
+				// As we mount on /sysroot during initramfs but the fstab file is for the real init process, we need to remove
+				// Any mentions to /sysroot from the fstab lines, otherwise they wont work
+				fstCleaned := strings.ReplaceAll(fst.String(), "/sysroot", "")
+				toWrite := fmt.Sprintf("%s\n", fstCleaned)
 				if _, err := f.WriteString(toWrite); err != nil {
 					return err
 				}
-				log.Logger.Debug().Str("fstabline", litter.Sdump(fst)).Str("fstabfile", fstabFile).Msg("Done fstab line")
+				log.Logger.Debug().Str("fstabline", litter.Sdump(fstCleaned)).Str("fstabfile", fstabFile).Msg("Done fstab line")
 			}
 		}
 		return nil
@@ -394,10 +396,10 @@ func (s *State) Register(g *herd.Graph) error {
 			var err error
 
 			for what, where := range s.CustomMounts {
+				// TODO: scan for the custom mount disk to know the underlying fs and set it proper
 				fstype := "auto"
 				// Translate label to disk for COS_PERSISTENT
-				if what == "/dev/disk/by-label/COS_PERSISTENT" {
-					what = runtime.Persistent.Name
+				if strings.Contains(what, "COS_PERSISTENT") {
 					fstype = runtime.Persistent.Type
 				}
 				s.Logger.Debug().Str("what", what).Str("where", s.path(where)).Str("type", fstype).Msg("mounting custom mounts")
