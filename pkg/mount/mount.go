@@ -88,10 +88,13 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 	return func(ctx context.Context) error {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
 		if stage == "rootfs" {
-			err := os.Symlink("/sysroot/system", "/system")
-			if err != nil {
-				s.Logger.Err(err).Msg("creating symlink")
-				return err
+			if _, err := os.Stat("/system"); os.IsNotExist(err) {
+				s.Logger.Debug().Str("from", "/sysroot/system").Str("to", "/system").Msg("Creating symlink")
+				err = os.Symlink("/sysroot/system", "/system")
+				if err != nil {
+					s.Logger.Err(err).Msg("creating symlink")
+					return err
+				}
 			}
 		}
 
