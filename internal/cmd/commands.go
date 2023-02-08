@@ -31,6 +31,19 @@ Sends a generic event payload with the configuration found in the scanned direct
 		},
 		Action: func(c *cli.Context) (err error) {
 			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
+
+			// If we boot from CD, we do nothing
+			cdBoot, err := utils.BootedFromCD()
+			if err != nil {
+				log.Logger.Err(err).Send()
+				return err
+			}
+
+			if cdBoot {
+				log.Info().Msg("Seems we booted from CD, doing nothing. Bye!")
+				return nil
+			}
+
 			img := utils.ReadCMDLineArg("cos-img/filename=")
 			log.Debug().Strs("TargetImage", img).Msg("Target image")
 			g := herd.DAG()
@@ -53,17 +66,6 @@ Sends a generic event payload with the configuration found in the scanned direct
 
 			if c.Bool("dry-run") {
 				return err
-			}
-
-			cdBoot, err := utils.BootedFromCD()
-			if err != nil {
-				s.Logger.Err(err)
-				return err
-			}
-
-			if cdBoot {
-				log.Info().Msg("Seems we booted from CD, doing nothing. Bye!")
-				return nil
 			}
 
 			log.Print("Calling dag")
