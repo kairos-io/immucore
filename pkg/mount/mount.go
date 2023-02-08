@@ -403,18 +403,19 @@ func (s *State) Register(g *herd.Graph) error {
 			for what, where := range s.CustomMounts {
 				// TODO: scan for the custom mount disk to know the underlying fs and set it proper
 				fstype := "auto"
+				mountOptions := []string{"ro"}
 				// Translate label to disk for COS_PERSISTENT
+				// Persistent needs to be RW
 				if strings.Contains(what, "COS_PERSISTENT") {
 					fstype = runtime.Persistent.Type
+					mountOptions = []string{"rw"}
 				}
 				s.Logger.Debug().Str("what", what).Str("where", s.path(where)).Str("type", fstype).Msg("mounting custom mounts")
 				err = multierror.Append(err, s.MountOP(
 					what,
 					s.path(where),
 					fstype,
-					[]string{
-						"ro", // or rw
-					},
+					mountOptions,
 					10*time.Second,
 				)(ctx))
 
