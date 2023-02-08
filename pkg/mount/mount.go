@@ -28,7 +28,7 @@ type State struct {
 	TargetLabel string // e.g. COS_ACTIVE
 
 	// /run/cos-layout.env (different!)
-	OverlayDir   []string          // e.g. /var
+	OverlayDirs  []string          // e.g. /var
 	BindMounts   []string          // e.g. /etc/kubernetes
 	CustomMounts map[string]string // e.g. diskid : mountpoint
 
@@ -196,6 +196,9 @@ func readEnv(file string) (map[string]string, error) {
 func (s *State) Register(g *herd.Graph) error {
 	var err error
 
+	// Default RW_PATHS to mount ALWAYS
+	s.OverlayDirs = []string{"/etc", "/root", "/home", "/opt", "/srv", "/usr/local", "/var"}
+
 	runtime, err := state.NewRuntime()
 	if err != nil {
 		s.Logger.Debug().Err(err).Msg("")
@@ -216,6 +219,11 @@ func (s *State) Register(g *herd.Graph) error {
 			herd.WithCallback(
 				func(ctx context.Context) error {
 					log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
+					// Check if loop device is mounted by checking the existance of the target label
+					if internalUtils.IsMountedByLabel(s.TargetLabel) {
+						log.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetLabel", s.TargetLabel).Msg("Not mounting loop, already mounted")
+						return nil
+					}
 					cmd := fmt.Sprintf("losetup --show -f %s", s.path("/run/initramfs/cos-state", s.TargetImage))
 					log.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("fullcmd", cmd).Msg("Mounting image")
 					_, err := utils.SH(cmd)
@@ -300,10 +308,6 @@ func (s *State) Register(g *herd.Graph) error {
 		herd.WithDeps(opRootfsHook),
 		herd.WithCallback(func(ctx context.Context) error {
 			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
-			if s.IsRecovery {
-				log.Info().Msg("We are on recovery, not reading cos-layout.env")
-				return nil
-			}
 			if s.CustomMounts == nil {
 				s.CustomMounts = map[string]string{}
 			}
@@ -315,10 +319,14 @@ func (s *State) Register(g *herd.Graph) error {
 			}
 			log.Logger.Debug().Str("envfile", litter.Sdump(env)).Msg("loading cos layout")
 			// populate from env here
-			s.OverlayDir = strings.Split(env["RW_PATHS"], " ")
+			s.OverlayDirs = append(s.OverlayDirs, strings.Split(env["RW_PATHS"], " ")...)
+			// Remove any duplicates
+			s.OverlayDirs = internalUtils.UniqueSlice(s.OverlayDirs)
 
 			// TODO: PERSISTENT_STATE_TARGET /usr/local/.state
 			s.BindMounts = strings.Split(env["PERSISTENT_STATE_PATHS"], " ")
+			// Remove any duplicates
+			s.BindMounts = internalUtils.UniqueSlice(s.BindMounts)
 			log.Logger.Debug().Strs("paths", s.BindMounts).Msg("persistent paths")
 			log.Logger.Debug().Str("pathsraw", env["PERSISTENT_STATE_PATHS"]).Msg("persistent paths")
 
@@ -388,7 +396,7 @@ func (s *State) Register(g *herd.Graph) error {
 		herd.WithCallback(
 			func(ctx context.Context) error {
 				var err error
-				for _, p := range s.OverlayDir {
+				for _, p := range s.OverlayDirs {
 					op, err := mountWithBaseOverlay(p, s.Rootdir, "/run/overlay")
 					if err != nil {
 						return err

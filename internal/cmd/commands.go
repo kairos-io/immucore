@@ -30,7 +30,12 @@ Sends a generic event payload with the configuration found in the scanned direct
 			},
 		},
 		Action: func(c *cli.Context) (err error) {
-			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
+			logLevel := zerolog.InfoLevel
+			debug := utils.ReadCMDLineArg("rd.immucore.debug")
+			if len(debug) > 0 {
+				logLevel = zerolog.DebugLevel
+			}
+			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger().Level(logLevel)
 
 			// If we boot from CD, we do nothing
 			cdBoot, err := utils.BootedFromCD()
