@@ -435,7 +435,7 @@ func (s *State) Register(g *herd.Graph) error {
 
 			}
 			s.Logger.Debug().Msg("End" + opCustomMounts)
-			s.Logger.Err(err).Str("error", err.Error()).Send()
+			s.Logger.Err(err.ErrorOrNil()).Send()
 
 			return err.ErrorOrNil()
 		}),
