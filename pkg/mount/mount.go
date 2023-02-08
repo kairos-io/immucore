@@ -104,7 +104,7 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 		cmd := fmt.Sprintf("elemental run-stage %s", stage)
 		log.Logger.Debug().Str("cmd", cmd).Msg("")
 		output, err := utils.SH(cmd)
-		log.Logger.Debug().Str("output", output).Msg("")
+		log.Info().Msg(output)
 		return err
 	}
 }
@@ -300,9 +300,14 @@ func (s *State) Register(g *herd.Graph) error {
 		herd.WithDeps(opRootfsHook),
 		herd.WithCallback(func(ctx context.Context) error {
 			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
+			if s.IsRecovery {
+				log.Info().Msg("We are on recovery, not reading cos-layout.env")
+				return nil
+			}
 			if s.CustomMounts == nil {
 				s.CustomMounts = map[string]string{}
 			}
+
 			env, err := readEnv("/run/cos/cos-layout.env")
 			if err != nil {
 				log.Logger.Err(err).Msg("Reading env")
