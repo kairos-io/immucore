@@ -59,7 +59,7 @@ func (s *State) path(p ...string) string {
 }
 
 func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
 	return func(ctx context.Context) error {
 		for _, fst := range s.fstabs {
 			select {
@@ -88,7 +88,7 @@ func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 
 func (s *State) RunStageOp(stage string) func(context.Context) error {
 	return func(ctx context.Context) error {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
 		if stage == "rootfs" {
 			if _, err := os.Stat("/system"); os.IsNotExist(err) {
 				s.Logger.Debug().Str("from", "/sysroot/system").Str("to", "/system").Msg("Creating symlink")
@@ -109,7 +109,7 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 }
 
 func (s *State) MountOP(what, where, t string, options []string, timeout time.Duration) func(context.Context) error {
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
 
 	return func(c context.Context) error {
 		cc := time.After(timeout)
@@ -214,7 +214,7 @@ func (s *State) Register(g *herd.Graph) error {
 			herd.WithDeps(opMountState),
 			herd.WithCallback(
 				func(ctx context.Context) error {
-					log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+					log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
 					cmd := fmt.Sprintf("losetup --show -f %s", s.path("/run/initramfs/cos-state", s.TargetImage))
 					log.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("fullcmd", cmd).Msg("Mounting image")
 					_, err := utils.SH(cmd)
@@ -290,7 +290,7 @@ func (s *State) Register(g *herd.Graph) error {
 	err = g.Add(opLoadConfig,
 		herd.WithDeps(opRootfsHook),
 		herd.WithCallback(func(ctx context.Context) error {
-			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
 			if s.CustomMounts == nil {
 				s.CustomMounts = map[string]string{}
 			}
@@ -397,6 +397,7 @@ func (s *State) Register(g *herd.Graph) error {
 		overlayCondition,
 		herd.WithDeps(opLoadConfig),
 		herd.WithCallback(func(ctx context.Context) error {
+			s.Logger.Debug().Msg("Start" + opCustomMounts)
 			var err error
 
 			for what, where := range s.CustomMounts {
@@ -419,6 +420,7 @@ func (s *State) Register(g *herd.Graph) error {
 				)(ctx))
 
 			}
+			s.Logger.Debug().Msg("End" + opCustomMounts)
 			return err
 		}),
 	)
@@ -436,6 +438,7 @@ func (s *State) Register(g *herd.Graph) error {
 		herd.WithCallback(
 			func(ctx context.Context) error {
 				var err error
+				s.Logger.Debug().Msg("Start" + opMountBind)
 				s.Logger.Debug().Msg("Mounting bind")
 				s.Logger.Debug().Strs("binds", s.BindMounts).Msg("Mounting bind")
 
@@ -449,6 +452,8 @@ func (s *State) Register(g *herd.Graph) error {
 					s.fstabs = append(s.fstabs, &op.FstabEntry)
 					err = multierror.Append(err, op.run())
 				}
+				s.Logger.Debug().Msg("End" + opMountBind)
+				s.Logger.Err(err).Send()
 				return err
 			},
 		),
