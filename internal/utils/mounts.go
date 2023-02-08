@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"github.com/kairos-io/kairos/pkg/utils"
 	"os"
 	"strings"
 )
@@ -37,4 +38,9 @@ func ReadCMDLineArg(arg string) []string {
 		}
 	}
 	return res
+}
+
+func IsMountedByLabel(label string) bool {
+	_, err := utils.SH(fmt.Sprintf("findmnt /dev/disk/by-label/%s", label))
+	return err == nil
 }

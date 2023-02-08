@@ -30,31 +30,17 @@ Sends a generic event payload with the configuration found in the scanned direct
 			},
 		},
 		Action: func(c *cli.Context) (err error) {
-			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
-			g := herd.DAG()
-			s := &mount.State{
-				Logger:      log.Logger,
-				Rootdir:     utils.GetRootDir(),
-				MountRoot:   true,
-				TargetLabel: utils.BootStateToLabel(),
-				TargetImage: utils.BootStateToImage(),
+			logLevel := zerolog.InfoLevel
+			debug := utils.ReadCMDLineArg("rd.immucore.debug")
+			if len(debug) > 0 {
+				logLevel = zerolog.DebugLevel
 			}
+			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger().Level(logLevel)
 
-			err = s.Register(g)
-			if err != nil {
-				s.Logger.Err(err)
-				return err
-			}
-
-			log.Print(s.WriteDAG(g))
-
-			if c.Bool("dry-run") {
-				return err
-			}
-
+			// If we boot from CD, we do nothing
 			cdBoot, err := utils.BootedFromCD()
 			if err != nil {
-				s.Logger.Err(err)
+				log.Logger.Err(err).Send()
 				return err
 			}
 
@@ -63,9 +49,32 @@ Sends a generic event payload with the configuration found in the scanned direct
 				return nil
 			}
 
-			log.Print("Calling dag")
+			img := utils.ReadCMDLineArg("cos-img/filename=")
+			log.Debug().Strs("TargetImage", img).Msg("Target image")
+			g := herd.DAG()
+			s := &mount.State{
+				Logger:      log.Logger,
+				Rootdir:     utils.GetRootDir(),
+				MountRoot:   true,
+				TargetLabel: utils.BootStateToLabel(),
+				TargetImage: img[0],
+				IsRecovery:  utils.IsRecovery(),
+			}
+
+			err = s.Register(g)
+			if err != nil {
+				s.Logger.Err(err)
+				return err
+			}
+
+			log.Info().Msg(s.WriteDAG(g))
+
+			if c.Bool("dry-run") {
+				return err
+			}
+
 			err = g.Run(context.Background())
-			log.Print(s.WriteDAG(g))
+			log.Info().Msg(s.WriteDAG(g))
 			return err
 		},
 	},
