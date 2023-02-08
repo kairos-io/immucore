@@ -283,7 +283,7 @@ func (s *State) Register(g *herd.Graph) error {
 
 	// depending on /run/cos-layout.env
 	// This is building the mountRoot dependendency if it was enabled
-	mountRootCondition := herd.ConditionalOption(func() bool { return s.MountRoot && !s.IsRecovery }, herd.WithDeps(opMountRoot))
+	mountRootCondition := herd.ConditionalOption(func() bool { return s.MountRoot }, herd.WithDeps(opMountRoot))
 	s.Logger.Debug().Bool("mountRootCondition", s.MountRoot).Msg("condition")
 
 	// TODO: this needs to be run after sysroot so we can link to /sysroot/system/oem and after /oem mounted
@@ -370,7 +370,7 @@ func (s *State) Register(g *herd.Graph) error {
 		}
 	}
 
-	overlayCondition := herd.ConditionalOption(func() bool { return rootFSType(s.Rootdir) != "overlay" && !s.IsRecovery }, herd.WithDeps(opMountBaseOverlay))
+	overlayCondition := herd.ConditionalOption(func() bool { return rootFSType(s.Rootdir) != "overlay" }, herd.WithDeps(opMountBaseOverlay))
 	s.Logger.Debug().Bool("overlaycondition", rootFSType(s.Rootdir) != "overlay").Msg("condition")
 	// TODO: Add fsck
 	// mount overlay
@@ -411,7 +411,7 @@ func (s *State) Register(g *herd.Graph) error {
 
 			for what, where := range s.CustomMounts {
 				// TODO: scan for the custom mount disk to know the underlying fs and set it proper
-				fstype := "auto"
+				fstype := "ext4"
 				mountOptions := []string{"ro"}
 				// Translate label to disk for COS_PERSISTENT
 				// Persistent needs to be RW
