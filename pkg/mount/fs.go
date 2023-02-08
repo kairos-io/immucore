@@ -123,14 +123,17 @@ func mountBind(mountpoint, root, stateTarget string) mountOperation {
 		FstabEntry:  *tmpFstab,
 		Target:      rootMount,
 		PrepareCallback: func() error {
+			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
 			if err := createIfNotExists(rootMount); err != nil {
+				log.Logger.Err(err).Str("what", rootMount).Msg("create if not exists")
 				return err
 			}
 
 			if err := createIfNotExists(stateDir); err != nil {
+				log.Logger.Err(err).Str("what", stateDir).Msg("create if not exists")
 				return err
 			}
-
+			log.Logger.Debug().Str("what", tmpMount.Source).Str("where", rootMount).Str("type", tmpMount.Type).Strs("options", tmpMount.Options).Msg("create if not exists")
 			return syncState(appendSlash(rootMount), appendSlash(stateDir))
 		},
 	}

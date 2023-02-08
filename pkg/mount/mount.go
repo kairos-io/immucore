@@ -446,6 +446,27 @@ func (s *State) Register(g *herd.Graph) error {
 				log.Logger.Debug().Strs("binds", s.BindMounts).Msg("Mounting bind")
 
 				for _, p := range s.BindMounts {
+					// TODO: Check why p can be empty, Example:
+					/*
+						3:12PM DBG Mounting bind binds=[
+						"/etc/systemd","/etc/modprobe.d",
+						"/etc/rancher","/etc/sysconfig",
+						"/etc/runlevels","/etc/ssh",
+						"/etc/ssl/certs","/etc/iscsi",
+						"",  <----- HERE
+						"/etc/cni","/etc/kubernetes",
+						"/home","/opt","/root","/snap",
+						"/var/snap","/usr/libexec",
+						"/var/log","/var/lib/rancher",
+						"/var/lib/kubelet","/var/lib/snapd"
+						,"/var/lib/wicked","/var/lib/longhorn"
+						,"/var/lib/cni","/usr/share/pki/trust"
+						,"/usr/share/pki/trust/anchors",
+						"/var/lib/ca-certificates"]
+					*/
+					if p == "" {
+						continue
+					}
 					log.Logger.Debug().Str("what", p).Str("where", s.StateDir).Msg("Mounting bind")
 					op := mountBind(p, s.Rootdir, s.StateDir)
 					s.fstabs = append(s.fstabs, &op.FstabEntry)
