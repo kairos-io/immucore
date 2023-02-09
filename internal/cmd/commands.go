@@ -30,12 +30,13 @@ Sends a generic event payload with the configuration found in the scanned direct
 			},
 		},
 		Action: func(c *cli.Context) (err error) {
-			logLevel := zerolog.InfoLevel
-			debug := utils.ReadCMDLineArg("rd.immucore.debug")
-			if len(debug) > 0 {
-				logLevel = zerolog.DebugLevel
+			debug := len(utils.ReadCMDLineArg("rd.immucore.debug")) > 0
+			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
+			zerolog.SetGlobalLevel(zerolog.InfoLevel)
+			if debug {
+				log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+				zerolog.SetGlobalLevel(zerolog.DebugLevel)
 			}
-			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger().Level(logLevel)
 
 			// If we boot from CD, we do nothing
 			cdBoot, err := utils.BootedFromCD()
@@ -50,6 +51,9 @@ Sends a generic event payload with the configuration found in the scanned direct
 			}
 
 			img := utils.ReadCMDLineArg("cos-img/filename=")
+			if len(img) == 0 {
+				log.Logger.Fatal().Msg("Could not get the image name from cmdline (i.e. cos-img/filename=/cOS/active.img)")
+			}
 			log.Debug().Strs("TargetImage", img).Msg("Target image")
 			g := herd.DAG()
 			s := &mount.State{

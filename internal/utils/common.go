@@ -104,3 +104,17 @@ func CreateIfNotExists(path string) error {
 
 	return nil
 }
+
+// CleanupSlice will clean a slice of strings of empty items
+// Typos can be made on writing the cos-layout.env file and that could introduce empty items
+// In the lists that we need to go over, which causes bad stuff
+func CleanupSlice(slice []string) []string {
+	var cleanSlice []string
+	for _, item := range slice {
+		if strings.Trim(item, " ") == "" {
+			continue
+		}
+		cleanSlice = append(cleanSlice, item)
+	}
+	return cleanSlice
+}

@@ -106,7 +106,7 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 }
 
 func (s *State) MountOP(what, where, t string, options []string, timeout time.Duration) func(context.Context) error {
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Logger()
 
 	return func(c context.Context) error {
 		cc := time.After(timeout)
@@ -115,7 +115,7 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 			default:
 				err := internalUtils.CreateIfNotExists(where)
 				if err != nil {
-					log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Err(err).Msg("Creating dir")
+					log.Logger.Err(err).Msg("Creating dir")
 					continue
 				}
 				time.Sleep(1 * time.Second)
@@ -146,11 +146,11 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 				return nil
 			case <-c.Done():
 				e := fmt.Errorf("context canceled")
-				log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Err(e).Msg("mount canceled")
+				log.Logger.Err(e).Msg("mount canceled")
 				return e
 			case <-cc:
 				e := fmt.Errorf("timeout exhausted")
-				log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Err(e).Msg("Mount timeout")
+				log.Logger.Err(e).Msg("Mount timeout")
 				return e
 			}
 		}
@@ -176,9 +176,11 @@ func (s *State) Register(g *herd.Graph) error {
 
 	runtime, err := state.NewRuntime()
 	if err != nil {
-		s.Logger.Debug().Err(err).Msg("")
+		s.Logger.Debug().Err(err).Msg("runtime")
 		return err
 	}
+
+	s.Logger.Debug().Interface("runtime", runtime).Msg("Current runtime")
 
 	// TODO: add hooks, fstab (might have missed some), systemd compat
 	// TODO: We should also set tmpfs here (not -related)
@@ -197,6 +199,7 @@ func (s *State) Register(g *herd.Graph) error {
 						log.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetLabel", s.TargetLabel).Msg("Not mounting loop, already mounted")
 						return nil
 					}
+					// TODO: squashfs recovery image?
 					cmd := fmt.Sprintf("losetup --show -f %s", s.path("/run/initramfs/cos-state", s.TargetImage))
 					_, err := utils.SH(cmd)
 					if err != nil {
@@ -283,15 +286,15 @@ func (s *State) Register(g *herd.Graph) error {
 				return err
 			}
 			// populate from env here
-			s.OverlayDirs = strings.Split(env["RW_PATHS"], " ")
-			// If empty, then set defaults
+			s.OverlayDirs = internalUtils.CleanupSlice(strings.Split(env["RW_PATHS"], " "))
+			// Append default RW_Paths if Dirs are empty
 			if len(s.OverlayDirs) == 0 {
 				s.OverlayDirs = constants.DefaultRWPaths()
 			}
 			// Remove any duplicates
 			s.OverlayDirs = internalUtils.UniqueSlice(s.OverlayDirs)
 
-			s.BindMounts = strings.Split(env["PERSISTENT_STATE_PATHS"], " ")
+			s.BindMounts = internalUtils.CleanupSlice(strings.Split(env["PERSISTENT_STATE_PATHS"], " "))
 			// Remove any duplicates
 			s.BindMounts = internalUtils.UniqueSlice(s.BindMounts)
 
@@ -333,13 +336,17 @@ func (s *State) Register(g *herd.Graph) error {
 					if err != nil {
 						return err
 					}
-					s.fstabs = append(s.fstabs, &op.FstabEntry)
 					err2 := op.run()
-					// Don't return error if it's an already mounted error
-					log.Logger.Err(err2).Send()
+					// No error, add fstab
+					if err2 == nil {
+						s.fstabs = append(s.fstabs, &op.FstabEntry)
+						return nil
+					}
+					// Error but its already mounted error, dont add fstab but dont return error
 					if err2 != nil && errors.Is(err2, constants.ErrAlreadyMounted) {
 						return nil
 					}
+
 					return err2
 				},
 			),
@@ -360,6 +367,7 @@ func (s *State) Register(g *herd.Graph) error {
 		herd.WithCallback(
 			func(ctx context.Context) error {
 				var multierr *multierror.Error
+				s.Logger.Debug().Strs("dirs", s.OverlayDirs).Msg("Mounting overlays")
 				for _, p := range s.OverlayDirs {
 					op := mountWithBaseOverlay(p, s.Rootdir, "/run/overlay")
 					err := op.run()
@@ -423,11 +431,9 @@ func (s *State) Register(g *herd.Graph) error {
 		herd.WithCallback(
 			func(ctx context.Context) error {
 				var err *multierror.Error
+				s.Logger.Debug().Strs("mounts", s.BindMounts).Msg("Mounting binds")
+
 				for _, p := range s.BindMounts {
-					// Ignore empty values that can get there by having extra spaces in the cos-layout file
-					if p == "" {
-						continue
-					}
 					op := mountBind(p, s.Rootdir, s.StateDir)
 					err2 := op.run()
 					if err2 == nil {

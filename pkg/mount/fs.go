@@ -111,7 +111,6 @@ func mountWithBaseOverlay(mountpoint, root, base string) mountOperation {
 
 	tmpFstab := internalUtils.MountToFstab(tmpMount)
 	tmpFstab.File = internalUtils.CleanSysrootForFstab(rootMount)
-
 	// TODO: update fstab with x-systemd info
 	// https://github.com/kairos-io/packages/blob/94aa3bef3d1330cb6c6905ae164f5004b6a58b8c/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L170
 	return mountOperation{
