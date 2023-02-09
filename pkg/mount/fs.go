@@ -29,7 +29,10 @@ func baseOverlay(overlay Overlay) (mountOperation, error) {
 		tmpMount := mount.Mount{Type: "tmpfs", Source: "tmpfs", Options: []string{fmt.Sprintf("size=%s", dat[1])}}
 		err := mount.All([]mount.Mount{tmpMount}, overlay.Base)
 		tmpFstab := internalUtils.MountToFstab(tmpMount)
-		tmpFstab.File = overlay.BackingBase
+		// TODO: Fix this
+		// Currently stores it wrongly the the fstab as `tmpfs tmpfs:20% tmpfs size=20% 0 0`
+		// Correct format should be `tmpfs /run/overlay tmpfs defaults,size=20% 0 0`
+		tmpFstab.File = internalUtils.CleanSysrootForFstab(overlay.BackingBase)
 		return mountOperation{
 			MountOption: tmpMount,
 			FstabEntry:  *tmpFstab,
@@ -40,7 +43,8 @@ func baseOverlay(overlay Overlay) (mountOperation, error) {
 		err := mount.All([]mount.Mount{blockMount}, overlay.Base)
 
 		tmpFstab := internalUtils.MountToFstab(blockMount)
-		tmpFstab.File = overlay.BackingBase
+		// TODO: Check if this is properly written to fstab, currently have no examples
+		tmpFstab.File = internalUtils.CleanSysrootForFstab(overlay.BackingBase)
 		tmpFstab.MntOps["default"] = ""
 
 		return mountOperation{
@@ -71,7 +75,7 @@ func mountBind(mountpoint, root, stateTarget string) mountOperation {
 	}
 
 	tmpFstab := internalUtils.MountToFstab(tmpMount)
-	tmpFstab.File = fmt.Sprintf("/%s", mountpoint)
+	tmpFstab.File = internalUtils.CleanSysrootForFstab(fmt.Sprintf("/%s", mountpoint))
 	tmpFstab.Spec = strings.ReplaceAll(tmpFstab.Spec, root, "")
 	return mountOperation{
 		MountOption: tmpMount,
@@ -114,7 +118,7 @@ func mountWithBaseOverlay(mountpoint, root, base string) (mountOperation, error)
 		}
 
 		tmpFstab := internalUtils.MountToFstab(tmpMount)
-		tmpFstab.File = rootMount
+		tmpFstab.File = internalUtils.CleanSysrootForFstab(rootMount)
 
 		// TODO: update fstab with x-systemd info
 		// https://github.com/kairos-io/packages/blob/94aa3bef3d1330cb6c6905ae164f5004b6a58b8c/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L170

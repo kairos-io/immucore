@@ -93,3 +93,17 @@ func MountToFstab(m mount.Mount) *fstab.Mount {
 		PassNo:  0,
 	}
 }
+
+// CleanSysrootForFstab will clean up the pesky sysroot dir from entries to make them
+// suitable to be written in the fstab
+// As we mount on /sysroot during initramfs but the fstab file is for the real init process, we need to remove
+// Any mentions to /sysroot from the fstab lines, otherwise they won't work
+// Special care for the root (/sysroot) path as we can't just simple remove that path and call it a day
+// as that will return an empty mountpoint which will break fstab mounting
+func CleanSysrootForFstab(path string) string {
+	cleaned := strings.ReplaceAll(path, "/sysroot", "")
+	if cleaned == "" {
+		cleaned = "/"
+	}
+	return cleaned
+}

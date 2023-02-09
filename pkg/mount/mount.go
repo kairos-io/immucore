@@ -69,11 +69,7 @@ func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 				if err != nil {
 					return err
 				}
-				// As we mount on /sysroot during initramfs but the fstab file is for the real init process, we need to remove
-				// Any mentions to /sysroot from the fstab lines, otherwise they won't work
-				fstCleaned := strings.ReplaceAll(fst.String(), "/sysroot", "")
-				toWrite := fmt.Sprintf("%s\n", fstCleaned)
-				if _, err := f.WriteString(toWrite); err != nil {
+				if _, err := f.WriteString(fmt.Sprintf("%s\n", fst.String())); err != nil {
 					_ = f.Close()
 					return err
 				}
@@ -128,7 +124,7 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 					Options: options,
 				}
 				tmpFstab := internalUtils.MountToFstab(mountPoint)
-				tmpFstab.File = where
+				tmpFstab.File = internalUtils.CleanSysrootForFstab(where)
 				op := mountOperation{
 					MountOption: mountPoint,
 					FstabEntry:  *tmpFstab,
