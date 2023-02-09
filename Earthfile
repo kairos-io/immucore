@@ -10,9 +10,6 @@ ARG ISO_NAME=$FLAVOR-immucore
 ARG GO_VERSION=1.18
 ARG GOLINT_VERSION=v1.47.3
 
-# (DEBUGGING) Remove the cos immutable rootfs dracut module
-ARG REMOVE_COS_MODULE
-
 version:
     FROM alpine
     RUN apk add git
@@ -75,10 +72,9 @@ build-dracut:
     COPY +build-immucore/immucore /usr/bin/immucore
     COPY --dir dracut/28immucore /usr/lib/dracut/modules.d/
     COPY dracut/dracut.conf /etc/dracut.conf.d/10-immucore.conf
-    IF [ "$REMOVE_COS_MODULE" != "" ]
-        RUN rm -Rf /usr/lib/dracut/modules.d/30cos-immutable-rootfs/
-        RUN rm /etc/dracut.conf.d/02-cos-immutable-rootfs.conf
-    END
+    # Remove cos-immutable-rootfs module
+    RUN rm -Rf /usr/lib/dracut/modules.d/30cos-immutable-rootfs/
+    RUN rm /etc/dracut.conf.d/02-cos-immutable-rootfs.conf
     RUN kernel=$(ls /lib/modules | head -n1) && \
         dracut -v -f "/boot/initrd-${kernel}" "${kernel}" && \
         ln -sf "initrd-${kernel}" /boot/initrd
