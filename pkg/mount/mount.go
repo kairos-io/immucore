@@ -206,7 +206,7 @@ func (s *State) Register(g *herd.Graph) error {
 				},
 			))
 		if err != nil {
-			s.Logger.Err(err)
+			s.Logger.Err(err).Send()
 		}
 
 		// mount the state partition so to find the loopback device
@@ -229,7 +229,7 @@ func (s *State) Register(g *herd.Graph) error {
 			),
 		)
 		if err != nil {
-			s.Logger.Err(err)
+			s.Logger.Err(err).Send()
 		}
 
 		// mount the loopback device as root of the fs
@@ -252,7 +252,7 @@ func (s *State) Register(g *herd.Graph) error {
 			),
 		)
 		if err != nil {
-			s.Logger.Err(err)
+			s.Logger.Err(err).Send()
 		}
 
 	}
@@ -317,7 +317,7 @@ func (s *State) Register(g *herd.Graph) error {
 			return nil
 		}))
 	if err != nil {
-		s.Logger.Err(err)
+		s.Logger.Err(err).Send()
 	}
 	// end sysroot mount
 
@@ -334,17 +334,18 @@ func (s *State) Register(g *herd.Graph) error {
 						return err
 					}
 					s.fstabs = append(s.fstabs, &op.FstabEntry)
-					err = op.run()
+					err2 := op.run()
 					// Don't return error if it's an already mounted error
-					if err != nil && errors.Is(err, constants.ErrAlreadyMounted) {
+					log.Logger.Err(err2).Send()
+					if err2 != nil && errors.Is(err2, constants.ErrAlreadyMounted) {
 						return nil
 					}
-					return err
+					return err2
 				},
 			),
 		)
 		if err != nil {
-			s.Logger.Err(err)
+			s.Logger.Err(err).Send()
 		}
 	}
 
@@ -358,26 +359,27 @@ func (s *State) Register(g *herd.Graph) error {
 		mountRootCondition,
 		herd.WithCallback(
 			func(ctx context.Context) error {
-				var err *multierror.Error
+				var multierr *multierror.Error
 				for _, p := range s.OverlayDirs {
-					op, err := mountWithBaseOverlay(p, s.Rootdir, "/run/overlay")
-					if err != nil {
-						return err
+					op, err1 := mountWithBaseOverlay(p, s.Rootdir, "/run/overlay")
+					if err1 != nil {
+						log.Logger.Err(err1).Msg("mountWithBaseOverlay")
+						return err1
 					}
 					s.fstabs = append(s.fstabs, &op.FstabEntry)
 					err2 := op.run()
 					// Append to errors only if it's not an already mounted error
 					if err2 != nil && !errors.Is(err2, constants.ErrAlreadyMounted) {
-						err = multierror.Append(err, err2)
+						log.Logger.Err(err2).Msg("overlay mount")
+						multierr = multierror.Append(multierr, err2)
 					}
 				}
-
-				return err.ErrorOrNil()
+				return multierr.ErrorOrNil()
 			},
 		),
 	)
 	if err != nil {
-		s.Logger.Err(err)
+		s.Logger.Err(err).Send()
 	}
 	err = g.Add(
 		opCustomMounts,
@@ -412,7 +414,7 @@ func (s *State) Register(g *herd.Graph) error {
 		}),
 	)
 	if err != nil {
-		s.Logger.Err(err)
+		s.Logger.Err(err).Send()
 	}
 
 	// mount state is defined over a custom mount (/usr/local/.state for instance, needs to be mounted over a device)
@@ -447,7 +449,7 @@ func (s *State) Register(g *herd.Graph) error {
 		),
 	)
 	if err != nil {
-		s.Logger.Err(err)
+		s.Logger.Err(err).Send()
 	}
 
 	// overlay mount end
@@ -471,7 +473,7 @@ func (s *State) Register(g *herd.Graph) error {
 		),
 	)
 	if err != nil {
-		s.Logger.Err(err)
+		s.Logger.Err(err).Send()
 	}
 	err = g.Add(opWriteFstab,
 		overlayCondition,
@@ -480,7 +482,7 @@ func (s *State) Register(g *herd.Graph) error {
 		herd.WeakDeps,
 		herd.WithCallback(s.WriteFstab(s.path("/etc/fstab"))))
 	if err != nil {
-		s.Logger.Err(err)
+		s.Logger.Err(err).Send()
 	}
 	return err
 }
