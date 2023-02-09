@@ -58,7 +58,6 @@ Sends a generic event payload with the configuration found in the scanned direct
 				MountRoot:   true,
 				TargetLabel: utils.BootStateToLabel(),
 				TargetImage: img[0],
-				IsRecovery:  utils.IsRecovery(),
 			}
 
 			err = s.Register(g)

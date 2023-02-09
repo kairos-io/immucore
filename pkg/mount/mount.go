@@ -34,8 +34,7 @@ type State struct {
 	StateDir  string // e.g. "/usr/local/.state"
 	MountRoot bool   // e.g. if true, it tries to find the image to loopback mount
 
-	fstabs     []*fstab.Mount
-	IsRecovery bool // if its recovery it needs different stuff
+	fstabs []*fstab.Mount
 }
 
 const (
@@ -179,7 +178,9 @@ func readEnv(file string) (map[string]string, error) {
 	if err != nil {
 		return envMap, err
 	}
-	defer f.Close()
+	defer func(f *os.File) {
+		_ = f.Close()
+	}(f)
 
 	envMap, err = godotenv.Parse(f)
 	if err != nil {
@@ -234,7 +235,7 @@ func (s *State) Register(g *herd.Graph) error {
 		stateName := runtime.State.Name
 		stateFs := runtime.State.Type
 		// Recovery is a different partition
-		if s.IsRecovery {
+		if internalUtils.IsRecovery() {
 			stateName = runtime.Recovery.Name
 			stateFs = runtime.Recovery.Type
 		}
@@ -282,7 +283,7 @@ func (s *State) Register(g *herd.Graph) error {
 	// This is building the mountRoot dependendency if it was enabled
 	mountRootCondition := herd.ConditionalOption(func() bool { return s.MountRoot }, herd.WithDeps(opMountRoot))
 
-	// TODO: this needs to be run after sysroot so we can link to /sysroot/system/oem and after /oem mounted
+	// this needs to be run after sysroot, so we can link to /sysroot/system/oem and after /oem mounted
 	err = g.Add(opRootfsHook, mountRootCondition, herd.WithDeps(opMountRoot, opMountOEM), herd.WithCallback(s.RunStageOp("rootfs")))
 	if err != nil {
 		s.Logger.Err(err).Msg("running rootfs stage")
