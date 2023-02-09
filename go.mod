@@ -12,7 +12,6 @@ require (
 	github.com/onsi/ginkgo/v2 v2.8.0
 	github.com/onsi/gomega v1.26.0
 	github.com/rs/zerolog v1.29.0
-	github.com/sanity-io/litter v1.5.5
 	github.com/spectrocloud-labs/herd v0.4.0
 	github.com/urfave/cli/v2 v2.24.3
 )

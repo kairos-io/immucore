@@ -1,0 +1,41 @@
+name: Iso build
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+concurrency:
+  group: iso-build-${{ github.head_ref || github.ref }}-${{ github.repository }}
+  cancel-in-progress: true
+
+jobs:
+  iso-build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - flavor: "core-opensuse-leap"
+    steps:
+      - name: Release space from worker
+        run: |
+          sudo rm -rf /usr/local/lib/android # will release about 10 GB if you don't need Android
+          sudo rm -rf /usr/share/dotnet # will release about 20GB if you don't need .NET
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Install Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '^1.18'
+      - name: Build iso
+        run: |
+          ./earthly.sh +iso --FLAVOR=${{ matrix.flavor }}
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.flavor }}-immucore.iso.zip
+          path: |
+            *.iso
+            *.sha256
