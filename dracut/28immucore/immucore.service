@@ -10,5 +10,4 @@ Conflicts=initrd-switch-root.target
 Type=oneshot
 RemainAfterExit=yes
 StandardOutput=journal+console
-ExecStartPre=-/usr/bin/systemctl stop oem.mount
 ExecStart=/usr/bin/immucore start

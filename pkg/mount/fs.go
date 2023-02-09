@@ -32,7 +32,7 @@ func baseOverlay(overlay Overlay) (mountOperation, error) {
 		// TODO: Fix this
 		// Currently stores it wrongly the the fstab as `tmpfs tmpfs:20% tmpfs size=20% 0 0`
 		// Correct format should be `tmpfs /run/overlay tmpfs defaults,size=20% 0 0`
-		tmpFstab.File = internalUtils.CleanSysrootForFstab(overlay.BackingBase)
+		tmpFstab.File = internalUtils.CleanSysrootForFstab(overlay.Base)
 		return mountOperation{
 			MountOption: tmpMount,
 			FstabEntry:  *tmpFstab,
@@ -44,7 +44,7 @@ func baseOverlay(overlay Overlay) (mountOperation, error) {
 
 		tmpFstab := internalUtils.MountToFstab(blockMount)
 		// TODO: Check if this is properly written to fstab, currently have no examples
-		tmpFstab.File = internalUtils.CleanSysrootForFstab(overlay.BackingBase)
+		tmpFstab.File = internalUtils.CleanSysrootForFstab(overlay.Base)
 		tmpFstab.MntOps["default"] = ""
 
 		return mountOperation{
