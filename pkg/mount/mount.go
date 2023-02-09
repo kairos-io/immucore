@@ -439,7 +439,7 @@ func (s *State) Register(g *herd.Graph) error {
 		mountRootCondition,
 		herd.WithCallback(
 			s.MountOP(
-				runtime.OEM.Name,
+				fmt.Sprintf("/dev/disk/by-label/%s", runtime.OEM.Label),
 				s.path("/oem"),
 				runtime.OEM.Type,
 				[]string{
