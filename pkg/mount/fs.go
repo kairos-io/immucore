@@ -3,35 +3,13 @@ package mount
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"github.com/containerd/containerd/mount"
-	"github.com/deniswernert/go-fstab"
-	"github.com/kairos-io/kairos/pkg/utils"
+	internalUtils "github.com/kairos-io/immucore/internal/utils"
 	"github.com/moby/sys/mountinfo"
 )
-
-func rootFSType(s string) string {
-	out, _ := utils.SH(fmt.Sprintf("findmnt -rno FSTYPE %s", s))
-	return out
-}
-func createIfNotExists(path string) error {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return os.MkdirAll(path, os.ModePerm)
-	}
-
-	return nil
-}
-
-func appendSlash(path string) string {
-	if !strings.HasSuffix(path, "/") {
-		return fmt.Sprintf("%s/", path)
-	}
-
-	return path
-}
 
 // https://github.com/kairos-io/packages/blob/94aa3bef3d1330cb6c6905ae164f5004b6a58b8c/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L129
 func baseOverlay(overlay Overlay) (mountOperation, error) {
@@ -50,7 +28,7 @@ func baseOverlay(overlay Overlay) (mountOperation, error) {
 	case "tmpfs":
 		tmpMount := mount.Mount{Type: "tmpfs", Source: "tmpfs", Options: []string{fmt.Sprintf("size=%s", dat[1])}}
 		err := mount.All([]mount.Mount{tmpMount}, overlay.Base)
-		tmpFstab := mountToStab(tmpMount)
+		tmpFstab := internalUtils.MountToFstab(tmpMount)
 		tmpFstab.File = overlay.BackingBase
 		return mountOperation{
 			MountOption: tmpMount,
@@ -61,7 +39,7 @@ func baseOverlay(overlay Overlay) (mountOperation, error) {
 		blockMount := mount.Mount{Type: "auto", Source: dat[1]}
 		err := mount.All([]mount.Mount{blockMount}, overlay.Base)
 
-		tmpFstab := mountToStab(blockMount)
+		tmpFstab := internalUtils.MountToFstab(blockMount)
 		tmpFstab.File = overlay.BackingBase
 		tmpFstab.MntOps["default"] = ""
 
@@ -72,27 +50,6 @@ func baseOverlay(overlay Overlay) (mountOperation, error) {
 		}, err
 	default:
 		return mountOperation{}, fmt.Errorf("invalid overlay backing base type")
-	}
-}
-
-func mountToStab(m mount.Mount) *fstab.Mount {
-	opts := map[string]string{}
-	for _, o := range m.Options {
-		if strings.Contains(o, "=") {
-			dat := strings.Split(o, "=")
-			key := dat[0]
-			value := dat[1]
-			opts[key] = value
-		} else {
-			opts[o] = ""
-		}
-	}
-	return &fstab.Mount{
-		Spec:    m.Source,
-		VfsType: m.Type,
-		MntOps:  opts,
-		Freq:    0,
-		PassNo:  0,
 	}
 }
 
@@ -113,7 +70,7 @@ func mountBind(mountpoint, root, stateTarget string) mountOperation {
 		},
 	}
 
-	tmpFstab := mountToStab(tmpMount)
+	tmpFstab := internalUtils.MountToFstab(tmpMount)
 	tmpFstab.File = fmt.Sprintf("/%s", mountpoint)
 	tmpFstab.Spec = strings.ReplaceAll(tmpFstab.Spec, root, "")
 	return mountOperation{
@@ -121,20 +78,16 @@ func mountBind(mountpoint, root, stateTarget string) mountOperation {
 		FstabEntry:  *tmpFstab,
 		Target:      rootMount,
 		PrepareCallback: func() error {
-			if err := createIfNotExists(rootMount); err != nil {
+			if err := internalUtils.CreateIfNotExists(rootMount); err != nil {
 				return err
 			}
 
-			if err := createIfNotExists(stateDir); err != nil {
+			if err := internalUtils.CreateIfNotExists(stateDir); err != nil {
 				return err
 			}
-			return syncState(appendSlash(rootMount), appendSlash(stateDir))
+			return internalUtils.SyncState(internalUtils.AppendSlash(rootMount), internalUtils.AppendSlash(stateDir))
 		},
 	}
-}
-
-func syncState(src, dst string) error {
-	return exec.Command("rsync", "-aqAX", src, dst).Run()
 }
 
 // https://github.com/kairos-io/packages/blob/94aa3bef3d1330cb6c6905ae164f5004b6a58b8c/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L145
@@ -143,7 +96,8 @@ func mountWithBaseOverlay(mountpoint, root, base string) (mountOperation, error)
 	rootMount := filepath.Join(root, mountpoint)
 	bindMountPath := strings.ReplaceAll(mountpoint, "/", "-")
 
-	createIfNotExists(rootMount)
+	// TODO: Should we error out if we cant create the target to mount to?
+	_ = internalUtils.CreateIfNotExists(rootMount)
 	if mounted, _ := mountinfo.Mounted(rootMount); !mounted {
 		upperdir := filepath.Join(base, bindMountPath, ".overlay", "upper")
 		workdir := filepath.Join(base, bindMountPath, ".overlay", "work")
@@ -159,7 +113,7 @@ func mountWithBaseOverlay(mountpoint, root, base string) (mountOperation, error)
 			},
 		}
 
-		tmpFstab := mountToStab(tmpMount)
+		tmpFstab := internalUtils.MountToFstab(tmpMount)
 		tmpFstab.File = rootMount
 
 		// TODO: update fstab with x-systemd info

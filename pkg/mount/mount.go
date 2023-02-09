@@ -3,6 +3,7 @@ package mount
 import (
 	"context"
 	"fmt"
+	"github.com/kairos-io/immucore/internal/constants"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,7 +12,6 @@ import (
 	"github.com/containerd/containerd/mount"
 	"github.com/deniswernert/go-fstab"
 	"github.com/hashicorp/go-multierror"
-	"github.com/joho/godotenv"
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/kairos/pkg/utils"
 	"github.com/kairos-io/kairos/sdk/state"
@@ -69,14 +69,15 @@ func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 				if err != nil {
 					return err
 				}
-				defer f.Close()
 				// As we mount on /sysroot during initramfs but the fstab file is for the real init process, we need to remove
-				// Any mentions to /sysroot from the fstab lines, otherwise they wont work
+				// Any mentions to /sysroot from the fstab lines, otherwise they won't work
 				fstCleaned := strings.ReplaceAll(fst.String(), "/sysroot", "")
 				toWrite := fmt.Sprintf("%s\n", fstCleaned)
 				if _, err := f.WriteString(toWrite); err != nil {
+					_ = f.Close()
 					return err
 				}
+				_ = f.Close()
 			}
 		}
 		return nil
@@ -115,12 +116,10 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 		for {
 			select {
 			default:
-				if _, err := os.Stat(where); os.IsNotExist(err) {
-					err = os.MkdirAll(where, os.ModeDir|os.ModePerm)
-					if err != nil {
-						log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Err(err).Msg("Creating dir")
-						continue
-					}
+				err := internalUtils.CreateIfNotExists(where)
+				if err != nil {
+					log.Logger.Debug().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Err(err).Msg("Creating dir")
+					continue
 				}
 				time.Sleep(1 * time.Second)
 				mountPoint := mount.Mount{
@@ -128,7 +127,7 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 					Source:  what,
 					Options: options,
 				}
-				tmpFstab := mountToStab(mountPoint)
+				tmpFstab := internalUtils.MountToFstab(mountPoint)
 				tmpFstab.File = where
 				op := mountOperation{
 					MountOption: mountPoint,
@@ -136,7 +135,7 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 					Target:      where,
 				}
 
-				err := op.run()
+				err = op.run()
 				if err != nil {
 					continue
 				}
@@ -158,7 +157,7 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 
 func (s *State) WriteDAG(g *herd.Graph) (out string) {
 	for i, layer := range g.Analyze() {
-		out += fmt.Sprintf("%d.\n", (i + 1))
+		out += fmt.Sprintf("%d.\n", i+1)
 		for _, op := range layer {
 			if op.Error != nil {
 				out += fmt.Sprintf(" <%s> (error: %s) (background: %t) (weak: %t)\n", op.Name, op.Error.Error(), op.Background, op.WeakDeps)
@@ -170,31 +169,8 @@ func (s *State) WriteDAG(g *herd.Graph) (out string) {
 	return
 }
 
-func readEnv(file string) (map[string]string, error) {
-	var envMap map[string]string
-	var err error
-
-	f, err := os.Open(file)
-	if err != nil {
-		return envMap, err
-	}
-	defer func(f *os.File) {
-		_ = f.Close()
-	}(f)
-
-	envMap, err = godotenv.Parse(f)
-	if err != nil {
-		return envMap, err
-	}
-
-	return envMap, err
-}
-
 func (s *State) Register(g *herd.Graph) error {
 	var err error
-
-	// Default RW_PATHS to mount ALWAYS
-	s.OverlayDirs = []string{"/etc", "/root", "/home", "/opt", "/srv", "/usr/local", "/var"}
 
 	runtime, err := state.NewRuntime()
 	if err != nil {
@@ -299,31 +275,28 @@ func (s *State) Register(g *herd.Graph) error {
 				s.CustomMounts = map[string]string{}
 			}
 
-			env, err := readEnv("/run/cos/cos-layout.env")
+			env, err := internalUtils.ReadEnv("/run/cos/cos-layout.env")
 			if err != nil {
 				log.Logger.Err(err).Msg("Reading env")
 				return err
 			}
 			// populate from env here
-			s.OverlayDirs = append(s.OverlayDirs, strings.Split(env["RW_PATHS"], " ")...)
+			s.OverlayDirs = strings.Split(env["RW_PATHS"], " ")
+			// If empty, then set defaults
+			if len(s.OverlayDirs) == 0 {
+				s.OverlayDirs = constants.DefaultRWPaths()
+			}
 			// Remove any duplicates
 			s.OverlayDirs = internalUtils.UniqueSlice(s.OverlayDirs)
 
-			// TODO: PERSISTENT_STATE_TARGET /usr/local/.state
 			s.BindMounts = strings.Split(env["PERSISTENT_STATE_PATHS"], " ")
 			// Remove any duplicates
 			s.BindMounts = internalUtils.UniqueSlice(s.BindMounts)
 
 			s.StateDir = env["PERSISTENT_STATE_TARGET"]
 			if s.StateDir == "" {
-				s.StateDir = "/usr/local/.state"
+				s.StateDir = constants.PersistentStateTarget
 			}
-
-			// s.CustomMounts is special:
-			// It gets parsed by the cmdline (TODO)
-			// and from the env var
-			// https://github.com/kairos-io/packages/blob/7c3581a8ba6371e5ce10c3a98bae54fde6a505af/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-generator.sh#L71
-			// https://github.com/kairos-io/packages/blob/7c3581a8ba6371e5ce10c3a98bae54fde6a505af/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L80
 
 			addLine := func(d string) {
 				dat := strings.Split(d, ":")
@@ -333,6 +306,8 @@ func (s *State) Register(g *herd.Graph) error {
 					s.CustomMounts[disk] = path
 				}
 			}
+			// Parse custom mounts also from cmdline (rd.cos.mount=)
+			// Parse custom mounts also from env file (VOLUMES)
 			for _, v := range append(internalUtils.ReadCMDLineArg("rd.cos.mount="), strings.Split(env["VOLUMES"], " ")...) {
 				addLine(internalUtils.ParseMount(v))
 			}
@@ -345,7 +320,7 @@ func (s *State) Register(g *herd.Graph) error {
 	// end sysroot mount
 
 	// overlay mount start
-	if rootFSType(s.Rootdir) != "overlay" {
+	if internalUtils.DiskFSType(s.Rootdir) != "overlay" {
 		err = g.Add(opMountBaseOverlay,
 			herd.WithCallback(
 				func(ctx context.Context) error {
@@ -366,7 +341,7 @@ func (s *State) Register(g *herd.Graph) error {
 		}
 	}
 
-	overlayCondition := herd.ConditionalOption(func() bool { return rootFSType(s.Rootdir) != "overlay" }, herd.WithDeps(opMountBaseOverlay))
+	overlayCondition := herd.ConditionalOption(func() bool { return internalUtils.DiskFSType(s.Rootdir) != "overlay" }, herd.WithDeps(opMountBaseOverlay))
 	// TODO: Add fsck
 	// mount overlay
 	err = g.Add(
@@ -439,24 +414,7 @@ func (s *State) Register(g *herd.Graph) error {
 			func(ctx context.Context) error {
 				var err *multierror.Error
 				for _, p := range s.BindMounts {
-					// TODO: Check why p can be empty, Example:
-					/*
-						3:12PM DBG Mounting bind binds=[
-						"/etc/systemd","/etc/modprobe.d",
-						"/etc/rancher","/etc/sysconfig",
-						"/etc/runlevels","/etc/ssh",
-						"/etc/ssl/certs","/etc/iscsi",
-						"",  <----- HERE
-						"/etc/cni","/etc/kubernetes",
-						"/home","/opt","/root","/snap",
-						"/var/snap","/usr/libexec",
-						"/var/log","/var/lib/rancher",
-						"/var/lib/kubelet","/var/lib/snapd"
-						,"/var/lib/wicked","/var/lib/longhorn"
-						,"/var/lib/cni","/usr/share/pki/trust"
-						,"/usr/share/pki/trust/anchors",
-						"/var/lib/ca-certificates"]
-					*/
+					// Ignore empty values that can get there by having extra spaces in the cos-layout file
 					if p == "" {
 						continue
 					}
