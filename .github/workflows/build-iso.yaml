@@ -37,5 +37,5 @@ jobs:
         with:
           name: ${{ matrix.flavor }}-immucore.iso.zip
           path: |
-            *.iso
-            *.sha256
+            build/*.iso
+            build/*.sha256
