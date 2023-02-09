@@ -361,18 +361,15 @@ func (s *State) Register(g *herd.Graph) error {
 			func(ctx context.Context) error {
 				var multierr *multierror.Error
 				for _, p := range s.OverlayDirs {
-					op, err1 := mountWithBaseOverlay(p, s.Rootdir, "/run/overlay")
-					if err1 != nil {
-						log.Logger.Err(err1).Msg("mountWithBaseOverlay")
-						return err1
+					op := mountWithBaseOverlay(p, s.Rootdir, "/run/overlay")
+					err := op.run()
+					// Append to errors only if it's not an already mounted error
+					if err != nil && !errors.Is(err, constants.ErrAlreadyMounted) {
+						log.Logger.Err(err).Msg("overlay mount")
+						multierr = multierror.Append(multierr, err)
+						continue
 					}
 					s.fstabs = append(s.fstabs, &op.FstabEntry)
-					err2 := op.run()
-					// Append to errors only if it's not an already mounted error
-					if err2 != nil && !errors.Is(err2, constants.ErrAlreadyMounted) {
-						log.Logger.Err(err2).Msg("overlay mount")
-						multierr = multierror.Append(multierr, err2)
-					}
 				}
 				return multierr.ErrorOrNil()
 			},

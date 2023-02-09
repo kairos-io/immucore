@@ -8,7 +8,6 @@ import (
 
 	"github.com/containerd/containerd/mount"
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
-	"github.com/moby/sys/mountinfo"
 )
 
 // https://github.com/kairos-io/packages/blob/94aa3bef3d1330cb6c6905ae164f5004b6a58b8c/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L129
@@ -89,45 +88,41 @@ func mountBind(mountpoint, root, stateTarget string) mountOperation {
 }
 
 // https://github.com/kairos-io/packages/blob/94aa3bef3d1330cb6c6905ae164f5004b6a58b8c/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L145
-func mountWithBaseOverlay(mountpoint, root, base string) (mountOperation, error) {
+func mountWithBaseOverlay(mountpoint, root, base string) mountOperation {
 	mountpoint = strings.TrimLeft(mountpoint, "/") // normalize, remove / upfront as we are going to re-use it in subdirs
 	rootMount := filepath.Join(root, mountpoint)
 	bindMountPath := strings.ReplaceAll(mountpoint, "/", "-")
 
 	// TODO: Should we error out if we cant create the target to mount to?
 	_ = internalUtils.CreateIfNotExists(rootMount)
-	if mounted, _ := mountinfo.Mounted(rootMount); !mounted {
-		upperdir := filepath.Join(base, bindMountPath, ".overlay", "upper")
-		workdir := filepath.Join(base, bindMountPath, ".overlay", "work")
+	upperdir := filepath.Join(base, bindMountPath, ".overlay", "upper")
+	workdir := filepath.Join(base, bindMountPath, ".overlay", "work")
 
-		tmpMount := mount.Mount{
-			Type:   "overlay",
-			Source: "overlay",
-			Options: []string{
-				//"defaults",
-				fmt.Sprintf("lowerdir=%s", rootMount),
-				fmt.Sprintf("upperdir=%s", upperdir),
-				fmt.Sprintf("workdir=%s", workdir),
-			},
-		}
-
-		tmpFstab := internalUtils.MountToFstab(tmpMount)
-		tmpFstab.File = internalUtils.CleanSysrootForFstab(rootMount)
-
-		// TODO: update fstab with x-systemd info
-		// https://github.com/kairos-io/packages/blob/94aa3bef3d1330cb6c6905ae164f5004b6a58b8c/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L170
-		return mountOperation{
-			MountOption: tmpMount,
-			FstabEntry:  *tmpFstab,
-			Target:      rootMount,
-			PrepareCallback: func() error {
-				// Make sure workdir and/or upper exists
-				os.MkdirAll(upperdir, os.ModePerm)
-				os.MkdirAll(workdir, os.ModePerm)
-				return nil
-			},
-		}, nil
+	tmpMount := mount.Mount{
+		Type:   "overlay",
+		Source: "overlay",
+		Options: []string{
+			//"defaults",
+			fmt.Sprintf("lowerdir=%s", rootMount),
+			fmt.Sprintf("upperdir=%s", upperdir),
+			fmt.Sprintf("workdir=%s", workdir),
+		},
 	}
 
-	return mountOperation{}, fmt.Errorf("already mounted")
+	tmpFstab := internalUtils.MountToFstab(tmpMount)
+	tmpFstab.File = internalUtils.CleanSysrootForFstab(rootMount)
+
+	// TODO: update fstab with x-systemd info
+	// https://github.com/kairos-io/packages/blob/94aa3bef3d1330cb6c6905ae164f5004b6a58b8c/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L170
+	return mountOperation{
+		MountOption: tmpMount,
+		FstabEntry:  *tmpFstab,
+		Target:      rootMount,
+		PrepareCallback: func() error {
+			// Make sure workdir and/or upper exists
+			_ = os.MkdirAll(upperdir, os.ModePerm)
+			_ = os.MkdirAll(workdir, os.ModePerm)
+			return nil
+		},
+	}
 }
