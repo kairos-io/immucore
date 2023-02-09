@@ -27,21 +27,15 @@ func baseOverlay(overlay Overlay) (mountOperation, error) {
 	switch t {
 	case "tmpfs":
 		tmpMount := mount.Mount{Type: "tmpfs", Source: "tmpfs", Options: []string{fmt.Sprintf("size=%s", dat[1])}}
-		err := mount.All([]mount.Mount{tmpMount}, overlay.Base)
 		tmpFstab := internalUtils.MountToFstab(tmpMount)
-		// TODO: Fix this
-		// Currently stores it wrongly the the fstab as `tmpfs tmpfs:20% tmpfs size=20% 0 0`
-		// Correct format should be `tmpfs /run/overlay tmpfs defaults,size=20% 0 0`
 		tmpFstab.File = internalUtils.CleanSysrootForFstab(overlay.Base)
 		return mountOperation{
 			MountOption: tmpMount,
 			FstabEntry:  *tmpFstab,
 			Target:      overlay.Base,
-		}, err
+		}, nil
 	case "block":
 		blockMount := mount.Mount{Type: "auto", Source: dat[1]}
-		err := mount.All([]mount.Mount{blockMount}, overlay.Base)
-
 		tmpFstab := internalUtils.MountToFstab(blockMount)
 		// TODO: Check if this is properly written to fstab, currently have no examples
 		tmpFstab.File = internalUtils.CleanSysrootForFstab(overlay.Base)
@@ -51,7 +45,7 @@ func baseOverlay(overlay Overlay) (mountOperation, error) {
 			MountOption: blockMount,
 			FstabEntry:  *tmpFstab,
 			Target:      overlay.Base,
-		}, err
+		}, nil
 	default:
 		return mountOperation{}, fmt.Errorf("invalid overlay backing base type")
 	}

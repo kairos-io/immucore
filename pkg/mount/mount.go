@@ -2,6 +2,7 @@ package mount
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/kairos-io/immucore/internal/constants"
 	"os"
@@ -132,11 +133,16 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 				}
 
 				err = op.run()
-				if err != nil {
+
+				if err == nil {
+					s.fstabs = append(s.fstabs, tmpFstab)
+				}
+
+				// only continue the loop if it's an error and not an already mounted error
+				if err != nil && !errors.Is(err, constants.ErrAlreadyMounted) {
 					continue
 				}
 
-				s.fstabs = append(s.fstabs, tmpFstab)
 				return nil
 			case <-c.Done():
 				e := fmt.Errorf("context canceled")
@@ -328,7 +334,12 @@ func (s *State) Register(g *herd.Graph) error {
 						return err
 					}
 					s.fstabs = append(s.fstabs, &op.FstabEntry)
-					return op.run()
+					err = op.run()
+					// Don't return error if it's an already mounted error
+					if err != nil && errors.Is(err, constants.ErrAlreadyMounted) {
+						return nil
+					}
+					return err
 				},
 			),
 		)
@@ -347,17 +358,21 @@ func (s *State) Register(g *herd.Graph) error {
 		mountRootCondition,
 		herd.WithCallback(
 			func(ctx context.Context) error {
-				var err error
+				var err *multierror.Error
 				for _, p := range s.OverlayDirs {
 					op, err := mountWithBaseOverlay(p, s.Rootdir, "/run/overlay")
 					if err != nil {
 						return err
 					}
 					s.fstabs = append(s.fstabs, &op.FstabEntry)
-					err = multierror.Append(err, op.run())
+					err2 := op.run()
+					// Append to errors only if it's not an already mounted error
+					if err2 != nil && !errors.Is(err2, constants.ErrAlreadyMounted) {
+						err = multierror.Append(err, err2)
+					}
 				}
 
-				return err
+				return err.ErrorOrNil()
 			},
 		),
 	)
@@ -416,12 +431,14 @@ func (s *State) Register(g *herd.Graph) error {
 					}
 					op := mountBind(p, s.Rootdir, s.StateDir)
 					err2 := op.run()
-					if err2 != nil {
-						log.Logger.Err(err2).Send()
-						err = multierror.Append(err, err2)
-					} else {
+					if err2 == nil {
 						// Only append to fstabs if there was no error, otherwise we will try to mount it after switch_root
 						s.fstabs = append(s.fstabs, &op.FstabEntry)
+					}
+					// Append to errors only if it's not an already mounted error
+					if err2 != nil && !errors.Is(err2, constants.ErrAlreadyMounted) {
+						log.Logger.Err(err2).Send()
+						err = multierror.Append(err, err2)
 					}
 				}
 				log.Logger.Err(err.ErrorOrNil()).Send()
