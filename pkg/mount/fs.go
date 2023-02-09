@@ -3,35 +3,12 @@ package mount
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"github.com/containerd/containerd/mount"
-	"github.com/deniswernert/go-fstab"
-	"github.com/kairos-io/kairos/pkg/utils"
-	"github.com/moby/sys/mountinfo"
+	internalUtils "github.com/kairos-io/immucore/internal/utils"
 )
-
-func rootFSType(s string) string {
-	out, _ := utils.SH(fmt.Sprintf("findmnt -rno FSTYPE %s", s))
-	return out
-}
-func createIfNotExists(path string) error {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return os.MkdirAll(path, os.ModePerm)
-	}
-
-	return nil
-}
-
-func appendSlash(path string) string {
-	if !strings.HasSuffix(path, "/") {
-		return fmt.Sprintf("%s/", path)
-	}
-
-	return path
-}
 
 // https://github.com/kairos-io/packages/blob/94aa3bef3d1330cb6c6905ae164f5004b6a58b8c/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L129
 func baseOverlay(overlay Overlay) (mountOperation, error) {
@@ -49,50 +26,27 @@ func baseOverlay(overlay Overlay) (mountOperation, error) {
 	switch t {
 	case "tmpfs":
 		tmpMount := mount.Mount{Type: "tmpfs", Source: "tmpfs", Options: []string{fmt.Sprintf("size=%s", dat[1])}}
-		err := mount.All([]mount.Mount{tmpMount}, overlay.Base)
-		tmpFstab := mountToStab(tmpMount)
-		tmpFstab.File = overlay.BackingBase
+		tmpFstab := internalUtils.MountToFstab(tmpMount)
+		tmpFstab.File = internalUtils.CleanSysrootForFstab(overlay.Base)
 		return mountOperation{
 			MountOption: tmpMount,
 			FstabEntry:  *tmpFstab,
 			Target:      overlay.Base,
-		}, err
+		}, nil
 	case "block":
 		blockMount := mount.Mount{Type: "auto", Source: dat[1]}
-		err := mount.All([]mount.Mount{blockMount}, overlay.Base)
-
-		tmpFstab := mountToStab(blockMount)
-		tmpFstab.File = overlay.BackingBase
+		tmpFstab := internalUtils.MountToFstab(blockMount)
+		// TODO: Check if this is properly written to fstab, currently have no examples
+		tmpFstab.File = internalUtils.CleanSysrootForFstab(overlay.Base)
 		tmpFstab.MntOps["default"] = ""
 
 		return mountOperation{
 			MountOption: blockMount,
 			FstabEntry:  *tmpFstab,
 			Target:      overlay.Base,
-		}, err
+		}, nil
 	default:
 		return mountOperation{}, fmt.Errorf("invalid overlay backing base type")
-	}
-}
-
-func mountToStab(m mount.Mount) *fstab.Mount {
-	opts := map[string]string{}
-	for _, o := range m.Options {
-		if strings.Contains(o, "=") {
-			dat := strings.Split(o, "=")
-			key := dat[0]
-			value := dat[1]
-			opts[key] = value
-		} else {
-			opts[o] = ""
-		}
-	}
-	return &fstab.Mount{
-		Spec:    m.Source,
-		VfsType: m.Type,
-		MntOps:  opts,
-		Freq:    0,
-		PassNo:  0,
 	}
 }
 
@@ -113,69 +67,61 @@ func mountBind(mountpoint, root, stateTarget string) mountOperation {
 		},
 	}
 
-	tmpFstab := mountToStab(tmpMount)
-	tmpFstab.File = fmt.Sprintf("/%s", mountpoint)
+	tmpFstab := internalUtils.MountToFstab(tmpMount)
+	tmpFstab.File = internalUtils.CleanSysrootForFstab(fmt.Sprintf("/%s", mountpoint))
 	tmpFstab.Spec = strings.ReplaceAll(tmpFstab.Spec, root, "")
 	return mountOperation{
 		MountOption: tmpMount,
 		FstabEntry:  *tmpFstab,
 		Target:      rootMount,
 		PrepareCallback: func() error {
-			if err := createIfNotExists(rootMount); err != nil {
+			if err := internalUtils.CreateIfNotExists(rootMount); err != nil {
 				return err
 			}
 
-			if err := createIfNotExists(stateDir); err != nil {
+			if err := internalUtils.CreateIfNotExists(stateDir); err != nil {
 				return err
 			}
-			return syncState(appendSlash(rootMount), appendSlash(stateDir))
+			return internalUtils.SyncState(internalUtils.AppendSlash(rootMount), internalUtils.AppendSlash(stateDir))
 		},
 	}
 }
 
-func syncState(src, dst string) error {
-	return exec.Command("rsync", "-aqAX", src, dst).Run()
-}
-
 // https://github.com/kairos-io/packages/blob/94aa3bef3d1330cb6c6905ae164f5004b6a58b8c/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L145
-func mountWithBaseOverlay(mountpoint, root, base string) (mountOperation, error) {
+func mountWithBaseOverlay(mountpoint, root, base string) mountOperation {
 	mountpoint = strings.TrimLeft(mountpoint, "/") // normalize, remove / upfront as we are going to re-use it in subdirs
 	rootMount := filepath.Join(root, mountpoint)
 	bindMountPath := strings.ReplaceAll(mountpoint, "/", "-")
 
-	createIfNotExists(rootMount)
-	if mounted, _ := mountinfo.Mounted(rootMount); !mounted {
-		upperdir := filepath.Join(base, bindMountPath, ".overlay", "upper")
-		workdir := filepath.Join(base, bindMountPath, ".overlay", "work")
+	// TODO: Should we error out if we cant create the target to mount to?
+	_ = internalUtils.CreateIfNotExists(rootMount)
+	upperdir := filepath.Join(base, bindMountPath, ".overlay", "upper")
+	workdir := filepath.Join(base, bindMountPath, ".overlay", "work")
 
-		tmpMount := mount.Mount{
-			Type:   "overlay",
-			Source: "overlay",
-			Options: []string{
-				//"defaults",
-				fmt.Sprintf("lowerdir=%s", rootMount),
-				fmt.Sprintf("upperdir=%s", upperdir),
-				fmt.Sprintf("workdir=%s", workdir),
-			},
-		}
-
-		tmpFstab := mountToStab(tmpMount)
-		tmpFstab.File = rootMount
-
-		// TODO: update fstab with x-systemd info
-		// https://github.com/kairos-io/packages/blob/94aa3bef3d1330cb6c6905ae164f5004b6a58b8c/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L170
-		return mountOperation{
-			MountOption: tmpMount,
-			FstabEntry:  *tmpFstab,
-			Target:      rootMount,
-			PrepareCallback: func() error {
-				// Make sure workdir and/or upper exists
-				os.MkdirAll(upperdir, os.ModePerm)
-				os.MkdirAll(workdir, os.ModePerm)
-				return nil
-			},
-		}, nil
+	tmpMount := mount.Mount{
+		Type:   "overlay",
+		Source: "overlay",
+		Options: []string{
+			//"defaults",
+			fmt.Sprintf("lowerdir=%s", rootMount),
+			fmt.Sprintf("upperdir=%s", upperdir),
+			fmt.Sprintf("workdir=%s", workdir),
+		},
 	}
 
-	return mountOperation{}, fmt.Errorf("already mounted")
+	tmpFstab := internalUtils.MountToFstab(tmpMount)
+	tmpFstab.File = internalUtils.CleanSysrootForFstab(rootMount)
+	// TODO: update fstab with x-systemd info
+	// https://github.com/kairos-io/packages/blob/94aa3bef3d1330cb6c6905ae164f5004b6a58b8c/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L170
+	return mountOperation{
+		MountOption: tmpMount,
+		FstabEntry:  *tmpFstab,
+		Target:      rootMount,
+		PrepareCallback: func() error {
+			// Make sure workdir and/or upper exists
+			_ = os.MkdirAll(upperdir, os.ModePerm)
+			_ = os.MkdirAll(workdir, os.ModePerm)
+			return nil
+		},
+	}
 }
