@@ -38,6 +38,13 @@ Sends a generic event payload with the configuration found in the scanned direct
 				zerolog.SetGlobalLevel(zerolog.DebugLevel)
 			}
 
+			// First set the sentinel file
+			err = utils.SetSentinelFile()
+			if err != nil {
+				log.Logger.Err(err).Send()
+				return err
+			}
+
 			// If we boot from CD, we do nothing
 			cdBoot, err := utils.BootedFromCD()
 			if err != nil {

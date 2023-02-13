@@ -30,14 +30,3 @@ cos_img=$(getarg cos-img/filename=)
 } > "$GENERATOR_DIR"/sysroot.mount
 
 ## END GENERATE SYSROOT
-
-# set sentinel file for boot mode
-mkdir -p /run/cos
-case "${cos_img}" in
-    *recovery*)
-        echo -n 1 > /run/cos/recovery_mode ;;
-    *active*)
-        echo -n 1 > /run/cos/active_mode ;;
-    *passive*)
-        echo -n 1 > /run/cos/passive_mode ;;
-esac

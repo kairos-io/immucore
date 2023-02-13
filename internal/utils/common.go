@@ -4,6 +4,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/kairos-io/kairos/sdk/state"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -117,4 +118,37 @@ func CleanupSlice(slice []string) []string {
 		cleanSlice = append(cleanSlice, item)
 	}
 	return cleanSlice
+}
+
+// SetSentinelFile sets the sentinel file to identify the boot mode.
+// This is used by several things to know in which state they are, for example cloud configs
+func SetSentinelFile() error {
+	var sentinel string
+
+	err := CreateIfNotExists("/run/cos/")
+	if err != nil {
+		return err
+	}
+	runtime, err := state.NewRuntime()
+	if err != nil {
+		return err
+	}
+
+	switch runtime.BootState {
+	case state.Active:
+		sentinel = "active_mode"
+	case state.Passive:
+		sentinel = "passive_mode"
+	case state.Recovery:
+		sentinel = "recovery_mode"
+	case state.LiveCD:
+		sentinel = "live_mode"
+	default:
+		sentinel = string(state.Unknown)
+	}
+	err = os.WriteFile(filepath.Join("/run/cos/", sentinel), []byte("1"), os.ModePerm)
+	if err != nil {
+		return err
+	}
+	return nil
 }
