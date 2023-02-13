@@ -34,5 +34,11 @@ install() {
     inst_simple "${moddir}/immucore.service" "${systemdsystemunitdir}/immucore.service"
     mkdir -p "${initdir}/${systemdsystemunitdir}/initrd-fs.target.requires"
     ln_r "../immucore.service" "${systemdsystemunitdir}/initrd-fs.target.requires/immucore.service"
+
+    # Until this is done on immucore, we need to ship it as part of the dracut module
+    inst_simple "${moddir}/kairos-setup-initramfs.service" "${systemdsystemunitdir}/kairos-setup-initramfs.service"
+    mkdir -p "${initdir}/${systemdsystemunitdir}/initrd.target.requires"
+    ln_r "../kairos-setup-initramfs.service" "${systemdsystemunitdir}/initrd.target.requires/kairos-setup-initramfs.service"
+
     dracut_need_initqueue
 }

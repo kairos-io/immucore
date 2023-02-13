@@ -71,7 +71,7 @@ build-dracut:
     ARG REMOVE_COS_MODULE
     COPY +build-immucore/immucore /usr/bin/immucore
     COPY --dir dracut/28immucore /usr/lib/dracut/modules.d/
-    COPY dracut/dracut.conf /etc/dracut.conf.d/10-immucore.conf
+    COPY dracut/10-immucore.conf /etc/dracut.conf.d/10-immucore.conf
     # Remove cos-immutable-rootfs module
     RUN rm -Rf /usr/lib/dracut/modules.d/30cos-immutable-rootfs/
     RUN rm /etc/dracut.conf.d/02-cos-immutable-rootfs.conf
