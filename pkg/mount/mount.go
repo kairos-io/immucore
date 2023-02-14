@@ -52,6 +52,7 @@ const (
 
 	opRootfsHook = "rootfs-hook"
 	opLoadConfig = "load-config"
+	opMountTmpfs = "mount-tmpfs"
 )
 
 func (s *State) path(p ...string) string {
@@ -191,6 +192,17 @@ func (s *State) Register(g *herd.Graph) error {
 
 	// TODO: add hooks, fstab (might have missed some), systemd compat
 	// TODO: We should also set tmpfs here (not -related)
+
+	err = g.Add(opMountTmpfs, herd.WithCallback(s.MountOP("tmpfs", "/tmp", "tmpfs", []string{"rw"}, 10*time.Second)))
+	if err != nil {
+		s.Logger.Debug().Err(err).Msg("tmpfs mount")
+		return err
+	}
+
+	if runtime.BootState == state.LiveCD {
+		s.Logger.Info().Msg("Booting from LiveCD")
+		return nil
+	}
 
 	// All of this below need to run after rootfs stage runs (so the layout file is created)
 	// This is legacy - in UKI we don't need to found the img, this needs to run in a conditional

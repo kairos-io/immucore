@@ -52,14 +52,9 @@ Sends a generic event payload with the configuration found in the scanned direct
 				return err
 			}
 
-			if cdBoot {
-				log.Info().Msg("Seems we booted from CD, doing nothing. Bye!")
-				return nil
-			}
-
 			img := utils.ReadCMDLineArg("cos-img/filename=")
 			if len(img) == 0 {
-				if c.Bool("dry-run") {
+				if c.Bool("dry-run") || cdBoot {
 					img = []string{"fake"}
 				} else {
 					log.Logger.Fatal().Msg("Could not get the image name from cmdline (i.e. cos-img/filename=/cOS/active.img)")
