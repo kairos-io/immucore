@@ -59,7 +59,11 @@ Sends a generic event payload with the configuration found in the scanned direct
 
 			img := utils.ReadCMDLineArg("cos-img/filename=")
 			if len(img) == 0 {
-				log.Logger.Fatal().Msg("Could not get the image name from cmdline (i.e. cos-img/filename=/cOS/active.img)")
+				if c.Bool("dry-run") {
+					img = []string{"fake"}
+				} else {
+					log.Logger.Fatal().Msg("Could not get the image name from cmdline (i.e. cos-img/filename=/cOS/active.img)")
+				}
 			}
 			log.Debug().Strs("TargetImage", img).Msg("Target image")
 			g := herd.DAG()

@@ -92,6 +92,13 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 					return err
 				}
 			}
+			if _, err := os.Stat("/oem"); os.IsNotExist(err) {
+				err = os.Symlink("/sysroot/oem", "/oem")
+				if err != nil {
+					s.Logger.Err(err).Msg("creating symlink")
+					return err
+				}
+			}
 		}
 
 		cmd := fmt.Sprintf("elemental run-stage %s", stage)
