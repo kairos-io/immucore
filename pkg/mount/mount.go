@@ -192,7 +192,6 @@ func (s *State) Register(g *herd.Graph) error {
 
 	// TODO: add hooks, fstab (might have missed some), systemd compat
 	// TODO: We should also set tmpfs here (not -related)
-
 	err = g.Add(opMountTmpfs, herd.WithCallback(s.MountOP("tmpfs", "/tmp", "tmpfs", []string{"rw"}, 10*time.Second)))
 	if err != nil {
 		s.Logger.Debug().Err(err).Msg("tmpfs mount")

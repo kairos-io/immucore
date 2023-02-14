@@ -33,16 +33,19 @@ Sends a generic event payload with the configuration found in the scanned direct
 			debug := len(utils.ReadCMDLineArg("rd.immucore.debug")) > 0
 			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
 			zerolog.SetGlobalLevel(zerolog.InfoLevel)
-			if debug {
+			debugFromEnv := os.Getenv("IMMUCORE_DEBUG") != ""
+			if debug || debugFromEnv {
 				log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
 				zerolog.SetGlobalLevel(zerolog.DebugLevel)
 			}
 
 			// First set the sentinel file
-			err = utils.SetSentinelFile()
-			if err != nil {
-				log.Logger.Err(err).Send()
-				return err
+			if !c.Bool("dry-run") {
+				err = utils.SetSentinelFile()
+				if err != nil {
+					log.Logger.Err(err).Send()
+					return err
+				}
 			}
 
 			// If we boot from CD, we do nothing
@@ -61,7 +64,7 @@ Sends a generic event payload with the configuration found in the scanned direct
 				}
 			}
 			log.Debug().Strs("TargetImage", img).Msg("Target image")
-			g := herd.DAG()
+			g := herd.DAG(herd.EnableInit)
 			s := &mount.State{
 				Logger:      log.Logger,
 				Rootdir:     utils.GetRootDir(),
