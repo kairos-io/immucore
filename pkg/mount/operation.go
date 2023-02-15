@@ -35,6 +35,6 @@ func (m mountOperation) run() error {
 		log.Logger.Debug().Msg("Already mounted")
 		return constants.ErrAlreadyMounted
 	}
-	log.Logger.Debug().Msg("Mounted")
+	log.Logger.Debug().Msg("mount ready")
 	return mount.All([]mount.Mount{m.MountOption}, m.Target)
 }

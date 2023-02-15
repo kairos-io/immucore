@@ -59,7 +59,7 @@ build-immucore:
     COPY --dir pkg /work
     COPY +version/VERSION ./
     ARG VERSION=$(cat VERSION)
-    ARG LDFLAGS="-s -w -X github.com/kairos-io/immucore/internal/version.Version=$VERSION"
+    ARG LDFLAGS="-s -w -X github.com/kairos-io/immucore/internal/version.version=$VERSION"
     RUN echo ${LDFLAGS}
     RUN CGO_ENABLED=0 go build -o immucore -ldflags "${LDFLAGS}"
     SAVE ARTIFACT /work/immucore AS LOCAL build/immucore-$VERSION

@@ -39,38 +39,22 @@ Sends a generic event payload with the configuration found in the scanned direct
 				zerolog.SetGlobalLevel(zerolog.DebugLevel)
 			}
 
+			g := herd.DAG(herd.EnableInit)
+
 			// You can pass rd.cos.disable in the cmdline to disable the whole immutable stuff
-			if len(utils.ReadCMDLineArg("rd.cos.disable")) > 0 {
-				log.Logger.Info().Msg("Stanza rd.cos.disable on the cmdline. Doing nothing.")
-				return nil
-			}
-
-			// First set the sentinel file.
-			if !c.Bool("dry-run") {
-				err = utils.SetSentinelFile()
-				if err != nil {
-					log.Logger.Err(err).Send()
-					return err
-				}
-			}
-
-			cdBoot, err := utils.BootedFromLiveMedia()
-			if err != nil {
-				log.Logger.Err(err).Send()
-				return err
-			}
+			cosDisable := len(utils.ReadCMDLineArg("rd.cos.disable")) > 0
 
 			img := utils.ReadCMDLineArg("cos-img/filename=")
 			if len(img) == 0 {
 				// If we boot from LIVE media or are using dry-run, we use a fake img as we still want to do things
-				if c.Bool("dry-run") || cdBoot {
+				if c.Bool("dry-run") || cosDisable {
 					img = []string{"fake"}
 				} else {
 					log.Logger.Fatal().Msg("Could not get the image name from cmdline (i.e. cos-img/filename=/cOS/active.img)")
 				}
 			}
 			log.Debug().Strs("TargetImage", img).Msg("Target image")
-			g := herd.DAG(herd.EnableInit)
+
 			s := &mount.State{
 				Logger:      log.Logger,
 				Rootdir:     utils.GetRootDir(),
@@ -79,7 +63,13 @@ Sends a generic event payload with the configuration found in the scanned direct
 				TargetImage: img[0],
 			}
 
-			err = s.Register(g)
+			if cosDisable {
+				log.Logger.Info().Msg("Stanza rd.cos.disable on the cmdline.")
+				err = s.RegisterLiveMedia(g)
+			} else {
+				err = s.RegisterNormalBoot(g)
+			}
+
 			if err != nil {
 				s.Logger.Err(err)
 				return err
@@ -88,7 +78,7 @@ Sends a generic event payload with the configuration found in the scanned direct
 			log.Info().Msg(s.WriteDAG(g))
 
 			if c.Bool("dry-run") {
-				return err
+				return nil
 			}
 
 			err = g.Run(context.Background())
@@ -96,18 +86,4 @@ Sends a generic event payload with the configuration found in the scanned direct
 			return err
 		},
 	},
-}
-
-func writeDag(d [][]herd.GraphEntry) {
-	for i, layer := range d {
-		log.Printf("%d.", (i + 1))
-		for _, op := range layer {
-			if op.Error != nil {
-				log.Printf(" <%s> (error: %s) (background: %t) (weak: %t)", op.Name, op.Error.Error(), op.Background, op.WeakDeps)
-			} else {
-				log.Printf(" <%s> (background: %t) (weak: %t)", op.Name, op.Background, op.WeakDeps)
-			}
-		}
-		log.Print("")
-	}
 }
