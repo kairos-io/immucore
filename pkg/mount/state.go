@@ -167,3 +167,23 @@ func (s *State) LogIfError(e error, msgContext string) {
 		s.Logger.Err(e).Msg(msgContext)
 	}
 }
+
+// LogIfErrorAndReturn will log if there is an error with the given context as message
+// Context can be empty
+// Will also return the error
+func (s *State) LogIfErrorAndReturn(e error, msgContext string) error {
+	if e != nil {
+		s.Logger.Err(e).Msg(msgContext)
+	}
+	return e
+}
+
+// LogIfErrorAndPanic will log if there is an error with the given context as message
+// Context can be empty
+// Will also panic
+func (s *State) LogIfErrorAndPanic(e error, msgContext string) {
+	if e != nil {
+		s.Logger.Err(e).Msg(msgContext)
+		s.Logger.Fatal().Msg(e.Error())
+	}
+}

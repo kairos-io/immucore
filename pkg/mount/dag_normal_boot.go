@@ -13,6 +13,11 @@ func (s *State) RegisterNormalBoot(g *herd.Graph) error {
 	var err error
 
 	// TODO: add hooks, fstab (might have missed some), systemd compat, fsck
+	// Maybe LogIfErrorAndPanic ? If no sentinel, a lot of config files are not going to run
+	if err = s.LogIfErrorAndReturn(s.WriteSentinelDagStep(g), "write sentinel"); err != nil {
+		return err
+	}
+
 	s.LogIfError(s.MountTmpfsDagStep(g), "tmpfs mount")
 
 	// Mount Root (COS_STATE or COS_RECOVERY and then the image active/passive/recovery under s.Rootdir)
@@ -21,10 +26,10 @@ func (s *State) RegisterNormalBoot(g *herd.Graph) error {
 	// Mount COS_OEM (After root as it mounts under s.Rootdir/oem)
 	s.LogIfError(s.MountOemDagStep(g, cnst.OpMountRoot), "oem mount")
 
-	// Run yip stage rootfs. Requires root+oem to be mounted
-	s.LogIfError(s.RootfsStageDagStep(g, cnst.OpMountRoot, cnst.OpMountOEM), "running rootfs stage")
+	// Run yip stage rootfs. Requires root+oem+sentinel to be mounted
+	s.LogIfError(s.RootfsStageDagStep(g, cnst.OpMountRoot, cnst.OpMountOEM, cnst.OpSentinel), "running rootfs stage")
 
-	// Populate state bindmounts, overlaymounts, custommounts from /run/cos/cos-layout.env
+	// Populate state bind mounts, overlay mounts, custom-mounts from /run/cos/cos-layout.env
 	// Requires stage rootfs to have run, which usually creates the cos-layout.env file
 	s.LogIfError(s.LoadEnvLayoutDagStep(g), "loading cos-layout.env")
 

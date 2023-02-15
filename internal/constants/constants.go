@@ -25,5 +25,7 @@ const (
 	OpLoadConfig = "load-config"
 	OpMountTmpfs = "mount-tmpfs"
 
+	OpSentinel = "create-sentinel"
+
 	PersistentStateTarget = "/usr/local/.state"
 )

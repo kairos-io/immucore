@@ -81,15 +81,6 @@ Sends a generic event payload with the configuration found in the scanned direct
 				return nil
 			}
 
-			// First set the sentinel file before running the dag
-			if !c.Bool("dry-run") {
-				err = utils.SetSentinelFile()
-				if err != nil {
-					log.Logger.Err(err).Send()
-					return err
-				}
-			}
-
 			err = g.Run(context.Background())
 			log.Info().Msg(s.WriteDAG(g))
 			return err
