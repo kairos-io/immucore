@@ -17,7 +17,7 @@ cos_img=$(getarg cos-img/filename=)
 # say, hey this is the ROOT where we need to boot! so it auto creates a sysroot.mount with the content of the value
 # passed in the cmdline. But because we usually pass the label of the img (COS_ACTIVE) it will create the wrong mount
 # service and be stuck in there forever.
-# by generating it ourselves we get the sysroot.mount intot he generators.early dir, which tells systemd to not generate it
+# by generating it ourselves we get the sysroot.mount into the generators.early dir, which tells systemd to not generate it
 # as it already exists and the rest is history
 {
     echo "[Unit]"

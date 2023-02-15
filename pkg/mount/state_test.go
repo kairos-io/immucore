@@ -31,7 +31,7 @@ var _ = Describe("mounting immutable setup", func() {
 				MountRoot:   true,
 			}
 
-			err := s.Register(g)
+			err := s.RegisterNormalBoot(g)
 			Expect(err).ToNot(HaveOccurred())
 
 			dag := g.Analyze()
@@ -63,7 +63,7 @@ var _ = Describe("mounting immutable setup", func() {
 		It("mounts base overlay, attempt to mount oem, and updates the fstab", func() {
 			s := &mount.State{Rootdir: "/", MountRoot: true}
 
-			s.Register(g)
+			s.RegisterNormalBoot(g)
 
 			dag := g.Analyze()
 
@@ -95,7 +95,7 @@ var _ = Describe("mounting immutable setup", func() {
 				BindMounts:   []string{"/etc/kubernetes"},
 				CustomMounts: map[string]string{"COS_PERSISTENT": "/usr/local"}}
 
-			s.Register(g)
+			s.RegisterNormalBoot(g)
 
 			dag := g.Analyze()
 
