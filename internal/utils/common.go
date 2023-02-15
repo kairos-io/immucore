@@ -8,8 +8,8 @@ import (
 	"strings"
 )
 
-// BootedFromCD tells us if we are currently runnig of the LiveCD
-func BootedFromCD() (bool, error) {
+// BootedFromLiveMedia tells us if we are currently running off LIVE media like cd/usb or netboot
+func BootedFromLiveMedia() (bool, error) {
 	runtime, err := state.NewRuntime()
 	if err != nil {
 		return false, err

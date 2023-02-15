@@ -39,7 +39,13 @@ Sends a generic event payload with the configuration found in the scanned direct
 				zerolog.SetGlobalLevel(zerolog.DebugLevel)
 			}
 
-			// First set the sentinel file
+			// You can pass rd.cos.disable in the cmdline to disable the whole immutable stuff
+			if len(utils.ReadCMDLineArg("rd.cos.disable")) > 0 {
+				log.Logger.Info().Msg("Stanza rd.cos.disable on the cmdline. Doing nothing.")
+				return nil
+			}
+
+			// First set the sentinel file.
 			if !c.Bool("dry-run") {
 				err = utils.SetSentinelFile()
 				if err != nil {
@@ -48,8 +54,7 @@ Sends a generic event payload with the configuration found in the scanned direct
 				}
 			}
 
-			// If we boot from CD, we do nothing
-			cdBoot, err := utils.BootedFromCD()
+			cdBoot, err := utils.BootedFromLiveMedia()
 			if err != nil {
 				log.Logger.Err(err).Send()
 				return err
@@ -57,6 +62,7 @@ Sends a generic event payload with the configuration found in the scanned direct
 
 			img := utils.ReadCMDLineArg("cos-img/filename=")
 			if len(img) == 0 {
+				// If we boot from LIVE media or are using dry-run, we use a fake img as we still want to do things
 				if c.Bool("dry-run") || cdBoot {
 					img = []string{"fake"}
 				} else {
