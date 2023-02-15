@@ -258,6 +258,7 @@ func (s *State) Register(g *herd.Graph) error {
 			herd.WithDeps(opDiscoverState),
 			herd.WithCallback(
 				s.MountOP(
+					// Using /dev/disk/by-label here allows us to not have to deal with loop devices to identify where was the image mounted
 					fmt.Sprintf("/dev/disk/by-label/%s", s.TargetLabel),
 					s.Rootdir,
 					"ext4", // are images always ext2?
@@ -416,9 +417,10 @@ func (s *State) Register(g *herd.Graph) error {
 				// TODO: scan for the custom mount disk to know the underlying fs and set it proper
 				fstype := "ext4"
 				mountOptions := []string{"ro"}
-				// Translate label to disk for COS_PERSISTENT
+				// Translate /disk/by-label/LABEL to disk for COS_PERSISTENT
 				// Persistent needs to be RW
 				if strings.Contains(what, "COS_PERSISTENT") {
+					what = runtime.Persistent.Name
 					fstype = runtime.Persistent.Type
 					mountOptions = []string{"rw"}
 				}
@@ -479,7 +481,7 @@ func (s *State) Register(g *herd.Graph) error {
 		mountRootCondition,
 		herd.WithCallback(
 			s.MountOP(
-				fmt.Sprintf("/dev/disk/by-label/%s", runtime.OEM.Label),
+				runtime.OEM.Name,
 				s.path("/oem"),
 				runtime.OEM.Type,
 				[]string{
