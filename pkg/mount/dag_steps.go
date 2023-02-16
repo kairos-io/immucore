@@ -61,7 +61,6 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 		herd.WithDeps(cnst.OpMountState),
 		herd.WithCallback(
 			func(ctx context.Context) error {
-				log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
 				// Check if loop device is mounted by checking the existance of the target label
 				if internalUtils.IsMountedByLabel(s.TargetLabel) {
 					log.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetLabel", s.TargetLabel).Msg("Not mounting loop, already mounted")
@@ -70,9 +69,13 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 				// TODO: squashfs recovery image?
 				cmd := fmt.Sprintf("losetup --show -f %s", s.path("/run/initramfs/cos-state", s.TargetImage))
 				_, err := utils.SH(cmd)
-				if err != nil {
-					log.Logger.Debug().Err(err).Msg("")
-				}
+				s.LogIfError(err, "losetup")
+				// Trigger udevadm
+				// On some systems the COS_ACTIVE/PASSIVE label is automatically shown as soon as we mount the device
+				// But on other it seems like it won't trigger which causes the sysroot to not be mounted as we cant find
+				// the block device by the target label. Make sure we run this after mounting so we refresh the devices.
+				sh, _ := utils.SH("udevadm trigger --settle")
+				s.Logger.Debug().Str("output", sh).Msg("udevadm trigger")
 				return err
 			},
 		))
