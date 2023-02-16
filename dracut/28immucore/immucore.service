@@ -3,7 +3,7 @@ Description=immucore
 DefaultDependencies=no
 After=systemd-udev-settle.service
 Requires=systemd-udev-settle.service
-Before=dracut-initqueue.service
+Before=dracut-initqueue.service sysroot.mount
 Conflicts=initrd-switch-root.target
 
 [Service]
