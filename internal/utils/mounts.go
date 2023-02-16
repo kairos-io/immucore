@@ -39,7 +39,13 @@ func ReadCMDLineArg(arg string) []string {
 	for _, f := range fields {
 		if strings.HasPrefix(f, arg) {
 			dat := strings.Split(f, arg)
-			res = append(res, dat[1])
+			// For stanzas that have no value, we should return something better than an empty value
+			// Otherwise anything can easily clean the value
+			if dat[1] == "" {
+				res = append(res, "true")
+			} else {
+				res = append(res, dat[1])
+			}
 		}
 	}
 	return res
