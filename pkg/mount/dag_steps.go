@@ -33,10 +33,20 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 	if err != nil {
 		s.Logger.Debug().Err(err).Msg("runtime")
 	}
+	if &runtime == nil || &runtime.State == nil {
+		e := errors.New("runtime is nil")
+		s.Logger.Debug().Err(e).Msg("runtime")
+		return e
+	}
 	stateName := runtime.State.Name
 	stateFs := runtime.State.Type
 	// Recovery is a different partition
 	if internalUtils.IsRecovery() {
+		if &runtime == nil || &runtime.State == nil {
+			e := errors.New("runtime is nil")
+			s.Logger.Debug().Err(e).Msg("runtime")
+			return e
+		}
 		stateName = runtime.Recovery.Name
 		stateFs = runtime.Recovery.Type
 	}
@@ -61,7 +71,7 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 		herd.WithDeps(cnst.OpMountState),
 		herd.WithCallback(
 			func(ctx context.Context) error {
-				// Check if loop device is mounted by checking the existance of the target label
+				// Check if loop device is mounted by checking the existence of the target label
 				if internalUtils.IsMountedByLabel(s.TargetLabel) {
 					log.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetLabel", s.TargetLabel).Msg("Not mounting loop, already mounted")
 					return nil
@@ -73,7 +83,7 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 				// Trigger udevadm
 				// On some systems the COS_ACTIVE/PASSIVE label is automatically shown as soon as we mount the device
 				// But on other it seems like it won't trigger which causes the sysroot to not be mounted as we cant find
-				// the block device by the target label. Make sure we run this after mounting so we refresh the devices.
+				// the block device by the target label. Make sure we run this after mounting, so we refresh the devices.
 				sh, _ := utils.SH("udevadm trigger --settle")
 				s.Logger.Debug().Str("output", sh).Msg("udevadm trigger")
 				return err
@@ -91,14 +101,12 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 				// Using /dev/disk/by-label here allows us to not have to deal with loop devices to identify where was the image mounted
 				fmt.Sprintf("/dev/disk/by-label/%s", s.TargetLabel),
 				s.Rootdir,
-				"ext4", // are images always ext2?
+				"ext4",
 				[]string{
-					"ro", // or rw
+					"ro",
 					"suid",
 					"dev",
 					"exec",
-					// "auto",
-					//"nouser",
 					"async",
 				}, 10*time.Second),
 		),
@@ -173,6 +181,7 @@ func (s *State) MountOemDagStep(g *herd.Graph, deps ...string) error {
 	}
 	return g.Add(cnst.OpMountOEM,
 		herd.WithDeps(deps...),
+		herd.EnableIf(func() bool { return &runtime.OEM != nil }),
 		herd.WithCallback(
 			s.MountOP(
 				fmt.Sprintf("/dev/disk/by-label/%s", runtime.OEM.Label),
@@ -183,8 +192,6 @@ func (s *State) MountOemDagStep(g *herd.Graph, deps ...string) error {
 					"suid",
 					"dev",
 					"exec",
-					//"noauto",
-					//"nouser",
 					"async",
 				}, 10*time.Second),
 		),
