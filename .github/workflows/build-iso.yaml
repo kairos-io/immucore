@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-  pull_request:
 
 concurrency:
   group: iso-build-${{ github.head_ref || github.ref }}-${{ github.repository }}
