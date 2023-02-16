@@ -62,7 +62,19 @@ build-immucore:
     ARG LDFLAGS="-s -w -X github.com/kairos-io/immucore/internal/version.version=$VERSION"
     RUN echo ${LDFLAGS}
     RUN CGO_ENABLED=0 go build -o immucore -ldflags "${LDFLAGS}"
-    SAVE ARTIFACT /work/immucore AS LOCAL build/immucore-$VERSION
+    SAVE ARTIFACT /work/immucore immucore AS LOCAL build/immucore-$VERSION
+
+dracut-artifacts:
+    FROM $BASE_IMAGE
+    WORKDIR /build
+    COPY --dir dracut/28immucore .
+    COPY dracut/02-kairos-setup-initramfs.conf .
+    COPY dracut/10-immucore.conf .
+    COPY dracut/50-kairos-initrd.conf .
+    SAVE ARTIFACT 28immucore 28immucore
+    SAVE ARTIFACT 02-kairos-setup-initramfs.conf 02-kairos-setup-initramfs.conf
+    SAVE ARTIFACT 10-immucore.conf 10-immucore.conf
+    SAVE ARTIFACT 50-kairos-initrd.conf 50-kairos-initrd.conf
 
 build-dracut:
     FROM $BASE_IMAGE

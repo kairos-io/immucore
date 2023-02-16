@@ -343,6 +343,17 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph) error {
 			default:
 				sentinel = string(state.Unknown)
 			}
+
+			// Workaround for runtime not detecting netboot as live_mode
+			// Needs changes to the kairos sdk
+			// TODO: drop once the netboot detection change is on the kairos sdk
+			cmdline, err := os.ReadFile("/proc/cmdline")
+			cmdlineS := string(cmdline)
+			if strings.Contains(cmdlineS, "netboot") {
+				sentinel = "live_mode"
+			}
+
+			s.Logger.Info().Str("to", sentinel).Msg("Setting sentinel file")
 			err = os.WriteFile(filepath.Join("/run/cos/", sentinel), []byte("1"), os.ModePerm)
 			if err != nil {
 				return err
