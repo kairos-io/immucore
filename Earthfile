@@ -14,8 +14,11 @@ version:
     FROM alpine
     RUN apk add git
     COPY . ./
-    RUN --no-cache echo $(git describe --always --tags --dirty) > VERSION
+    RUN --no-cache echo $(git describe --tags | sed 's/\(.*\)-.*/\1/') > VERSION
+    RUN --no-cache echo $(git describe --always --dirty) > COMMIT
     ARG VERSION=$(cat VERSION)
+    ARG COMMIT=$(cat COMMMIT)
+    SAVE ARTIFACT COMMIT COMMIT
     SAVE ARTIFACT VERSION VERSION
 
 golang-image:
@@ -58,8 +61,10 @@ build-immucore:
     COPY --dir internal /work
     COPY --dir pkg /work
     COPY +version/VERSION ./
+    COPY +version/COMMIT ./
     ARG VERSION=$(cat VERSION)
-    ARG LDFLAGS="-s -w -X github.com/kairos-io/immucore/internal/version.version=$VERSION"
+    ARG COMMIT=$(cat COMMIT)
+    ARG LDFLAGS="-s -w -X github.com/kairos-io/immucore/internal/version.version=$VERSION -X github.com/kairos-io/immucore/internal/version.gitCommit=$COMMIT"
     RUN echo ${LDFLAGS}
     RUN CGO_ENABLED=0 go build -o immucore -ldflags "${LDFLAGS}"
     SAVE ARTIFACT /work/immucore immucore AS LOCAL build/immucore-$VERSION

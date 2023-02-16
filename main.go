@@ -2,11 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/kairos-io/immucore/internal/version"
 	"os"
 
 	"github.com/kairos-io/immucore/internal/cmd"
-
 	"github.com/urfave/cli/v2"
 )
 
@@ -24,8 +22,6 @@ func main() {
 
 		Commands: cmd.Commands,
 	}
-	
-	fmt.Println(version.Get())
 
 	err := app.Run(os.Args)
 	if err != nil {

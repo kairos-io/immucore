@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/kairos-io/immucore/internal/utils"
+	"github.com/kairos-io/immucore/internal/version"
 	"github.com/kairos-io/immucore/pkg/mount"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -38,6 +39,9 @@ Sends a generic event payload with the configuration found in the scanned direct
 				log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
 				zerolog.SetGlobalLevel(zerolog.DebugLevel)
 			}
+
+			v := version.Get()
+			log.Logger.Info().Str("commit", v.GitCommit).Str("compiled with", v.GoVersion).Str("version", v.Version).Msg("Immucore")
 
 			g := herd.DAG(herd.EnableInit)
 
@@ -84,6 +88,17 @@ Sends a generic event payload with the configuration found in the scanned direct
 			err = g.Run(context.Background())
 			log.Info().Msg(s.WriteDAG(g))
 			return err
+		},
+	},
+	{
+		Name:  "version",
+		Usage: "version",
+		Action: func(c *cli.Context) error {
+			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
+			zerolog.SetGlobalLevel(zerolog.InfoLevel)
+			v := version.Get()
+			log.Logger.Info().Str("commit", v.GitCommit).Str("compiled with", v.GoVersion).Str("version", v.Version).Msg("Immucore")
+			return nil
 		},
 	},
 }
