@@ -5,36 +5,25 @@ import (
 	"github.com/kairos-io/kairos/sdk/state"
 	"github.com/rs/zerolog/log"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
-// BootStateToLabel lets us know the label we need to mount sysroot on
-func BootStateToLabel() string {
+// BootStateToLabelDevice lets us know the device we need to mount sysroot on based on labels
+func BootStateToLabelDevice() string {
 	runtime, err := state.NewRuntime()
 	if err != nil {
 		return ""
 	}
 	switch runtime.BootState {
-	case "active_boot":
-		return "COS_ACTIVE"
-	case "passive_boot":
-		return "COS_PASSIVE"
+	case state.Active:
+		return filepath.Join("/dev/disk/by-label", "COS_ACTIVE")
+	case state.Passive:
+		return filepath.Join("/dev/disk/by-label", "COS_PASSIVE")
+	case state.Recovery:
+		return filepath.Join("/dev/disk/by-label", "COS_SYSTEM")
 	default:
 		return ""
-	}
-}
-
-// IsRecovery lets us know if we are in the recovery
-func IsRecovery() bool {
-	runtime, err := state.NewRuntime()
-	if err != nil {
-		return false
-	}
-	switch runtime.BootState {
-	case "recovery_boot":
-		return true
-	default:
-		return false
 	}
 }
 
@@ -112,7 +101,7 @@ func CleanupSlice(slice []string) []string {
 func GetTarget(dryRun bool) (string, string) {
 	var img, label string
 
-	label = BootStateToLabel()
+	label = BootStateToLabelDevice()
 
 	// If dry run, or we are disabled return whatever values, we won't go much further
 	if dryRun || DisableImmucore() {
@@ -132,7 +121,7 @@ func GetTarget(dryRun bool) (string, string) {
 }
 
 // DisableImmucore identifies if we need to be disabled
-// We disable if we boot from CD, netboot, recovery or have the rd.cos.disable stanza in cmdline
+// We disable if we boot from CD, netboot, squashfs recovery or have the rd.cos.disable stanza in cmdline
 func DisableImmucore() bool {
 	cmdline, _ := os.ReadFile("/proc/cmdline")
 	cmdlineS := string(cmdline)
@@ -147,4 +136,22 @@ func RootRW() string {
 		return "rw"
 	}
 	return "ro"
+}
+
+// GetState returns the disk-by-label of the state partition to mount
+// This is only valid for either active/passive or normal recovery
+func GetState() string {
+	var label string
+	runtime, err := state.NewRuntime()
+	if err != nil {
+		return label
+	}
+	switch runtime.BootState {
+	case state.Active, state.Passive:
+		label = filepath.Join("/dev/disk/by-label/", runtime.State.Label)
+	case state.Recovery:
+		label = filepath.Join("/dev/disk/by-label/", runtime.Recovery.Label)
+	}
+	log.Logger.Debug().Str("what", label).Msg("Get state label")
+	return label
 }
