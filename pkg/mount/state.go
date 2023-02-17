@@ -19,19 +19,19 @@ import (
 )
 
 type State struct {
-	Logger      zerolog.Logger
-	Rootdir     string // e.g. /sysroot inside initrd with pivot, / with nopivot
-	TargetImage string // e.g. /cOS/active.img
-	TargetLabel string // e.g. COS_ACTIVE
+	Logger        zerolog.Logger
+	Rootdir       string // where to mount the root partition e.g. /sysroot inside initrd with pivot, / with nopivot
+	TargetImage   string // image from the state partition to mount as loop device e.g. /cOS/active.img
+	TargetLabel   string //  e.g. COS_ACTIVE
+	RootMountMode string // How to mount the root partition e.g. ro or rw
 
 	// /run/cos-layout.env (different!)
 	OverlayDirs  []string          // e.g. /var
 	BindMounts   []string          // e.g. /etc/kubernetes
 	CustomMounts map[string]string // e.g. diskid : mountpoint
 
-	StateDir  string // e.g. "/usr/local/.state"
-	MountRoot bool   // e.g. if true, it tries to find the image to loopback mount
-	fstabs    []*fstab.Mount
+	StateDir string // e.g. "/usr/local/.state"
+	fstabs   []*fstab.Mount
 }
 
 func (s *State) path(p ...string) string {

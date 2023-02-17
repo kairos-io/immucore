@@ -33,22 +33,16 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 	if err != nil {
 		s.Logger.Debug().Err(err).Msg("runtime")
 	}
-	stateName := runtime.State.Name
-	stateFs := runtime.State.Type
-	// Recovery is a different partition
-	if internalUtils.IsRecovery() {
-		stateName = runtime.Recovery.Name
-		stateFs = runtime.Recovery.Type
-	}
+
 	// 1 - mount the state partition to find the images (active/passive/recovery)
 	err = g.Add(cnst.OpMountState,
 		herd.WithCallback(
 			s.MountOP(
-				stateName,
+				runtime.State.Name,
 				s.path("/run/initramfs/cos-state"),
-				stateFs,
+				runtime.State.Type,
 				[]string{
-					"ro", // or rw
+					s.RootMountMode,
 				}, 60*time.Second),
 		),
 	)
@@ -74,8 +68,9 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 				// On some systems the COS_ACTIVE/PASSIVE label is automatically shown as soon as we mount the device
 				// But on other it seems like it won't trigger which causes the sysroot to not be mounted as we cant find
 				// the block device by the target label. Make sure we run this after mounting so we refresh the devices.
-				sh, _ := utils.SH("udevadm trigger --settle")
+				sh, _ := utils.SH("udevadm trigger")
 				s.Logger.Debug().Str("output", sh).Msg("udevadm trigger")
+				log.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetLabel", s.TargetLabel).Msg("mount done")
 				return err
 			},
 		))
@@ -93,7 +88,7 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 				s.Rootdir,
 				"ext4", // are images always ext2?
 				[]string{
-					"ro", // or rw
+					s.RootMountMode,
 					"suid",
 					"dev",
 					"exec",

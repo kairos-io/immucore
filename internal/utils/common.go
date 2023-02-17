@@ -3,6 +3,7 @@ package utils
 import (
 	"github.com/joho/godotenv"
 	"github.com/kairos-io/kairos/sdk/state"
+	"github.com/rs/zerolog/log"
 	"os"
 	"strings"
 )
@@ -18,8 +19,6 @@ func BootStateToLabel() string {
 		return "COS_ACTIVE"
 	case "passive_boot":
 		return "COS_PASSIVE"
-	case "recovery_boot":
-		return "COS_SYSTEM"
 	default:
 		return ""
 	}
@@ -107,4 +106,45 @@ func CleanupSlice(slice []string) []string {
 		cleanSlice = append(cleanSlice, item)
 	}
 	return cleanSlice
+}
+
+// GetTarget gets the target image and device to mount in /sysroot
+func GetTarget(dryRun bool) (string, string) {
+	var img, label string
+
+	label = BootStateToLabel()
+
+	// If dry run, or we are disabled return whatever values, we won't go much further
+	if dryRun || DisableImmucore() {
+		return "fake", label
+	}
+
+	img = ReadCMDLineArg("cos-img/filename=")[0]
+
+	// If no image just panic here, we cannot longer continue
+	if img == "" {
+		log.Logger.Fatal().Msg("Could not get the image name from cmdline (i.e. cos-img/filename=/cOS/active.img)")
+	}
+
+	log.Debug().Str("what", img).Msg("Target device")
+	log.Debug().Str("what", label).Msg("Target label")
+	return img, label
+}
+
+// DisableImmucore identifies if we need to be disabled
+// We disable if we boot from CD, netboot, recovery or have the rd.cos.disable stanza in cmdline
+func DisableImmucore() bool {
+	cmdline, _ := os.ReadFile("/proc/cmdline")
+	cmdlineS := string(cmdline)
+
+	return strings.Contains(cmdlineS, "live:LABEL") || strings.Contains(cmdlineS, "live:CDLABEL") || strings.Contains(cmdlineS, "netboot") || strings.Contains(cmdlineS, "rd.cos.disable")
+}
+
+// RootRW tells us if the mode to mount root
+func RootRW() string {
+	if len(ReadCMDLineArg("rd.cos.debugrw")) > 0 {
+		log.Logger.Warn().Msg("Mounting root as RW")
+		return "rw"
+	}
+	return "ro"
 }
