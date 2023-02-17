@@ -5,6 +5,7 @@ import (
 	"github.com/containerd/containerd/mount"
 	"github.com/deniswernert/go-fstab"
 	"github.com/kairos-io/kairos/pkg/utils"
+	"github.com/rs/zerolog/log"
 	"os"
 	"os/exec"
 	"strings"
@@ -39,23 +40,34 @@ func ReadCMDLineArg(arg string) []string {
 	for _, f := range fields {
 		if strings.HasPrefix(f, arg) {
 			dat := strings.Split(f, arg)
-			res = append(res, dat[1])
+			// For stanzas that have no value, we should return something better than an empty value
+			// Otherwise anything can easily clean the value
+			if dat[1] == "" {
+				res = append(res, "true")
+			} else {
+				res = append(res, dat[1])
+			}
 		}
 	}
 	return res
 }
 
-// IsMountedByLabel lets us know if the given label is currently mounted
-func IsMountedByLabel(label string) bool {
-	_, err := utils.SH(fmt.Sprintf("findmnt /dev/disk/by-label/%s", label))
+// IsMounted lets us know if the given device is currently mounted
+func IsMounted(dev string) bool {
+	_, err := utils.SH(fmt.Sprintf("findmnt %s", dev))
 	return err == nil
 }
 
 // DiskFSType will return the FS type for a given disk
-// Needs to be mounted
+// Does NOT need to be mounted
 // Needs full path so either /dev/sda1 or /dev/disk/by-{label,uuid}/{label,uuid}
 func DiskFSType(s string) string {
-	out, _ := utils.SH(fmt.Sprintf("findmnt -rno FSTYPE %s", s))
+	out, e := utils.SH(fmt.Sprintf("blkid %s -s TYPE -o value", s))
+	if e != nil {
+		log.Logger.Err(e).Msg("blkid")
+	}
+	out = strings.Trim(strings.Trim(out, " "), "\n")
+	log.Logger.Debug().Str("what", s).Str("type", out).Msg("Partition FS type")
 	return out
 }
 

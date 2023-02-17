@@ -29,36 +29,16 @@ func (s *State) MountTmpfsDagStep(g *herd.Graph) error {
 // 3 - Mount the labels as /sysroot
 func (s *State) MountRootDagStep(g *herd.Graph) error {
 	var err error
-	runtime, err := state.NewRuntime()
-	if err != nil {
-		s.Logger.Debug().Err(err).Msg("runtime")
-	}
-	if &runtime == nil || &runtime.State == nil {
-		e := errors.New("runtime is nil")
-		s.Logger.Debug().Err(e).Msg("runtime")
-		return e
-	}
-	stateName := runtime.State.Name
-	stateFs := runtime.State.Type
-	// Recovery is a different partition
-	if internalUtils.IsRecovery() {
-		if &runtime == nil || &runtime.State == nil {
-			e := errors.New("runtime is nil")
-			s.Logger.Debug().Err(e).Msg("runtime")
-			return e
-		}
-		stateName = runtime.Recovery.Name
-		stateFs = runtime.Recovery.Type
-	}
+
 	// 1 - mount the state partition to find the images (active/passive/recovery)
 	err = g.Add(cnst.OpMountState,
 		herd.WithCallback(
 			s.MountOP(
-				stateName,
+				internalUtils.GetState(),
 				s.path("/run/initramfs/cos-state"),
-				stateFs,
+				internalUtils.DiskFSType(internalUtils.GetState()),
 				[]string{
-					"ro", // or rw
+					s.RootMountMode,
 				}, 60*time.Second),
 		),
 	)
@@ -71,9 +51,9 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 		herd.WithDeps(cnst.OpMountState),
 		herd.WithCallback(
 			func(ctx context.Context) error {
-				// Check if loop device is mounted by checking the existence of the target label
-				if internalUtils.IsMountedByLabel(s.TargetLabel) {
-					log.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetLabel", s.TargetLabel).Msg("Not mounting loop, already mounted")
+				// Check if loop device is mounted already
+				if internalUtils.IsMounted(s.TargetDevice) {
+					log.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetDevice", s.TargetDevice).Msg("Not mounting loop, already mounted")
 					return nil
 				}
 				// TODO: squashfs recovery image?
@@ -83,9 +63,10 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 				// Trigger udevadm
 				// On some systems the COS_ACTIVE/PASSIVE label is automatically shown as soon as we mount the device
 				// But on other it seems like it won't trigger which causes the sysroot to not be mounted as we cant find
-				// the block device by the target label. Make sure we run this after mounting, so we refresh the devices.
-				sh, _ := utils.SH("udevadm trigger --settle")
+				// the block device by the target label. Make sure we run this after mounting so we refresh the devices.
+				sh, _ := utils.SH("udevadm trigger")
 				s.Logger.Debug().Str("output", sh).Msg("udevadm trigger")
+				log.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetDevice", s.TargetDevice).Msg("mount done")
 				return err
 			},
 		))
@@ -98,12 +79,11 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 		herd.WithDeps(cnst.OpDiscoverState),
 		herd.WithCallback(
 			s.MountOP(
-				// Using /dev/disk/by-label here allows us to not have to deal with loop devices to identify where was the image mounted
-				fmt.Sprintf("/dev/disk/by-label/%s", s.TargetLabel),
+				s.TargetDevice,
 				s.Rootdir,
-				"ext4",
+				"ext4", // TODO: Get this just in time? Currently if using DiskFSType is run immediately which is bad becuase its not mounted
 				[]string{
-					"ro",
+					s.RootMountMode,
 					"suid",
 					"dev",
 					"exec",
@@ -351,12 +331,11 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph) error {
 				sentinel = string(state.Unknown)
 			}
 
-			// Workaround for runtime not detecting netboot as live_mode
-			// Needs changes to the kairos sdk
-			// TODO: drop once the netboot detection change is on the kairos sdk
+			// Workaround for runtime not detecting netboot/rd.cos.disable as live_mode
+			// TODO: drop once the netboot/rd.cos.disable detection change is on the kairos sdk
 			cmdline, err := os.ReadFile("/proc/cmdline")
 			cmdlineS := string(cmdline)
-			if strings.Contains(cmdlineS, "netboot") {
+			if strings.Contains(cmdlineS, "netboot") || len(internalUtils.ReadCMDLineArg("rd.cos.disable")) > 0 {
 				sentinel = "live_mode"
 			}
 

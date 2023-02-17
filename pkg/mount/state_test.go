@@ -24,11 +24,10 @@ var _ = Describe("mounting immutable setup", func() {
 	Context("simple invocation", func() {
 		It("generates normal dag", func() {
 			s := &mount.State{
-				Logger:      log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger(),
-				Rootdir:     "/",
-				TargetImage: "/cOS/myimage.img",
-				TargetLabel: "COS_LABEL",
-				MountRoot:   true,
+				Logger:       log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger(),
+				Rootdir:      "/",
+				TargetImage:  "/cOS/myimage.img",
+				TargetDevice: "/dev/disk/by-label/COS_LABEL",
 			}
 
 			err := s.RegisterNormalBoot(g)
@@ -40,7 +39,7 @@ var _ = Describe("mounting immutable setup", func() {
 
 		})
 		It("generates normal dag with extra dirs", func() {
-			s := &mount.State{Rootdir: "/", MountRoot: true,
+			s := &mount.State{Rootdir: "/",
 				OverlayDirs:  []string{"/etc"},
 				BindMounts:   []string{"/etc/kubernetes"},
 				CustomMounts: map[string]string{"COS_PERSISTENT": "/usr/local"}}

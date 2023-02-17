@@ -43,34 +43,26 @@ Sends a generic event payload with the configuration found in the scanned direct
 			v := version.Get()
 			log.Logger.Info().Str("commit", v.GitCommit).Str("compiled with", v.GoVersion).Str("version", v.Version).Msg("Immucore")
 
+			cmdline, _ := os.ReadFile("/proc/cmdline")
+			log.Logger.Debug().Msg(string(cmdline))
 			g := herd.DAG(herd.EnableInit)
 
-			// You can pass rd.cos.disable in the cmdline to disable the whole immutable stuff
-			cosDisable := len(utils.ReadCMDLineArg("rd.cos.disable")) > 0
-
-			img := utils.ReadCMDLineArg("cos-img/filename=")
-			if len(img) == 0 {
-				// If we boot from LIVE media or are using dry-run, we use a fake img as we still want to do things
-				if c.Bool("dry-run") || cosDisable {
-					img = []string{"fake"}
-				} else {
-					log.Logger.Fatal().Msg("Could not get the image name from cmdline (i.e. cos-img/filename=/cOS/active.img)")
-				}
-			}
-			log.Debug().Strs("TargetImage", img).Msg("Target image")
+			// Get targets and state
+			targetImage, targetDevice := utils.GetTarget(c.Bool("dry-run"))
 
 			s := &mount.State{
-				Logger:      log.Logger,
-				Rootdir:     utils.GetRootDir(),
-				MountRoot:   true,
-				TargetLabel: utils.BootStateToLabel(),
-				TargetImage: img[0],
+				Logger:        log.Logger,
+				Rootdir:       utils.GetRootDir(),
+				TargetDevice:  targetDevice,
+				TargetImage:   targetImage,
+				RootMountMode: utils.RootRW(),
 			}
 
-			if cosDisable {
-				log.Logger.Info().Msg("Stanza rd.cos.disable on the cmdline.")
+			if utils.DisableImmucore() {
+				log.Logger.Info().Msg("Stanza rd.cos.disable on the cmdline or booting from CDROM/Netboot/Squash recovery. Disabling immucore.")
 				err = s.RegisterLiveMedia(g)
 			} else {
+				log.Logger.Info().Msg("Booting on active/passive/recovery.")
 				err = s.RegisterNormalBoot(g)
 			}
 
@@ -81,6 +73,7 @@ Sends a generic event payload with the configuration found in the scanned direct
 
 			log.Info().Msg(s.WriteDAG(g))
 
+			// Once we print the dag we can exit already
 			if c.Bool("dry-run") {
 				return nil
 			}
