@@ -119,3 +119,53 @@ func CleanSysrootForFstab(path string) string {
 	}
 	return cleaned
 }
+
+// Fsck will run fsck over the device
+// options are set on cmdline, but they are for systemd-fsck,
+// so we need to interpret ourselves
+func Fsck(device string) error {
+	if device == "tmpfs" {
+		return nil
+	}
+	mode := ReadCMDLineArg("fsck.mode=")
+	repair := ReadCMDLineArg("fsck.repair=")
+	// Be safe with defaults
+	if len(mode) == 0 {
+		mode = []string{"auto"}
+	}
+	if len(repair) == 0 {
+		repair = []string{"preen"}
+	}
+	args := []string{"fsck", device}
+	// Check the mode
+	// skip means just skip the fsck
+	// force means force even if fs is deemed clean
+	// auto or others means normal fsck call
+	switch mode[0] {
+	case "skip":
+		return nil
+	case "force":
+		args = append(args, "-f")
+	}
+
+	// Check repair type
+	// preen means try to fix automatically
+	// yes means say yes to everything (potentially destructive)
+	// no means say no to everything
+	switch repair[0] {
+	case "preen":
+		args = append(args, "-a")
+	case "yes":
+		args = append(args, "-y")
+	case "no":
+		args = append(args, "-n")
+	}
+	cmd := strings.Join(args, " ")
+	log.Logger.Debug().Str("cmd", cmd).Msg("fsck command")
+	out, e := utils.SH(cmd)
+	log.Logger.Debug().Str("output", out).Msg("fsck output")
+	if e != nil {
+		log.Logger.Warn().Str("error", e.Error()).Str("what", device).Msg("fsck")
+	}
+	return e
+}

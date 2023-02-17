@@ -56,7 +56,7 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 					log.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetDevice", s.TargetDevice).Msg("Not mounting loop, already mounted")
 					return nil
 				}
-				// TODO: squashfs recovery image?
+				_ = internalUtils.Fsck(s.path("/run/initramfs/cos-state", s.TargetImage))
 				cmd := fmt.Sprintf("losetup --show -f %s", s.path("/run/initramfs/cos-state", s.TargetImage))
 				_, err := utils.SH(cmd)
 				s.LogIfError(err, "losetup")

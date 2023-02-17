@@ -116,6 +116,10 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 					MountOption: mountPoint,
 					FstabEntry:  *tmpFstab,
 					Target:      where,
+					PrepareCallback: func() error {
+						_ = internalUtils.Fsck(what)
+						return nil
+					},
 				}
 
 				err = op.run()
