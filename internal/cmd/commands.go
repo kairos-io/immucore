@@ -48,21 +48,21 @@ Sends a generic event payload with the configuration found in the scanned direct
 			g := herd.DAG(herd.EnableInit)
 
 			// Get targets and state
-			targetLabel, targetDevice := utils.GetTarget(c.Bool("dry-run"))
+			targetImage, targetDevice := utils.GetTarget(c.Bool("dry-run"))
 
 			s := &mount.State{
 				Logger:        log.Logger,
 				Rootdir:       utils.GetRootDir(),
-				TargetLabel:   targetDevice,
-				TargetImage:   targetLabel,
+				TargetDevice:  targetDevice,
+				TargetImage:   targetImage,
 				RootMountMode: utils.RootRW(),
 			}
 
 			if utils.DisableImmucore() {
-				log.Logger.Info().Msg("Stanza rd.cos.disable on the cmdline or booting from CDROM/Netboot/recovery. Disabling immucore.")
+				log.Logger.Info().Msg("Stanza rd.cos.disable on the cmdline or booting from CDROM/Netboot/Squash recovery. Disabling immucore.")
 				err = s.RegisterLiveMedia(g)
 			} else {
-				log.Logger.Info().Msg("Booting on active/passive.")
+				log.Logger.Info().Msg("Booting on active/passive/recovery.")
 				err = s.RegisterNormalBoot(g)
 			}
 

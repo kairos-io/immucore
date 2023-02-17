@@ -29,18 +29,14 @@ func (s *State) MountTmpfsDagStep(g *herd.Graph) error {
 // 3 - Mount the labels as /sysroot
 func (s *State) MountRootDagStep(g *herd.Graph) error {
 	var err error
-	runtime, err := state.NewRuntime()
-	if err != nil {
-		s.Logger.Debug().Err(err).Msg("runtime")
-	}
 
 	// 1 - mount the state partition to find the images (active/passive/recovery)
 	err = g.Add(cnst.OpMountState,
 		herd.WithCallback(
 			s.MountOP(
-				runtime.State.Name,
+				internalUtils.GetState(),
 				s.path("/run/initramfs/cos-state"),
-				runtime.State.Type,
+				internalUtils.DiskFSType(internalUtils.GetState()),
 				[]string{
 					s.RootMountMode,
 				}, 60*time.Second),
@@ -55,9 +51,9 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 		herd.WithDeps(cnst.OpMountState),
 		herd.WithCallback(
 			func(ctx context.Context) error {
-				// Check if loop device is mounted by checking the existance of the target label
-				if internalUtils.IsMountedByLabel(s.TargetLabel) {
-					log.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetLabel", s.TargetLabel).Msg("Not mounting loop, already mounted")
+				// Check if loop device is mounted already
+				if internalUtils.IsMounted(s.TargetDevice) {
+					log.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetDevice", s.TargetDevice).Msg("Not mounting loop, already mounted")
 					return nil
 				}
 				// TODO: squashfs recovery image?
@@ -70,7 +66,7 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 				// the block device by the target label. Make sure we run this after mounting so we refresh the devices.
 				sh, _ := utils.SH("udevadm trigger")
 				s.Logger.Debug().Str("output", sh).Msg("udevadm trigger")
-				log.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetLabel", s.TargetLabel).Msg("mount done")
+				log.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetDevice", s.TargetDevice).Msg("mount done")
 				return err
 			},
 		))
@@ -83,10 +79,9 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 		herd.WithDeps(cnst.OpDiscoverState),
 		herd.WithCallback(
 			s.MountOP(
-				// Using /dev/disk/by-label here allows us to not have to deal with loop devices to identify where was the image mounted
-				fmt.Sprintf("/dev/disk/by-label/%s", s.TargetLabel),
+				s.TargetDevice,
 				s.Rootdir,
-				"ext4", // are images always ext2?
+				"ext4", // TODO: Get this just in time? Currently if using DiskFSType is run immediately which is bad becuase its not mounted
 				[]string{
 					s.RootMountMode,
 					"suid",

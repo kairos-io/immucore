@@ -22,7 +22,7 @@ type State struct {
 	Logger        zerolog.Logger
 	Rootdir       string // where to mount the root partition e.g. /sysroot inside initrd with pivot, / with nopivot
 	TargetImage   string // image from the state partition to mount as loop device e.g. /cOS/active.img
-	TargetLabel   string //  e.g. COS_ACTIVE
+	TargetDevice  string // e.g. /dev/disk/by-label/COS_ACTIVE
 	RootMountMode string // How to mount the root partition e.g. ro or rw
 
 	// /run/cos-layout.env (different!)
@@ -126,8 +126,7 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 
 				// only continue the loop if it's an error and not an already mounted error
 				if err != nil && !errors.Is(err, constants.ErrAlreadyMounted) {
-					out, _ := utils.SH("blkid")
-					s.Logger.Debug().Msg(out)
+					s.Logger.Err(err).Send()
 					continue
 				}
 				log.Logger.Debug().Msg("mount done")
