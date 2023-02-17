@@ -28,7 +28,6 @@ var _ = Describe("mounting immutable setup", func() {
 				Rootdir:     "/",
 				TargetImage: "/cOS/myimage.img",
 				TargetLabel: "COS_LABEL",
-				MountRoot:   true,
 			}
 
 			err := s.RegisterNormalBoot(g)
@@ -40,7 +39,7 @@ var _ = Describe("mounting immutable setup", func() {
 
 		})
 		It("generates normal dag with extra dirs", func() {
-			s := &mount.State{Rootdir: "/", MountRoot: true,
+			s := &mount.State{Rootdir: "/",
 				OverlayDirs:  []string{"/etc"},
 				BindMounts:   []string{"/etc/kubernetes"},
 				CustomMounts: map[string]string{"COS_PERSISTENT": "/usr/local"}}
