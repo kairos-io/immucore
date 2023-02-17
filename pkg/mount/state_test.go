@@ -24,10 +24,10 @@ var _ = Describe("mounting immutable setup", func() {
 	Context("simple invocation", func() {
 		It("generates normal dag", func() {
 			s := &mount.State{
-				Logger:      log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger(),
-				Rootdir:     "/",
-				TargetImage: "/cOS/myimage.img",
-				TargetLabel: "COS_LABEL",
+				Logger:       log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger(),
+				Rootdir:      "/",
+				TargetImage:  "/cOS/myimage.img",
+				TargetDevice: "/dev/disk/by-label/COS_LABEL",
 			}
 
 			err := s.RegisterNormalBoot(g)
