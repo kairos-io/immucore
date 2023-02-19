@@ -33,7 +33,7 @@ func main() {
 		log.Logger.Info().Str("commit", v.GitCommit).Str("compiled with", v.GoVersion).Str("version", v.Version).Msg("Immucore")
 
 		cmdline, _ := os.ReadFile("/proc/cmdline")
-		log.Logger.Debug().Msg(string(cmdline))
+		log.Logger.Debug().Str("content", string(cmdline)).Msg(string(cmdline))
 		g := herd.DAG(herd.EnableInit)
 
 		// Get targets and state
@@ -50,6 +50,9 @@ func main() {
 		if utils.DisableImmucore() {
 			log.Logger.Info().Msg("Stanza rd.cos.disable on the cmdline or booting from CDROM/Netboot/Squash recovery. Disabling immucore.")
 			err = s.RegisterLiveMedia(g)
+		} else if utils.IsUKI() {
+			log.Logger.Info().Msg("UKI booting!")
+			return nil
 		} else {
 			log.Logger.Info().Msg("Booting on active/passive/recovery.")
 			err = s.RegisterNormalBoot(g)

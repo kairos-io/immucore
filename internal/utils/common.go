@@ -155,3 +155,11 @@ func GetState() string {
 	log.Logger.Debug().Str("what", label).Msg("Get state label")
 	return label
 }
+
+func IsUKI() bool {
+	if len(ReadCMDLineArg("rd.immucore.uki")) > 0 {
+		log.Logger.Info().Msg("Booting in UKI mode!")
+		return true
+	}
+	return false
+}
