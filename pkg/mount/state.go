@@ -12,7 +12,6 @@ import (
 	"github.com/deniswernert/go-fstab"
 	"github.com/kairos-io/immucore/internal/constants"
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
-	"github.com/kairos-io/kairos/pkg/utils"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spectrocloud-labs/herd"
@@ -85,7 +84,7 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 		if s.Logger.GetLevel() == zerolog.DebugLevel {
 			cmd = fmt.Sprintf("%s --debug", cmd)
 		}
-		output, err := utils.SH(cmd)
+		output, err := internalUtils.CommandWithPath(cmd)
 		s.Logger.Debug().Msg(output)
 		return err
 	}

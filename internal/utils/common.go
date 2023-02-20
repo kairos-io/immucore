@@ -5,6 +5,7 @@ import (
 	"github.com/kairos-io/kairos/sdk/state"
 	"github.com/rs/zerolog/log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -165,4 +166,12 @@ func IsUKI() bool {
 		return true
 	}
 	return false
+}
+
+func CommandWithPath(c string) (string, error) {
+	cmd := exec.Command("/bin/sh", "-c", c)
+	cmd.Env = os.Environ()
+	cmd.Env = append(cmd.Env, "PATH=/usr/bin:/usr/sbin")
+	o, err := cmd.CombinedOutput()
+	return string(o), err
 }

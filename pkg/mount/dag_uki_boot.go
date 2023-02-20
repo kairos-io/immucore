@@ -7,7 +7,8 @@ import (
 
 // RegisterUKI registers the dag for booting from UKI
 func (s *State) RegisterUKI(g *herd.Graph) error {
-	s.LogIfError(s.RootfsStageDagStep(g), "uki rootfs")
+	s.LogIfError(s.WriteSentinelDagStep(g), "sentinel")
+	s.LogIfError(s.RootfsStageDagStep(g, cnst.OpSentinel), "uki rootfs")
 	s.LogIfError(s.InitramfsStageDagStep(g, cnst.OpRootfsHook), "uki rootfs")
 	_ = s.UKIBootInitDagStep(g, cnst.OpRootfsHook, cnst.OpInitramfsHook)
 	return nil
