@@ -26,5 +26,6 @@ const (
 	OpRemountRootRO       = "remount-ro"
 	OpUkiInit             = "uki-init"
 	OpSentinel            = "create-sentinel"
+	OpUkiUdev             = "uki-udev"
 	PersistentStateTarget = "/usr/local/.state"
 )

@@ -10,6 +10,9 @@ func (s *State) RegisterUKI(g *herd.Graph) error {
 	// Write sentinel
 	s.LogIfError(s.WriteSentinelDagStep(g), "sentinel")
 
+	// Udev for devices discovery
+	s.LogIfError(s.UKIUdevDaemon(g), "udev")
+
 	// Run rootfs stage
 	s.LogIfError(s.RootfsStageDagStep(g, cnst.OpSentinel), "uki rootfs")
 

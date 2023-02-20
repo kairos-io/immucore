@@ -374,6 +374,8 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph, deps ...string) error {
 	return g.Add(cnst.OpUkiInit,
 		herd.WithDeps(deps...),
 		herd.WithCallback(func(ctx context.Context) error {
+			// Print dag before exit, otherwise its never printed as we never exit the program
+			log.Info().Msg(s.WriteDAG(g))
 			log.Logger.Debug().Msg("Executing init callback!")
 			if err := unix.Exec("/sbin/init", []string{"/sbin/init", "--system"}, os.Environ()); err != nil {
 				log.Logger.Err(err).Msg("running init")
@@ -392,6 +394,41 @@ func (s *State) UKIRemountRootRODagStep(g *herd.Graph, deps ...string) error {
 		herd.WithDeps(deps...),
 		herd.WithCallback(func(ctx context.Context) error {
 			return syscall.Mount("/", "/", "rootfs", syscall.MS_REMOUNT|syscall.MS_RDONLY, "")
+		}),
+	)
+}
+
+// UKIUdevDaemon launches the udevd daemon and triggers+settles in order to discover devices
+// Needed if we expect to find devices by label...
+func (s *State) UKIUdevDaemon(g *herd.Graph) error {
+	return g.Add(cnst.OpUkiUdev,
+		herd.WithCallback(func(ctx context.Context) error {
+			// Should probably figure out other udevd binaries....
+			var udevBin string
+			if _, err := os.Stat("/usr/lib/systemd/systemd-udevd"); !os.IsNotExist(err) {
+				udevBin = "/usr/lib/systemd/systemd-udevd"
+			}
+			cmd := fmt.Sprintf("%s --daemon", udevBin)
+			out, err := internalUtils.CommandWithPath(cmd)
+			if err != nil {
+				log.Logger.Debug().Str("out", out).Str("cmd", cmd).Msg("Udev daemon")
+				log.Logger.Err(err).Msg("Udev daemon")
+				return err
+			}
+			out, err = internalUtils.CommandWithPath("udevadm trigger")
+			if err != nil {
+				log.Logger.Debug().Str("out", out).Msg("Udev trigger")
+				log.Logger.Err(err).Msg("Udev trigger")
+				return err
+			}
+
+			out, err = internalUtils.CommandWithPath("udevadm settle")
+			if err != nil {
+				log.Logger.Debug().Str("out", out).Msg("Udev settle")
+				log.Logger.Err(err).Msg("Udev settle")
+				return err
+			}
+			return nil
 		}),
 	)
 }
