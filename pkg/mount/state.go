@@ -62,9 +62,10 @@ func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 }
 
 // RunStageOp runs elemental run-stage stage. If its rootfs its special as it needs som symlinks
+// If its uki we don't symlink as we already have everything in the sysroot
 func (s *State) RunStageOp(stage string) func(context.Context) error {
 	return func(ctx context.Context) error {
-		if stage == "rootfs" {
+		if stage == "rootfs" && !internalUtils.IsUKI() {
 			if _, err := os.Stat("/system"); os.IsNotExist(err) {
 				err = os.Symlink("/sysroot/system", "/system")
 				if err != nil {
@@ -79,7 +80,7 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 			}
 		}
 
-		cmd := fmt.Sprintf("elemental run-stage %s", stage)
+		cmd := fmt.Sprintf("/usr/bin/elemental run-stage %s", stage)
 		// If we set the level to debug, also call elemental with debug
 		if s.Logger.GetLevel() == zerolog.DebugLevel {
 			cmd = fmt.Sprintf("%s --debug", cmd)

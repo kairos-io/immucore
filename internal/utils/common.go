@@ -162,7 +162,6 @@ func GetState() string {
 
 func IsUKI() bool {
 	if len(ReadCMDLineArg("rd.immucore.uki")) > 0 {
-		log.Logger.Info().Msg("Booting in UKI mode!")
 		return true
 	}
 	return false

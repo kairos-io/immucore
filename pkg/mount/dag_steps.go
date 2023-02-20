@@ -12,6 +12,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spectrocloud-labs/herd"
+	"golang.org/x/sys/unix"
 	"os"
 	"path/filepath"
 	"strings"
@@ -102,6 +103,11 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 // RootfsStageDagStep will add the rootfs stage.
 func (s *State) RootfsStageDagStep(g *herd.Graph, deps ...string) error {
 	return g.Add(cnst.OpRootfsHook, herd.WithDeps(deps...), herd.WithCallback(s.RunStageOp("rootfs")))
+}
+
+// InitramfsStageDagStep will add the rootfs stage.
+func (s *State) InitramfsStageDagStep(g *herd.Graph, deps ...string) error {
+	return g.Add(cnst.OpInitramfsHook, herd.WithDeps(deps...), herd.WithCallback(s.RunStageOp("initramfs")))
 }
 
 // LoadEnvLayoutDagStep will add the stage to load from cos-layout.env and fill the proper CustomMounts, OverlayDirs and BindMounts
@@ -346,6 +352,25 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph) error {
 			err = os.WriteFile(filepath.Join("/run/cos/", sentinel), []byte("1"), os.ModePerm)
 			if err != nil {
 				return err
+			}
+			return nil
+		}))
+}
+
+// UKIBootInitDagStep tries to launch /sbin/init in root and pass over the system
+// booting to the real init process
+// Drops to emergency if not able to. Panic if it cant even launch emergency
+func (s *State) UKIBootInitDagStep(g *herd.Graph, deps ...string) error {
+	return g.Add("uki-init",
+		herd.WithDeps(deps...),
+		herd.WithCallback(func(ctx context.Context) error {
+			log.Logger.Debug().Msg("Executing init callback!")
+			if err := unix.Exec("/sbin/init", []string{"/sbin/init", "--system"}, os.Environ()); err != nil {
+				log.Logger.Err(err).Msg("running init")
+				// drop to emergency shell
+				if err := unix.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ()); err != nil {
+					log.Logger.Fatal().Msg("Could not drop to emergency shell")
+				}
 			}
 			return nil
 		}))

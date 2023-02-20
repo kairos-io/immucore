@@ -10,7 +10,6 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spectrocloud-labs/herd"
 	"github.com/urfave/cli/v2"
-	"golang.org/x/sys/unix"
 	"os"
 )
 
@@ -29,10 +28,12 @@ func main() {
 		utils.MinimalMounts()
 
 		// try to log to kmsg
-		devKmsg, err := os.OpenFile("/dev/kmsg", unix.O_WRONLY, 0o600)
+		/*devKmsg, err := os.OpenFile("/dev/kmsg", unix.O_WRONLY, 0o600)
 		if err == nil {
 			logTarget = devKmsg
 		}
+		
+		*/
 
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: logTarget}).With().Logger()
 		zerolog.SetGlobalLevel(zerolog.InfoLevel)
@@ -68,13 +69,7 @@ func main() {
 			err = state.RegisterLiveMedia(g)
 		} else if utils.IsUKI() {
 			log.Logger.Info().Msg("UKI booting!")
-			if err := unix.Exec("/sbin/inite", []string{"/sbin/init", "--system"}, os.Environ()); err != nil {
-				log.Logger.Err(err).Msg("running init")
-				// drop to emergency shell
-				if err := unix.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ()); err != nil {
-					log.Logger.Fatal().Msg("Could not drop to emergency shell")
-				}
-			}
+			err = state.RegisterUKI(g)
 		} else {
 			log.Logger.Info().Msg("Booting on active/passive/recovery.")
 			err = state.RegisterNormalBoot(g)

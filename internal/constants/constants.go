@@ -21,9 +21,10 @@ const (
 	OpMountBaseOverlay = "mount-base-overlay"
 	OpMountOEM         = "mount-oem"
 
-	OpRootfsHook = "rootfs-hook"
-	OpLoadConfig = "load-config"
-	OpMountTmpfs = "mount-tmpfs"
+	OpRootfsHook    = "rootfs-hook"
+	OpInitramfsHook = "initramfs-hook"
+	OpLoadConfig    = "load-config"
+	OpMountTmpfs    = "mount-tmpfs"
 
 	OpSentinel = "create-sentinel"
 
