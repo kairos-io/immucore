@@ -353,6 +353,15 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph) error {
 			if err != nil {
 				return err
 			}
+
+			// Lets add a uki sentinel as well!
+			if strings.Contains(cmdlineS, "rd.immucore.uki") {
+				err = os.WriteFile("/run/cos/uki_mode", []byte("1"), os.ModePerm)
+				if err != nil {
+					return err
+				}
+			}
+
 			return nil
 		}))
 }
