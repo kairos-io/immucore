@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spectrocloud-labs/herd"
 	"github.com/urfave/cli/v2"
+	"golang.org/x/sys/unix"
 	"os"
 )
 
@@ -52,6 +53,9 @@ func main() {
 			err = s.RegisterLiveMedia(g)
 		} else if utils.IsUKI() {
 			log.Logger.Info().Msg("UKI booting!")
+			if err := unix.Exec("/sbin/init", []string{"--system"}, nil); err != nil {
+				return fmt.Errorf("can't run the rootfs init (%v): %v", "/sbin/init", err)
+			}
 			return nil
 		} else {
 			log.Logger.Info().Msg("Booting on active/passive/recovery.")
