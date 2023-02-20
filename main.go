@@ -24,12 +24,13 @@ func main() {
 	app.Action = func(c *cli.Context) (err error) {
 		var targetDevice, targetImage string
 		logTarget := os.Stderr
+
+		_ = utils.MinimalMounts()
+
 		//try to log it to kmsg
-		if utils.IsUKI() {
-			devKmsg, err := os.OpenFile("/dev/kmsg", unix.O_WRONLY, 0o600)
-			if err == nil {
-				logTarget = devKmsg
-			}
+		devKmsg, err := os.OpenFile("/dev/kmsg", unix.O_WRONLY, 0o600)
+		if err == nil {
+			logTarget = devKmsg
 		}
 
 		debug := len(utils.ReadCMDLineArg("rd.immucore.debug")) > 0
@@ -43,11 +44,6 @@ func main() {
 
 		v := version.Get()
 		log.Logger.Info().Str("commit", v.GitCommit).Str("compiled with", v.GoVersion).Str("version", v.Version).Msg("Immucore")
-
-		err = utils.MinimalMounts()
-		if err != nil {
-			log.Logger.Err(err).Msg("minimal mounts")
-		}
 
 		cmdline, _ := os.ReadFile("/proc/cmdline")
 		log.Logger.Debug().Str("content", string(cmdline)).Msg(string(cmdline))
