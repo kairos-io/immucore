@@ -168,6 +168,8 @@ func IsUKI() bool {
 	return false
 }
 
+// CommandWithPath runs a command adding the usual PATH to environment
+// Useful under UKI as there is nothing setting the PATH
 func CommandWithPath(c string) (string, error) {
 	cmd := exec.Command("/bin/sh", "-c", c)
 	cmd.Env = os.Environ()

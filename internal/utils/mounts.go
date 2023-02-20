@@ -186,6 +186,7 @@ func MinimalMounts() {
 		{"proc", "/proc", "proc"},
 		{"sys", "/sys", "sysfs"},
 		{"tmp", "/tmp", "tmpfs"},
+		{"run", "/run", "tmpfs"},
 	}
 	for _, mnt := range toMount {
 		_ = os.MkdirAll(mnt.target, 0755)
