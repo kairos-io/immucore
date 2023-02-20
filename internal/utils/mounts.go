@@ -171,31 +171,24 @@ func Fsck(device string) error {
 	return e
 }
 
-func MinimalMounts() error {
-	if err := syscallMount("dev", "/dev", "devtmpfs"); err != nil {
-		return err
+// MinimalMounts will set the minimal mounts needed for immucore
+// For now only proc is needed to read the cmdline fully in uki mode
+// in normal modes this should already be done by the initramfs process, so we can ignore errors
+// Just mount dev, tmp and sys just in case
+func MinimalMounts() {
+	type m struct {
+		source string
+		target string
+		t      string
 	}
-	if err := syscallMount("proc", "/proc", "proc"); err != nil {
-		return err
+	toMount := []m{
+		{"dev", "/dev", "devtmpfs"},
+		{"proc", "/proc", "proc"},
+		{"sys", "/sys", "sysfs"},
+		{"tmp", "/tmp", "tmpfs"},
 	}
-	if err := syscallMount("sys", "/sys", "sysfs"); err != nil {
-		return err
+	for _, mnt := range toMount {
+		_ = os.MkdirAll(mnt.target, 0755)
+		_ = syscall.Mount(mnt.source, mnt.target, mnt.t, 0, "")
 	}
-	return nil
-}
-
-func syscallMount(source, target, fstype string) error {
-	if err := os.MkdirAll(target, 0755); err != nil {
-		return err
-	}
-
-	if err := syscall.Mount(source, target, fstype, 0, ""); err != nil {
-		if sce, ok := err.(syscall.Errno); ok && sce == syscall.EBUSY {
-			// /sys was already mounted
-		} else {
-			return fmt.Errorf("%v: %v", target, err)
-		}
-	}
-
-	return nil
 }

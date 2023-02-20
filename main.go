@@ -12,7 +12,6 @@ import (
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sys/unix"
 	"os"
-	"time"
 )
 
 // Apply Immutability profiles.
@@ -23,19 +22,23 @@ func main() {
 	app.Copyright = "kairos authors"
 	app.Action = func(c *cli.Context) (err error) {
 		var targetDevice, targetImage string
+		var state *mount.State
+
 		logTarget := os.Stderr
 
-		_ = utils.MinimalMounts()
+		utils.MinimalMounts()
 
-		//try to log it to kmsg
+		// try to log to kmsg
 		devKmsg, err := os.OpenFile("/dev/kmsg", unix.O_WRONLY, 0o600)
 		if err == nil {
 			logTarget = devKmsg
 		}
 
-		debug := len(utils.ReadCMDLineArg("rd.immucore.debug")) > 0
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: logTarget}).With().Logger()
 		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+
+		// Set debug logger
+		debug := len(utils.ReadCMDLineArg("rd.immucore.debug")) > 0
 		debugFromEnv := os.Getenv("IMMUCORE_DEBUG") != ""
 		if debug || debugFromEnv {
 			log.Logger = log.Output(zerolog.ConsoleWriter{Out: logTarget}).With().Caller().Logger()
@@ -46,13 +49,13 @@ func main() {
 		log.Logger.Info().Str("commit", v.GitCommit).Str("compiled with", v.GoVersion).Str("version", v.Version).Msg("Immucore")
 
 		cmdline, _ := os.ReadFile("/proc/cmdline")
-		log.Logger.Debug().Str("content", string(cmdline)).Msg(string(cmdline))
+		log.Logger.Debug().Str("content", string(cmdline)).Msg("cmdline")
 		g := herd.DAG(herd.EnableInit)
 
 		// Get targets and state
 		targetImage, targetDevice = utils.GetTarget(c.Bool("dry-run"))
 
-		s := &mount.State{
+		state = &mount.State{
 			Logger:        log.Logger,
 			Rootdir:       utils.GetRootDir(),
 			TargetDevice:  targetDevice,
@@ -62,25 +65,28 @@ func main() {
 
 		if utils.DisableImmucore() {
 			log.Logger.Info().Msg("Stanza rd.cos.disable on the cmdline or booting from CDROM/Netboot/Squash recovery. Disabling immucore.")
-			err = s.RegisterLiveMedia(g)
+			err = state.RegisterLiveMedia(g)
 		} else if utils.IsUKI() {
 			log.Logger.Info().Msg("UKI booting!")
-			time.Sleep(10 * time.Second)
 			if err := unix.Exec("/sbin/init", []string{"--system"}, nil); err != nil {
-				return fmt.Errorf("can't run the rootfs init (%v): %v", "/sbin/init", err)
+				log.Logger.Err(err).Msg("running init")
+				// drop to emergency shell
+				if err := unix.Exec("/bin/bash", nil, nil); err != nil {
+					log.Logger.Fatal().Msg("Could not drop to emergency shell")
+				}
 			}
-			return nil
+			return nil // not reached ever
 		} else {
 			log.Logger.Info().Msg("Booting on active/passive/recovery.")
-			err = s.RegisterNormalBoot(g)
+			err = state.RegisterNormalBoot(g)
 		}
 
 		if err != nil {
-			s.Logger.Err(err)
+			state.Logger.Err(err)
 			return err
 		}
 
-		log.Info().Msg(s.WriteDAG(g))
+		log.Info().Msg(state.WriteDAG(g))
 
 		// Once we print the dag we can exit already
 		if c.Bool("dry-run") {
@@ -88,7 +94,7 @@ func main() {
 		}
 
 		err = g.Run(context.Background())
-		log.Info().Msg(s.WriteDAG(g))
+		log.Info().Msg(state.WriteDAG(g))
 		return err
 	}
 	app.Flags = []cli.Flag{
