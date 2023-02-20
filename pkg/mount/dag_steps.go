@@ -107,7 +107,7 @@ func (s *State) RootfsStageDagStep(g *herd.Graph, deps ...string) error {
 
 // InitramfsStageDagStep will add the rootfs stage.
 func (s *State) InitramfsStageDagStep(g *herd.Graph, deps ...string) error {
-	return g.Add(cnst.OpInitramfsHook, herd.WithDeps(deps...), herd.WithCallback(s.RunStageOp("initramfs")))
+	return g.Add(cnst.OpInitramfsHook, herd.WithDeps(deps...), herd.WeakDeps, herd.WithCallback(s.RunStageOp("initramfs")))
 }
 
 // LoadEnvLayoutDagStep will add the stage to load from cos-layout.env and fill the proper CustomMounts, OverlayDirs and BindMounts
@@ -371,6 +371,7 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph) error {
 func (s *State) UKIBootInitDagStep(g *herd.Graph, deps ...string) error {
 	return g.Add(cnst.OpUkiInit,
 		herd.WithDeps(deps...),
+		herd.WeakDeps,
 		herd.WithCallback(func(ctx context.Context) error {
 			// Print dag before exit, otherwise its never printed as we never exit the program
 			log.Info().Msg(s.WriteDAG(g))
