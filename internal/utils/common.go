@@ -33,7 +33,7 @@ func BootStateToLabelDevice() string {
 func GetRootDir() string {
 	cmdline, _ := os.ReadFile("/proc/cmdline")
 	switch {
-	case strings.Contains(string(cmdline), "IMMUCORE_NOPIVOT"):
+	case strings.Contains(string(cmdline), "rd.immucore.uki"):
 		return "/"
 	default:
 		// Default is sysroot for normal no-pivot boot
