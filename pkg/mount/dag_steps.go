@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -370,7 +371,7 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph) error {
 // booting to the real init process
 // Drops to emergency if not able to. Panic if it cant even launch emergency
 func (s *State) UKIBootInitDagStep(g *herd.Graph, deps ...string) error {
-	return g.Add("uki-init",
+	return g.Add(cnst.OpUkiInit,
 		herd.WithDeps(deps...),
 		herd.WithCallback(func(ctx context.Context) error {
 			log.Logger.Debug().Msg("Executing init callback!")
@@ -383,4 +384,14 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph, deps ...string) error {
 			}
 			return nil
 		}))
+}
+
+// UKIRemountRootRODagStep remount root read only
+func (s *State) UKIRemountRootRODagStep(g *herd.Graph, deps ...string) error {
+	return g.Add(cnst.OpRemountRootRO,
+		herd.WithDeps(deps...),
+		herd.WithCallback(func(ctx context.Context) error {
+			return syscall.Mount("/", "/", "rootfs", syscall.MS_REMOUNT|syscall.MS_RDONLY, "")
+		}),
+	)
 }

@@ -12,8 +12,10 @@ func (s *State) RegisterUKI(g *herd.Graph) error {
 	// Run rootfs stage
 	s.LogIfError(s.RootfsStageDagStep(g, cnst.OpSentinel), "uki rootfs")
 	// run initramfs stage
-	s.LogIfError(s.InitramfsStageDagStep(g, cnst.OpRootfsHook), "uki initramfs")
+	s.LogIfError(s.InitramfsStageDagStep(g, cnst.OpSentinel, cnst.OpRootfsHook), "uki initramfs")
+	// Remount root RO
+	s.LogIfError(s.UKIRemountRootRODagStep(g, cnst.OpInitramfsHook, cnst.OpRootfsHook), "remount root")
 	// Handover to /sbin/init
-	_ = s.UKIBootInitDagStep(g, cnst.OpRootfsHook, cnst.OpInitramfsHook)
+	_ = s.UKIBootInitDagStep(g, cnst.OpRemountRootRO, cnst.OpRootfsHook, cnst.OpInitramfsHook)
 	return nil
 }
