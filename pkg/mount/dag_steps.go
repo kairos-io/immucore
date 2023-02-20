@@ -112,9 +112,9 @@ func (s *State) InitramfsStageDagStep(g *herd.Graph, deps ...string) error {
 }
 
 // LoadEnvLayoutDagStep will add the stage to load from cos-layout.env and fill the proper CustomMounts, OverlayDirs and BindMounts
-func (s *State) LoadEnvLayoutDagStep(g *herd.Graph) error {
+func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, deps ...string) error {
 	return g.Add(cnst.OpLoadConfig,
-		herd.WithDeps(cnst.OpRootfsHook),
+		herd.WithDeps(deps...),
 		herd.WithCallback(func(ctx context.Context) error {
 			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
 			if s.CustomMounts == nil {
