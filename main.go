@@ -3,11 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	m "github.com/containerd/containerd/mount"
 	"github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/immucore/internal/version"
 	"github.com/kairos-io/immucore/pkg/mount"
-	"github.com/moby/sys/mountinfo"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spectrocloud-labs/herd"
@@ -46,19 +44,10 @@ func main() {
 		v := version.Get()
 		log.Logger.Info().Str("commit", v.GitCommit).Str("compiled with", v.GoVersion).Str("version", v.Version).Msg("Immucore")
 
-		mounted, err := mountinfo.Mounted("/proc")
+		err = utils.MinimalMounts()
 		if err != nil {
-			log.Logger.Err(err).Msg("checking mount status")
-			return err
+			log.Logger.Err(err).Msg("minimal mounts")
 		}
-		if mounted {
-			log.Logger.Debug().Msg("Already mounted")
-		}
-		err = m.All([]m.Mount{{Type: "procfs", Source: "proc"}}, "/proc")
-		if err != nil {
-			log.Logger.Debug().Msg("mount failed")
-		}
-		log.Logger.Debug().Msg("mount done")
 
 		cmdline, _ := os.ReadFile("/proc/cmdline")
 		log.Logger.Debug().Str("content", string(cmdline)).Msg(string(cmdline))

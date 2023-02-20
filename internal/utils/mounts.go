@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 )
 
 // https://github.com/kairos-io/packages/blob/7c3581a8ba6371e5ce10c3a98bae54fde6a505af/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L58
@@ -168,4 +169,33 @@ func Fsck(device string) error {
 		log.Logger.Warn().Str("error", e.Error()).Str("what", device).Msg("fsck")
 	}
 	return e
+}
+
+func MinimalMounts() error {
+	if err := syscallMount("dev", "/dev", "devtmpfs"); err != nil {
+		return err
+	}
+	if err := syscallMount("proc", "/proc", "proc"); err != nil {
+		return err
+	}
+	if err := syscallMount("sys", "/sys", "sysfs"); err != nil {
+		return err
+	}
+	return nil
+}
+
+func syscallMount(source, target, fstype string) error {
+	if err := os.MkdirAll(target, 0755); err != nil {
+		return err
+	}
+
+	if err := syscall.Mount(source, target, fstype, 0, ""); err != nil {
+		if sce, ok := err.(syscall.Errno); ok && sce == syscall.EBUSY {
+			// /sys was already mounted
+		} else {
+			return fmt.Errorf("%v: %v", target, err)
+		}
+	}
+
+	return nil
 }
