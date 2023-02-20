@@ -16,11 +16,8 @@ func (s *State) RegisterUKI(g *herd.Graph) error {
 	// Run rootfs stage
 	s.LogIfError(s.RootfsStageDagStep(g, cnst.OpSentinel), "uki rootfs")
 
-	// run initramfs stage
-	s.LogIfError(s.InitramfsStageDagStep(g, cnst.OpSentinel, cnst.OpRootfsHook), "uki initramfs")
-
 	// Remount root RO
-	s.LogIfError(s.UKIRemountRootRODagStep(g, cnst.OpInitramfsHook, cnst.OpRootfsHook), "remount root")
+	s.LogIfError(s.UKIRemountRootRODagStep(g, cnst.OpRootfsHook), "remount root")
 
 	// Mount base overlay under /run/overlay
 	s.LogIfError(s.MountBaseOverlayDagStep(g), "base overlay")
@@ -38,6 +35,9 @@ func (s *State) RegisterUKI(g *herd.Graph) error {
 	// Mount custom binds loaded from the /run/cos/cos-layout.env file
 	// Depends on mount binds as that usually mounts COS_PERSISTENT
 	s.LogIfError(s.MountCustomBindsDagStep(g), "custom binds mount")
+
+	// run initramfs stage
+	s.LogIfError(s.InitramfsStageDagStep(g, cnst.OpMountBind), "uki initramfs")
 
 	// Handover to /sbin/init
 	_ = s.UKIBootInitDagStep(g, cnst.OpRemountRootRO, cnst.OpRootfsHook, cnst.OpInitramfsHook)

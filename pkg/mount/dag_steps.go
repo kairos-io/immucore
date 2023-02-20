@@ -9,7 +9,6 @@ import (
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/kairos/pkg/utils"
 	"github.com/kairos-io/kairos/sdk/state"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spectrocloud-labs/herd"
 	"golang.org/x/sys/unix"
@@ -116,7 +115,6 @@ func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, deps ...string) error {
 	return g.Add(cnst.OpLoadConfig,
 		herd.WithDeps(deps...),
 		herd.WithCallback(func(ctx context.Context) error {
-			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
 			if s.CustomMounts == nil {
 				s.CustomMounts = map[string]string{}
 			}
@@ -262,7 +260,7 @@ func (s *State) MountCustomMountsDagStep(g *herd.Graph) error {
 					s.path(where),
 					fstype,
 					mountOptions,
-					10*time.Second,
+					3*time.Second,
 				)(ctx))
 
 			}
@@ -410,24 +408,27 @@ func (s *State) UKIUdevDaemon(g *herd.Graph) error {
 			}
 			cmd := fmt.Sprintf("%s --daemon", udevBin)
 			out, err := internalUtils.CommandWithPath(cmd)
+			log.Logger.Debug().Str("out", out).Str("cmd", cmd).Msg("Udev daemon")
 			if err != nil {
-				log.Logger.Debug().Str("out", out).Str("cmd", cmd).Msg("Udev daemon")
 				log.Logger.Err(err).Msg("Udev daemon")
 				return err
 			}
 			out, err = internalUtils.CommandWithPath("udevadm trigger")
+			log.Logger.Debug().Str("out", out).Msg("Udev trigger")
 			if err != nil {
-				log.Logger.Debug().Str("out", out).Msg("Udev trigger")
 				log.Logger.Err(err).Msg("Udev trigger")
 				return err
 			}
 
 			out, err = internalUtils.CommandWithPath("udevadm settle")
+			log.Logger.Debug().Str("out", out).Msg("Udev settle")
 			if err != nil {
-				log.Logger.Debug().Str("out", out).Msg("Udev settle")
 				log.Logger.Err(err).Msg("Udev settle")
 				return err
 			}
+			env := os.Environ()
+			env = append(env, "PATH=/usr/bin:/usr/sbin")
+			unix.Exec("/bin/bash", []string{"/bin/bash"}, env)
 			return nil
 		}),
 	)
