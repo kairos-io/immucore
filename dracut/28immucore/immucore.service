@@ -10,4 +10,4 @@ Conflicts=initrd-switch-root.target
 Type=oneshot
 RemainAfterExit=yes
 StandardOutput=journal+console
-ExecStart=/usr/bin/immucore start
+ExecStart=/usr/bin/immucore
