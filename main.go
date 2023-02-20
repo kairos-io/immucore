@@ -21,12 +21,21 @@ func main() {
 	app.Authors = []*cli.Author{{Name: "Kairos authors"}}
 	app.Copyright = "kairos authors"
 	app.Action = func(c *cli.Context) (err error) {
+		logTarget := os.Stderr
+		//try to log it to kmsg
+		if utils.IsUKI() {
+			devKmsg, err := os.OpenFile("/dev/kmsg", unix.O_WRONLY, 0o600)
+			if err == nil {
+				logTarget = devKmsg
+			}
+		}
+
 		debug := len(utils.ReadCMDLineArg("rd.immucore.debug")) > 0
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: logTarget}).With().Logger()
 		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 		debugFromEnv := os.Getenv("IMMUCORE_DEBUG") != ""
 		if debug || debugFromEnv {
-			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+			log.Logger = log.Output(zerolog.ConsoleWriter{Out: logTarget}).With().Caller().Logger()
 			zerolog.SetGlobalLevel(zerolog.DebugLevel)
 		}
 
