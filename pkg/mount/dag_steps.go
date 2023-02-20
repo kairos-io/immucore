@@ -426,9 +426,46 @@ func (s *State) UKIUdevDaemon(g *herd.Graph) error {
 				log.Logger.Err(err).Msg("Udev settle")
 				return err
 			}
-			env := os.Environ()
-			env = append(env, "PATH=/usr/bin:/usr/sbin")
-			unix.Exec("/bin/bash", []string{"/bin/bash"}, env)
+			return nil
+		}),
+	)
+}
+
+// LoadKernelModules loads kernel modules needed during uki boot to load the disks for.
+// Mainly block devices and net devices
+// probably others down the line
+func (s *State) LoadKernelModules(g *herd.Graph) error {
+	return g.Add("kernel-modules",
+		herd.WithCallback(func(ctx context.Context) error {
+			// For the future. open the module and pass the fd to FinitModule directly
+			/*
+				var uname unix.Utsname
+				_ = unix.Uname(&uname)
+				unameString := string(uname.Release[:bytes.IndexByte(uname.Release[:], 0)])
+				f, _ := os.Open(filepath.Join("/lib/modules/", unameString))
+				defer f.Close()
+				f.Fd()
+				unix.FinitModule(int(f.Fd()), "", 0)
+			*/
+			modules := []string{
+				"virtio-rng",
+				"virtio-net",
+				"virtio_mem",
+				"virtio_scsi",
+				"virtio_crypto",
+				"virtio_blk",
+				"ata_generic",
+				"ata_piix",
+				"usb-storage",
+			}
+			for _, module := range modules {
+				cmd := fmt.Sprintf("modprobe %s", module)
+				out, err := internalUtils.CommandWithPath(cmd)
+				if err != nil {
+					log.Logger.Err(err).Str("out", out).Msg("modprobe")
+				}
+			}
+
 			return nil
 		}),
 	)
