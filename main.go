@@ -12,6 +12,7 @@ import (
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sys/unix"
 	"os"
+	"time"
 )
 
 // Apply Immutability profiles.
@@ -62,6 +63,7 @@ func main() {
 			err = s.RegisterLiveMedia(g)
 		} else if utils.IsUKI() {
 			log.Logger.Info().Msg("UKI booting!")
+			time.Sleep(10 * time.Second)
 			if err := unix.Exec("/sbin/init", []string{"--system"}, nil); err != nil {
 				return fmt.Errorf("can't run the rootfs init (%v): %v", "/sbin/init", err)
 			}

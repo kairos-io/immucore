@@ -99,7 +99,7 @@ func CleanupSlice(slice []string) []string {
 
 // GetTarget gets the target image and device to mount in /sysroot
 func GetTarget(dryRun bool) (string, string) {
-	var img, label string
+	var label string
 
 	label = BootStateToLabelDevice()
 
@@ -108,16 +108,16 @@ func GetTarget(dryRun bool) (string, string) {
 		return "fake", label
 	}
 
-	img = ReadCMDLineArg("cos-img/filename=")[0]
+	imgs := ReadCMDLineArg("cos-img/filename=")
 
 	// If no image just panic here, we cannot longer continue
-	if img == "" {
+	if len(imgs) == 0 {
 		log.Logger.Fatal().Msg("Could not get the image name from cmdline (i.e. cos-img/filename=/cOS/active.img)")
 	}
 
-	log.Debug().Str("what", img).Msg("Target device")
+	log.Debug().Str("what", imgs[0]).Msg("Target device")
 	log.Debug().Str("what", label).Msg("Target label")
-	return img, label
+	return imgs[0], label
 }
 
 // DisableImmucore identifies if we need to be disabled
