@@ -22,6 +22,7 @@ func main() {
 	app.Authors = []*cli.Author{{Name: "Kairos authors"}}
 	app.Copyright = "kairos authors"
 	app.Action = func(c *cli.Context) (err error) {
+		var targetDevice, targetImage string
 		logTarget := os.Stderr
 		//try to log it to kmsg
 		if utils.IsUKI() {
@@ -48,7 +49,7 @@ func main() {
 		g := herd.DAG(herd.EnableInit)
 
 		// Get targets and state
-		targetImage, targetDevice := utils.GetTarget(c.Bool("dry-run"))
+		targetImage, targetDevice = utils.GetTarget(c.Bool("dry-run"))
 
 		s := &mount.State{
 			Logger:        log.Logger,

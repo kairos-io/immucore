@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"github.com/joho/godotenv"
 	"github.com/kairos-io/kairos/sdk/state"
 	"github.com/rs/zerolog/log"
@@ -112,7 +113,7 @@ func GetTarget(dryRun bool) (string, string) {
 
 	// If no image just panic here, we cannot longer continue
 	if len(imgs) == 0 {
-		log.Logger.Fatal().Msg("Could not get the image name from cmdline (i.e. cos-img/filename=/cOS/active.img)")
+		log.Logger.Err(errors.New("could not get the image name from cmdline (i.e. cos-img/filename=/cOS/active.img)")).Msg("get target")
 	}
 
 	log.Debug().Str("what", imgs[0]).Msg("Target device")
