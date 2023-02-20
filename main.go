@@ -68,14 +68,13 @@ func main() {
 			err = state.RegisterLiveMedia(g)
 		} else if utils.IsUKI() {
 			log.Logger.Info().Msg("UKI booting!")
-			if err := unix.Exec("/sbin/init", []string{"--system"}, nil); err != nil {
+			if err := unix.Exec("/sbin/inite", []string{"/sbin/init", "--system"}, os.Environ()); err != nil {
 				log.Logger.Err(err).Msg("running init")
 				// drop to emergency shell
-				if err := unix.Exec("/bin/bash", nil, nil); err != nil {
+				if err := unix.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ()); err != nil {
 					log.Logger.Fatal().Msg("Could not drop to emergency shell")
 				}
 			}
-			return nil // not reached ever
 		} else {
 			log.Logger.Info().Msg("Booting on active/passive/recovery.")
 			err = state.RegisterNormalBoot(g)
