@@ -7,7 +7,6 @@ import (
 	"github.com/kairos-io/kairos/pkg/utils"
 	"github.com/rs/zerolog/log"
 	"os"
-	"os/exec"
 	"strings"
 	"syscall"
 )
@@ -74,7 +73,8 @@ func DiskFSType(s string) string {
 
 // SyncState will rsync source into destination. Useful for Bind mounts.
 func SyncState(src, dst string) error {
-	return exec.Command("rsync", "-aqAX", src, dst).Run()
+	_, err := CommandWithPath(fmt.Sprintf("rsync -aqAX %s %s", src, dst))
+	return err
 }
 
 // AppendSlash it's in the name. Appends a slash.
