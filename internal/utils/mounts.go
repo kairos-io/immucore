@@ -114,6 +114,9 @@ func MountToFstab(m mount.Mount) *fstab.Mount {
 // Special care for the root (/sysroot) path as we can't just simple remove that path and call it a day
 // as that will return an empty mountpoint which will break fstab mounting
 func CleanSysrootForFstab(path string) string {
+	if IsUKI() {
+		return path
+	}
 	cleaned := strings.ReplaceAll(path, "/sysroot", "")
 	if cleaned == "" {
 		cleaned = "/"
