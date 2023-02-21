@@ -173,6 +173,7 @@ func IsUKI() bool {
 func CommandWithPath(c string) (string, error) {
 	cmd := exec.Command("/bin/sh", "-c", c)
 	cmd.Env = os.Environ()
+	// TODO: extract PATH from env and append to existing instead of overwriting
 	cmd.Env = append(cmd.Env, "PATH=/usr/bin:/usr/sbin")
 	o, err := cmd.CombinedOutput()
 	return string(o), err

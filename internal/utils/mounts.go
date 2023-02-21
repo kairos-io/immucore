@@ -54,7 +54,7 @@ func ReadCMDLineArg(arg string) []string {
 
 // IsMounted lets us know if the given device is currently mounted
 func IsMounted(dev string) bool {
-	_, err := utils.SH(fmt.Sprintf("findmnt %s", dev))
+	_, err := CommandWithPath(fmt.Sprintf("findmnt %s", dev))
 	return err == nil
 }
 
@@ -62,7 +62,7 @@ func IsMounted(dev string) bool {
 // Does NOT need to be mounted
 // Needs full path so either /dev/sda1 or /dev/disk/by-{label,uuid}/{label,uuid}
 func DiskFSType(s string) string {
-	out, e := utils.SH(fmt.Sprintf("blkid %s -s TYPE -o value", s))
+	out, e := CommandWithPath(fmt.Sprintf("blkid %s -s TYPE -o value", s))
 	if e != nil {
 		log.Logger.Err(e).Msg("blkid")
 	}
