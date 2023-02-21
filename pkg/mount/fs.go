@@ -2,6 +2,7 @@ package mount
 
 import (
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -62,14 +63,14 @@ func mountBind(mountpoint, root, stateTarget string) mountOperation {
 		Type:   "overlay",
 		Source: stateDir,
 		Options: []string{
-			//"defaults",
 			"bind",
 		},
 	}
-
+	log.Logger.Debug().Str("mountpoint", mountpoint).Str("root", root).Str("bindMountPath", bindMountPath).Msg("BIND")
 	tmpFstab := internalUtils.MountToFstab(tmpMount)
 	tmpFstab.File = internalUtils.CleanSysrootForFstab(fmt.Sprintf("/%s", mountpoint))
-	tmpFstab.Spec = strings.ReplaceAll(tmpFstab.Spec, root, "")
+	tmpFstab.Spec = internalUtils.CleanSysrootForFstab(root)
+	log.Logger.Debug().Str("spec", tmpFstab.Spec).Msg("FSTAB SPEC")
 	return mountOperation{
 		MountOption: tmpMount,
 		FstabEntry:  *tmpFstab,

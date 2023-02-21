@@ -9,11 +9,13 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/kairos-io/kairos v1.5.0
 	github.com/moby/sys/mountinfo v0.6.2
-	github.com/onsi/gomega v1.27.1
+	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
 	github.com/onsi/ginkgo/v2 v2.8.3
+	github.com/onsi/gomega v1.27.1
 	github.com/rs/zerolog v1.29.0
 	github.com/spectrocloud-labs/herd v0.4.0
 	github.com/urfave/cli/v2 v2.24.4
+	golang.org/x/sys v0.5.0
 )
 
 require (
@@ -49,6 +51,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
+	github.com/pilebones/go-udev v0.0.0-20210126000448-a3c2a7a4afb7 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pterm/pterm v0.12.54 // indirect
 	github.com/qeesung/image2ascii v1.0.1 // indirect
@@ -60,7 +63,6 @@ require (
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/net v0.7.0 // indirect
-	golang.org/x/sys v0.5.0 // indirect
 	golang.org/x/term v0.5.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
 	golang.org/x/tools v0.6.0 // indirect

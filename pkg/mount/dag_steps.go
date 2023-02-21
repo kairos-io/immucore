@@ -9,6 +9,7 @@ import (
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/kairos/pkg/utils"
 	"github.com/kairos-io/kairos/sdk/state"
+	"github.com/mudler/go-kdetect"
 	"github.com/rs/zerolog/log"
 	"github.com/spectrocloud-labs/herd"
 	"golang.org/x/sys/unix"
@@ -443,35 +444,18 @@ func (s *State) UKIUdevDaemon(g *herd.Graph) error {
 func (s *State) LoadKernelModules(g *herd.Graph) error {
 	return g.Add("kernel-modules",
 		herd.WithCallback(func(ctx context.Context) error {
-			// For the future. open the module and pass the fd to FinitModule directly
-			/*
-				var uname unix.Utsname
-				_ = unix.Uname(&uname)
-				unameString := string(uname.Release[:bytes.IndexByte(uname.Release[:], 0)])
-				f, _ := os.Open(filepath.Join("/lib/modules/", unameString))
-				defer f.Close()
-				f.Fd()
-				unix.FinitModule(int(f.Fd()), "", 0)
-			*/
-			modules := []string{
-				"virtio-rng",
-				"virtio-net",
-				"virtio_mem",
-				"virtio_scsi",
-				"virtio_crypto",
-				"virtio_blk",
-				"ata_generic",
-				"ata_piix",
-				"usb-storage",
+			drivers, err := kdetect.ProbeKernelModules("")
+			if err != nil {
+				log.Logger.Err(err).Msg("Detecting needed modules")
 			}
-			for _, module := range modules {
-				cmd := fmt.Sprintf("modprobe %s", module)
+			log.Logger.Debug().Strs("drivers", drivers).Msg("Detecting needed modules")
+			for _, driver := range drivers {
+				cmd := fmt.Sprintf("modprobe %s", driver)
 				out, err := internalUtils.CommandWithPath(cmd)
 				if err != nil {
 					log.Logger.Err(err).Str("out", out).Msg("modprobe")
 				}
 			}
-
 			return nil
 		}),
 	)
