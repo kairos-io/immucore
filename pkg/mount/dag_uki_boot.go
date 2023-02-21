@@ -41,6 +41,8 @@ func (s *State) RegisterUKI(g *herd.Graph) error {
 	// run initramfs stage
 	s.LogIfError(s.InitramfsStageDagStep(g, cnst.OpMountBind), "uki initramfs")
 
+	//s.LogIfError(s.WriteFstabDagStep(g), "write fstab")
+
 	// Handover to /sbin/init
 	_ = s.UKIBootInitDagStep(g, cnst.OpRemountRootRO, cnst.OpRootfsHook, cnst.OpInitramfsHook)
 	return nil

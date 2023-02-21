@@ -251,18 +251,23 @@ func (s *State) MountCustomMountsDagStep(g *herd.Graph) error {
 				// TODO: scan for the custom mount disk to know the underlying fs and set it proper
 				fstype := "ext4"
 				mountOptions := []string{"ro"}
+				// TODO: Are custom mounts always rw?ro?depends? Clarify.
 				// Persistent needs to be RW
 				if strings.Contains(what, "COS_PERSISTENT") {
 					mountOptions = []string{"rw"}
 				}
-				err = multierror.Append(err, s.MountOP(
+				err2 := s.MountOP(
 					what,
 					s.path(where),
 					fstype,
 					mountOptions,
 					3*time.Second,
-				)(ctx))
+				)(ctx)
 
+				// If its COS_OEM and it fails then we can safely ignore, as it's not mandatory to have COS_OEM
+				if err2 != nil && !strings.Contains(what, "COS_OEM") {
+					err = multierror.Append(err, err2)
+				}
 			}
 			s.Logger.Err(err.ErrorOrNil()).Send()
 
