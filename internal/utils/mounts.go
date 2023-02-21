@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"github.com/containerd/containerd/mount"
 	"github.com/deniswernert/go-fstab"
-	"github.com/kairos-io/kairos/pkg/utils"
-	"github.com/rs/zerolog/log"
 	"os"
 	"strings"
 	"syscall"
@@ -64,10 +62,10 @@ func IsMounted(dev string) bool {
 func DiskFSType(s string) string {
 	out, e := CommandWithPath(fmt.Sprintf("blkid %s -s TYPE -o value", s))
 	if e != nil {
-		log.Logger.Err(e).Msg("blkid")
+		Log.Err(e).Msg("blkid")
 	}
 	out = strings.Trim(strings.Trim(out, " "), "\n")
-	log.Logger.Debug().Str("what", s).Str("type", out).Msg("Partition FS type")
+	Log.Debug().Str("what", s).Str("type", out).Msg("Partition FS type")
 	return out
 }
 
@@ -165,11 +163,11 @@ func Fsck(device string) error {
 		args = append(args, "-n")
 	}
 	cmd := strings.Join(args, " ")
-	log.Logger.Debug().Str("cmd", cmd).Msg("fsck command")
-	out, e := utils.SH(cmd)
-	log.Logger.Debug().Str("output", out).Msg("fsck output")
+	Log.Debug().Str("cmd", cmd).Msg("fsck command")
+	out, e := CommandWithPath(cmd)
+	Log.Debug().Str("output", out).Msg("fsck output")
 	if e != nil {
-		log.Logger.Warn().Str("error", e.Error()).Str("what", device).Msg("fsck")
+		Log.Warn().Str("error", e.Error()).Str("what", device).Msg("fsck")
 	}
 	return e
 }

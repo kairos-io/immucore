@@ -2,9 +2,6 @@ package mount_test
 
 import (
 	"context"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
-	"os"
 	"time"
 
 	"github.com/kairos-io/immucore/pkg/mount"
@@ -24,7 +21,6 @@ var _ = Describe("mounting immutable setup", func() {
 	Context("simple invocation", func() {
 		It("generates normal dag", func() {
 			s := &mount.State{
-				Logger:       log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger(),
 				Rootdir:      "/",
 				TargetImage:  "/cOS/myimage.img",
 				TargetDevice: "/dev/disk/by-label/COS_LABEL",

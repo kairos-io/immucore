@@ -10,7 +10,6 @@ import (
 	"github.com/kairos-io/kairos/pkg/utils"
 	"github.com/kairos-io/kairos/sdk/state"
 	"github.com/mudler/go-kdetect"
-	"github.com/rs/zerolog/log"
 	"github.com/spectrocloud-labs/herd"
 	"golang.org/x/sys/unix"
 	"os"
@@ -45,7 +44,7 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 		),
 	)
 	if err != nil {
-		s.Logger.Err(err).Send()
+		internalUtils.Log.Err(err).Send()
 	}
 
 	// 2 - mount the image as a loop device
@@ -55,7 +54,7 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 			func(ctx context.Context) error {
 				// Check if loop device is mounted already
 				if internalUtils.IsMounted(s.TargetDevice) {
-					log.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetDevice", s.TargetDevice).Msg("Not mounting loop, already mounted")
+					internalUtils.Log.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetDevice", s.TargetDevice).Msg("Not mounting loop, already mounted")
 					return nil
 				}
 				_ = internalUtils.Fsck(s.path("/run/initramfs/cos-state", s.TargetImage))
@@ -67,13 +66,13 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 				// But on other it seems like it won't trigger which causes the sysroot to not be mounted as we cant find
 				// the block device by the target label. Make sure we run this after mounting so we refresh the devices.
 				sh, _ := utils.SH("udevadm trigger")
-				s.Logger.Debug().Str("output", sh).Msg("udevadm trigger")
-				log.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetDevice", s.TargetDevice).Msg("mount done")
+				internalUtils.Log.Debug().Str("output", sh).Msg("udevadm trigger")
+				internalUtils.Log.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetDevice", s.TargetDevice).Msg("mount done")
 				return err
 			},
 		))
 	if err != nil {
-		s.Logger.Err(err).Send()
+		internalUtils.Log.Err(err).Send()
 	}
 
 	// 3 - Mount the labels as Rootdir
@@ -96,7 +95,7 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 		),
 	)
 	if err != nil {
-		s.Logger.Err(err).Send()
+		internalUtils.Log.Err(err).Send()
 	}
 	return err
 }
@@ -122,7 +121,7 @@ func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, deps ...string) error {
 
 			env, err := internalUtils.ReadEnv("/run/cos/cos-layout.env")
 			if err != nil {
-				log.Logger.Err(err).Msg("Reading env")
+				internalUtils.Log.Err(err).Msg("Reading env")
 				return err
 			}
 			// populate from env here
@@ -165,7 +164,7 @@ func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, deps ...string) error {
 func (s *State) MountOemDagStep(g *herd.Graph, deps ...string) error {
 	runtime, err := state.NewRuntime()
 	if err != nil {
-		s.Logger.Debug().Err(err).Msg("runtime")
+		internalUtils.Log.Debug().Err(err).Msg("runtime")
 	}
 	return g.Add(cnst.OpMountOEM,
 		herd.WithDeps(deps...),
@@ -223,13 +222,13 @@ func (s *State) MountCustomOverlayDagStep(g *herd.Graph) error {
 		herd.WithCallback(
 			func(ctx context.Context) error {
 				var multierr *multierror.Error
-				s.Logger.Debug().Strs("dirs", s.OverlayDirs).Msg("Mounting overlays")
+				internalUtils.Log.Debug().Strs("dirs", s.OverlayDirs).Msg("Mounting overlays")
 				for _, p := range s.OverlayDirs {
 					op := mountWithBaseOverlay(p, s.Rootdir, "/run/overlay")
 					err := op.run()
 					// Append to errors only if it's not an already mounted error
 					if err != nil && !errors.Is(err, cnst.ErrAlreadyMounted) {
-						log.Logger.Err(err).Msg("overlay mount")
+						internalUtils.Log.Err(err).Msg("overlay mount")
 						multierr = multierror.Append(multierr, err)
 						continue
 					}
@@ -270,7 +269,7 @@ func (s *State) MountCustomMountsDagStep(g *herd.Graph) error {
 					err = multierror.Append(err, err2)
 				}
 			}
-			s.Logger.Err(err.ErrorOrNil()).Send()
+			internalUtils.Log.Err(err.ErrorOrNil()).Send()
 
 			return err.ErrorOrNil()
 		}),
@@ -285,7 +284,7 @@ func (s *State) MountCustomBindsDagStep(g *herd.Graph) error {
 		herd.WithCallback(
 			func(ctx context.Context) error {
 				var err *multierror.Error
-				s.Logger.Debug().Strs("mounts", s.BindMounts).Msg("Mounting binds")
+				internalUtils.Log.Debug().Strs("mounts", s.BindMounts).Msg("Mounting binds")
 
 				for _, p := range s.BindMounts {
 					op := mountBind(p, s.Rootdir, s.StateDir)
@@ -296,11 +295,11 @@ func (s *State) MountCustomBindsDagStep(g *herd.Graph) error {
 					}
 					// Append to errors only if it's not an already mounted error
 					if err2 != nil && !errors.Is(err2, cnst.ErrAlreadyMounted) {
-						log.Logger.Err(err2).Send()
+						internalUtils.Log.Err(err2).Send()
 						err = multierror.Append(err, err2)
 					}
 				}
-				log.Logger.Err(err.ErrorOrNil()).Send()
+				internalUtils.Log.Err(err.ErrorOrNil()).Send()
 				return err.ErrorOrNil()
 			},
 		),
@@ -353,7 +352,7 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph) error {
 				sentinel = "live_mode"
 			}
 
-			s.Logger.Info().Str("to", sentinel).Msg("Setting sentinel file")
+			internalUtils.Log.Info().Str("to", sentinel).Msg("Setting sentinel file")
 			err = os.WriteFile(filepath.Join("/run/cos/", sentinel), []byte("1"), os.ModePerm)
 			if err != nil {
 				return err
@@ -380,13 +379,13 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph, deps ...string) error {
 		herd.WeakDeps,
 		herd.WithCallback(func(ctx context.Context) error {
 			// Print dag before exit, otherwise its never printed as we never exit the program
-			log.Info().Msg(s.WriteDAG(g))
-			log.Logger.Debug().Msg("Executing init callback!")
+			internalUtils.Log.Info().Msg(s.WriteDAG(g))
+			internalUtils.Log.Debug().Msg("Executing init callback!")
 			if err := unix.Exec("/sbin/init", []string{"/sbin/init", "--system"}, os.Environ()); err != nil {
-				log.Logger.Err(err).Msg("running init")
+				internalUtils.Log.Err(err).Msg("running init")
 				// drop to emergency shell
 				if err := unix.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ()); err != nil {
-					log.Logger.Fatal().Msg("Could not drop to emergency shell")
+					internalUtils.Log.Fatal().Msg("Could not drop to emergency shell")
 				}
 			}
 			return nil
@@ -415,22 +414,22 @@ func (s *State) UKIUdevDaemon(g *herd.Graph) error {
 			}
 			cmd := fmt.Sprintf("%s --daemon", udevBin)
 			out, err := internalUtils.CommandWithPath(cmd)
-			log.Logger.Debug().Str("out", out).Str("cmd", cmd).Msg("Udev daemon")
+			internalUtils.Log.Debug().Str("out", out).Str("cmd", cmd).Msg("Udev daemon")
 			if err != nil {
-				log.Logger.Err(err).Msg("Udev daemon")
+				internalUtils.Log.Err(err).Msg("Udev daemon")
 				return err
 			}
 			out, err = internalUtils.CommandWithPath("udevadm trigger")
-			log.Logger.Debug().Str("out", out).Msg("Udev trigger")
+			internalUtils.Log.Debug().Str("out", out).Msg("Udev trigger")
 			if err != nil {
-				log.Logger.Err(err).Msg("Udev trigger")
+				internalUtils.Log.Err(err).Msg("Udev trigger")
 				return err
 			}
 
 			out, err = internalUtils.CommandWithPath("udevadm settle")
-			log.Logger.Debug().Str("out", out).Msg("Udev settle")
+			internalUtils.Log.Debug().Str("out", out).Msg("Udev settle")
 			if err != nil {
-				log.Logger.Err(err).Msg("Udev settle")
+				internalUtils.Log.Err(err).Msg("Udev settle")
 				return err
 			}
 			return nil
@@ -446,14 +445,14 @@ func (s *State) LoadKernelModules(g *herd.Graph) error {
 		herd.WithCallback(func(ctx context.Context) error {
 			drivers, err := kdetect.ProbeKernelModules("")
 			if err != nil {
-				log.Logger.Err(err).Msg("Detecting needed modules")
+				internalUtils.Log.Err(err).Msg("Detecting needed modules")
 			}
-			log.Logger.Debug().Strs("drivers", drivers).Msg("Detecting needed modules")
+			internalUtils.Log.Debug().Strs("drivers", drivers).Msg("Detecting needed modules")
 			for _, driver := range drivers {
 				cmd := fmt.Sprintf("modprobe %s", driver)
 				out, err := internalUtils.CommandWithPath(cmd)
 				if err != nil {
-					log.Logger.Err(err).Str("out", out).Msg("modprobe")
+					internalUtils.Log.Err(err).Str("out", out).Msg("modprobe")
 				}
 			}
 			return nil

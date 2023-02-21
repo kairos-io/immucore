@@ -3,7 +3,6 @@ package utils
 import (
 	"github.com/joho/godotenv"
 	"github.com/kairos-io/kairos/sdk/state"
-	"github.com/rs/zerolog/log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -116,12 +115,12 @@ func GetTarget(dryRun bool) (string, string) {
 		if IsUKI() {
 			imgs = []string{""}
 		} else {
-			log.Logger.Fatal().Msg("could not get the image name from cmdline (i.e. cos-img/filename=/cOS/active.img)")
+			Log.Fatal().Msg("could not get the image name from cmdline (i.e. cos-img/filename=/cOS/active.img)")
 		}
 	}
 
-	log.Debug().Str("what", imgs[0]).Msg("Target device")
-	log.Debug().Str("what", label).Msg("Target label")
+	Log.Debug().Str("what", imgs[0]).Msg("Target device")
+	Log.Debug().Str("what", label).Msg("Target label")
 	return imgs[0], label
 }
 
@@ -137,7 +136,7 @@ func DisableImmucore() bool {
 // RootRW tells us if the mode to mount root
 func RootRW() string {
 	if len(ReadCMDLineArg("rd.cos.debugrw")) > 0 {
-		log.Logger.Warn().Msg("Mounting root as RW")
+		Log.Warn().Msg("Mounting root as RW")
 		return "rw"
 	}
 	return "ro"
@@ -157,7 +156,7 @@ func GetState() string {
 	case state.Recovery:
 		label = filepath.Join("/dev/disk/by-label/", runtime.Recovery.Label)
 	}
-	log.Logger.Debug().Str("what", label).Msg("Get state label")
+	Log.Debug().Str("what", label).Msg("Get state label")
 	return label
 }
 
