@@ -3,8 +3,9 @@ package constants
 import "errors"
 
 func DefaultRWPaths() []string {
-	// Default RW_PATHS to mount if there are none defined
-	return []string{"/etc", "/root", "/home", "/opt", "/srv", "/usr/local", "/var"}
+	// Default RW_PATHS to mount
+	// If none defined, your system wont even boot probably
+	return []string{"/var", "/etc", "/srv"}
 }
 
 var ErrAlreadyMounted = errors.New("already mounted")
