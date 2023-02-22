@@ -120,9 +120,11 @@ func (s *State) LoadEnvLayoutDagStep(g *herd.Graph) error {
 				return err
 			}
 			// populate from env here
-			s.OverlayDirs = strings.Split(env["RW_PATHS"], " ")
-			// Append default RW_Paths
-			s.OverlayDirs = append(s.OverlayDirs, cnst.DefaultRWPaths()...)
+			s.OverlayDirs = internalUtils.CleanupSlice(strings.Split(env["RW_PATHS"], " "))
+			// Append default RW_Paths if list is empty, otherwise we won't boot properly
+			if len(s.OverlayDirs) == 0 {
+				s.OverlayDirs = cnst.DefaultRWPaths()
+			}
 
 			// Remove any duplicates
 			s.OverlayDirs = internalUtils.UniqueSlice(internalUtils.CleanupSlice(s.OverlayDirs))
