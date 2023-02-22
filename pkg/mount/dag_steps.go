@@ -126,16 +126,19 @@ func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, deps ...string) error {
 			}
 			// populate from env here
 			s.OverlayDirs = internalUtils.CleanupSlice(strings.Split(env["RW_PATHS"], " "))
-			// Append default RW_Paths if Dirs are empty
+			// Append default RW_Paths if list is empty, otherwise we won't boot properly
 			if len(s.OverlayDirs) == 0 {
 				s.OverlayDirs = cnst.DefaultRWPaths()
 			}
-			// Remove any duplicates
-			s.OverlayDirs = internalUtils.UniqueSlice(s.OverlayDirs)
 
-			s.BindMounts = internalUtils.CleanupSlice(strings.Split(env["PERSISTENT_STATE_PATHS"], " "))
 			// Remove any duplicates
-			s.BindMounts = internalUtils.UniqueSlice(s.BindMounts)
+			s.OverlayDirs = internalUtils.UniqueSlice(internalUtils.CleanupSlice(s.OverlayDirs))
+
+			s.BindMounts = strings.Split(env["PERSISTENT_STATE_PATHS"], " ")
+			// Add custom bind mounts
+			s.BindMounts = append(s.BindMounts, strings.Split(env["CUSTOM_BIND_MOUNTS"], " ")...)
+			// Remove any duplicates
+			s.BindMounts = internalUtils.UniqueSlice(internalUtils.CleanupSlice(s.BindMounts))
 
 			s.StateDir = env["PERSISTENT_STATE_TARGET"]
 			if s.StateDir == "" {
