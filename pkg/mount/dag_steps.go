@@ -121,14 +121,15 @@ func (s *State) LoadEnvLayoutDagStep(g *herd.Graph) error {
 			}
 			// populate from env here
 			s.OverlayDirs = internalUtils.CleanupSlice(strings.Split(env["RW_PATHS"], " "))
-			// Append default RW_Paths if Dirs are empty
-			if len(s.OverlayDirs) == 0 {
-				s.OverlayDirs = cnst.DefaultRWPaths()
-			}
+			// Append default RW_Paths
+			s.OverlayDirs = append(s.OverlayDirs, cnst.DefaultRWPaths()...)
+
 			// Remove any duplicates
 			s.OverlayDirs = internalUtils.UniqueSlice(s.OverlayDirs)
 
 			s.BindMounts = internalUtils.CleanupSlice(strings.Split(env["PERSISTENT_STATE_PATHS"], " "))
+			// Add custom bind mounts
+			s.BindMounts = internalUtils.CleanupSlice(strings.Split(env["CUSTOM_BIND_MOUNTS"], " "))
 			// Remove any duplicates
 			s.BindMounts = internalUtils.UniqueSlice(s.BindMounts)
 
