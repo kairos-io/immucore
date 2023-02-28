@@ -62,14 +62,13 @@ func mountBind(mountpoint, root, stateTarget string) mountOperation {
 		Type:   "overlay",
 		Source: stateDir,
 		Options: []string{
-			//"defaults",
 			"bind",
 		},
 	}
-
+	internalUtils.Log.Debug().Str("mountpoint", mountpoint).Str("root", root).Str("bindMountPath", bindMountPath).Msg("BIND")
 	tmpFstab := internalUtils.MountToFstab(tmpMount)
 	tmpFstab.File = internalUtils.CleanSysrootForFstab(fmt.Sprintf("/%s", mountpoint))
-	tmpFstab.Spec = strings.ReplaceAll(tmpFstab.Spec, root, "")
+	tmpFstab.Spec = internalUtils.CleanSysrootForFstab(tmpFstab.Spec)
 	return mountOperation{
 		MountOption: tmpMount,
 		FstabEntry:  *tmpFstab,

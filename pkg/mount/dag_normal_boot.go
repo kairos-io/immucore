@@ -31,7 +31,7 @@ func (s *State) RegisterNormalBoot(g *herd.Graph) error {
 
 	// Populate state bind mounts, overlay mounts, custom-mounts from /run/cos/cos-layout.env
 	// Requires stage rootfs to have run, which usually creates the cos-layout.env file
-	s.LogIfError(s.LoadEnvLayoutDagStep(g), "loading cos-layout.env")
+	s.LogIfError(s.LoadEnvLayoutDagStep(g, cnst.OpRootfsHook), "loading cos-layout.env")
 
 	// Mount base overlay under /run/overlay
 	s.LogIfError(s.MountBaseOverlayDagStep(g), "base overlay mount")
