@@ -12,11 +12,14 @@ import (
 	"github.com/deniswernert/go-fstab"
 	"github.com/kairos-io/immucore/internal/constants"
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
+	"github.com/kairos-io/kairos/pkg/utils"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spectrocloud-labs/herd"
 )
 
 type State struct {
+	Logger        zerolog.Logger
 	Rootdir       string // where to mount the root partition e.g. /sysroot inside initrd with pivot, / with nopivot
 	TargetImage   string // image from the state partition to mount as loop device e.g. /cOS/active.img
 	TargetDevice  string // e.g. /dev/disk/by-label/COS_ACTIVE
@@ -36,6 +39,7 @@ func (s *State) path(p ...string) string {
 }
 
 func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
 	return func(ctx context.Context) error {
 		for _, fst := range s.fstabs {
 			select {
@@ -58,38 +62,37 @@ func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 }
 
 // RunStageOp runs elemental run-stage stage. If its rootfs its special as it needs som symlinks
-// If its uki we don't symlink as we already have everything in the sysroot
 func (s *State) RunStageOp(stage string) func(context.Context) error {
 	return func(ctx context.Context) error {
-		if stage == "rootfs" && !internalUtils.IsUKI() {
+		if stage == "rootfs" {
 			if _, err := os.Stat("/system"); os.IsNotExist(err) {
 				err = os.Symlink("/sysroot/system", "/system")
 				if err != nil {
-					internalUtils.Log.Err(err).Msg("creating symlink")
+					s.Logger.Err(err).Msg("creating symlink")
 				}
 			}
 			if _, err := os.Stat("/oem"); os.IsNotExist(err) {
 				err = os.Symlink("/sysroot/oem", "/oem")
 				if err != nil {
-					internalUtils.Log.Err(err).Msg("creating symlink")
+					s.Logger.Err(err).Msg("creating symlink")
 				}
 			}
 		}
 
-		cmd := fmt.Sprintf("/usr/bin/elemental run-stage %s", stage)
+		cmd := fmt.Sprintf("elemental run-stage %s", stage)
 		// If we set the level to debug, also call elemental with debug
-		if internalUtils.Log.GetLevel() == zerolog.DebugLevel {
+		if s.Logger.GetLevel() == zerolog.DebugLevel {
 			cmd = fmt.Sprintf("%s --debug", cmd)
 		}
-		output, err := internalUtils.CommandWithPath(cmd)
-		internalUtils.Log.Debug().Msg(output)
+		output, err := utils.SH(cmd)
+		s.Logger.Debug().Msg(output)
 		return err
 	}
 }
 
 // MountOP creates and executes a mount operation
 func (s *State) MountOP(what, where, t string, options []string, timeout time.Duration) func(context.Context) error {
-	internalUtils.Log.With().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Logger()
+	log.Logger.With().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Logger()
 
 	return func(c context.Context) error {
 		cc := time.After(timeout)
@@ -98,7 +101,7 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 			default:
 				err := internalUtils.CreateIfNotExists(where)
 				if err != nil {
-					internalUtils.Log.Err(err).Msg("Creating dir")
+					log.Logger.Err(err).Msg("Creating dir")
 					continue
 				}
 				time.Sleep(1 * time.Second)
@@ -127,18 +130,18 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 
 				// only continue the loop if it's an error and not an already mounted error
 				if err != nil && !errors.Is(err, constants.ErrAlreadyMounted) {
-					internalUtils.Log.Err(err).Send()
+					s.Logger.Err(err).Send()
 					continue
 				}
-				internalUtils.Log.Debug().Msg("mount done")
+				log.Logger.Debug().Msg("mount done")
 				return nil
 			case <-c.Done():
 				e := fmt.Errorf("context canceled")
-				internalUtils.Log.Err(e).Msg("mount canceled")
+				log.Logger.Err(e).Msg("mount canceled")
 				return e
 			case <-cc:
 				e := fmt.Errorf("timeout exhausted")
-				internalUtils.Log.Err(e).Msg("Mount timeout")
+				log.Logger.Err(e).Msg("Mount timeout")
 				return e
 			}
 		}
@@ -164,7 +167,7 @@ func (s *State) WriteDAG(g *herd.Graph) (out string) {
 // Context can be empty
 func (s *State) LogIfError(e error, msgContext string) {
 	if e != nil {
-		internalUtils.Log.Err(e).Msg(msgContext)
+		s.Logger.Err(e).Msg(msgContext)
 	}
 }
 
@@ -173,7 +176,7 @@ func (s *State) LogIfError(e error, msgContext string) {
 // Will also return the error
 func (s *State) LogIfErrorAndReturn(e error, msgContext string) error {
 	if e != nil {
-		internalUtils.Log.Err(e).Msg(msgContext)
+		s.Logger.Err(e).Msg(msgContext)
 	}
 	return e
 }
@@ -183,7 +186,7 @@ func (s *State) LogIfErrorAndReturn(e error, msgContext string) error {
 // Will also panic
 func (s *State) LogIfErrorAndPanic(e error, msgContext string) {
 	if e != nil {
-		internalUtils.Log.Err(e).Msg(msgContext)
-		internalUtils.Log.Fatal().Msg(e.Error())
+		s.Logger.Err(e).Msg(msgContext)
+		s.Logger.Fatal().Msg(e.Error())
 	}
 }

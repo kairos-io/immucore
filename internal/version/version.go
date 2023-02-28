@@ -5,7 +5,7 @@ import "runtime"
 var (
 	version = "v0.0.1"
 	// gitCommit is the git sha1 + dirty if build from a dirty git
-	gitCommit = "none"
+	gitCommit = ""
 )
 
 func GetVersion() string {

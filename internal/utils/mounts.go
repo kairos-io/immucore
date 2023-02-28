@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"github.com/containerd/containerd/mount"
 	"github.com/deniswernert/go-fstab"
+	"github.com/kairos-io/kairos/pkg/utils"
+	"github.com/rs/zerolog/log"
 	"os"
+	"os/exec"
 	"strings"
-	"syscall"
 )
 
 // https://github.com/kairos-io/packages/blob/7c3581a8ba6371e5ce10c3a98bae54fde6a505af/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L58
@@ -52,7 +54,7 @@ func ReadCMDLineArg(arg string) []string {
 
 // IsMounted lets us know if the given device is currently mounted
 func IsMounted(dev string) bool {
-	_, err := CommandWithPath(fmt.Sprintf("findmnt %s", dev))
+	_, err := utils.SH(fmt.Sprintf("findmnt %s", dev))
 	return err == nil
 }
 
@@ -60,19 +62,18 @@ func IsMounted(dev string) bool {
 // Does NOT need to be mounted
 // Needs full path so either /dev/sda1 or /dev/disk/by-{label,uuid}/{label,uuid}
 func DiskFSType(s string) string {
-	out, e := CommandWithPath(fmt.Sprintf("blkid %s -s TYPE -o value", s))
+	out, e := utils.SH(fmt.Sprintf("blkid %s -s TYPE -o value", s))
 	if e != nil {
-		Log.Err(e).Msg("blkid")
+		log.Logger.Err(e).Msg("blkid")
 	}
 	out = strings.Trim(strings.Trim(out, " "), "\n")
-	Log.Debug().Str("what", s).Str("type", out).Msg("Partition FS type")
+	log.Logger.Debug().Str("what", s).Str("type", out).Msg("Partition FS type")
 	return out
 }
 
 // SyncState will rsync source into destination. Useful for Bind mounts.
 func SyncState(src, dst string) error {
-	_, err := CommandWithPath(fmt.Sprintf("rsync -aqAX %s %s", src, dst))
-	return err
+	return exec.Command("rsync", "-aqAX", src, dst).Run()
 }
 
 // AppendSlash it's in the name. Appends a slash.
@@ -112,9 +113,6 @@ func MountToFstab(m mount.Mount) *fstab.Mount {
 // Special care for the root (/sysroot) path as we can't just simple remove that path and call it a day
 // as that will return an empty mountpoint which will break fstab mounting
 func CleanSysrootForFstab(path string) string {
-	if IsUKI() {
-		return path
-	}
 	cleaned := strings.ReplaceAll(path, "/sysroot", "")
 	if cleaned == "" {
 		cleaned = "/"
@@ -163,34 +161,11 @@ func Fsck(device string) error {
 		args = append(args, "-n")
 	}
 	cmd := strings.Join(args, " ")
-	Log.Debug().Str("cmd", cmd).Msg("fsck command")
-	out, e := CommandWithPath(cmd)
-	Log.Debug().Str("output", out).Msg("fsck output")
+	log.Logger.Debug().Str("cmd", cmd).Msg("fsck command")
+	out, e := utils.SH(cmd)
+	log.Logger.Debug().Str("output", out).Msg("fsck output")
 	if e != nil {
-		Log.Warn().Str("error", e.Error()).Str("what", device).Msg("fsck")
+		log.Logger.Warn().Str("error", e.Error()).Str("what", device).Msg("fsck")
 	}
 	return e
-}
-
-// MinimalMounts will set the minimal mounts needed for immucore
-// For now only proc is needed to read the cmdline fully in uki mode
-// in normal modes this should already be done by the initramfs process, so we can ignore errors
-// Just mount dev, tmp and sys just in case
-func MinimalMounts() {
-	type m struct {
-		source string
-		target string
-		t      string
-	}
-	toMount := []m{
-		{"dev", "/dev", "devtmpfs"},
-		{"proc", "/proc", "proc"},
-		{"sys", "/sys", "sysfs"},
-		{"tmp", "/tmp", "tmpfs"},
-		{"run", "/run", "tmpfs"},
-	}
-	for _, mnt := range toMount {
-		_ = os.MkdirAll(mnt.target, 0755)
-		_ = syscall.Mount(mnt.source, mnt.target, mnt.t, 0, "")
-	}
 }

@@ -10,22 +10,22 @@ func DefaultRWPaths() []string {
 var ErrAlreadyMounted = errors.New("already mounted")
 
 const (
-	OpCustomMounts        = "custom-mount"
-	OpDiscoverState       = "discover-state"
-	OpMountState          = "mount-state"
-	OpMountBind           = "mount-bind"
-	OpMountRoot           = "mount-root"
-	OpOverlayMount        = "overlay-mount"
-	OpWriteFstab          = "write-fstab"
-	OpMountBaseOverlay    = "mount-base-overlay"
-	OpMountOEM            = "mount-oem"
-	OpRootfsHook          = "rootfs-hook"
-	OpInitramfsHook       = "initramfs-hook"
-	OpLoadConfig          = "load-config"
-	OpMountTmpfs          = "mount-tmpfs"
-	OpRemountRootRO       = "remount-ro"
-	OpUkiInit             = "uki-init"
-	OpSentinel            = "create-sentinel"
-	OpUkiUdev             = "uki-udev"
+	OpCustomMounts  = "custom-mount"
+	OpDiscoverState = "discover-state"
+	OpMountState    = "mount-state"
+	OpMountBind     = "mount-bind"
+
+	OpMountRoot        = "mount-root"
+	OpOverlayMount     = "overlay-mount"
+	OpWriteFstab       = "write-fstab"
+	OpMountBaseOverlay = "mount-base-overlay"
+	OpMountOEM         = "mount-oem"
+
+	OpRootfsHook = "rootfs-hook"
+	OpLoadConfig = "load-config"
+	OpMountTmpfs = "mount-tmpfs"
+
+	OpSentinel = "create-sentinel"
+
 	PersistentStateTarget = "/usr/local/.state"
 )

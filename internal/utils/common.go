@@ -3,8 +3,8 @@ package utils
 import (
 	"github.com/joho/godotenv"
 	"github.com/kairos-io/kairos/sdk/state"
+	"github.com/rs/zerolog/log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -32,7 +32,7 @@ func BootStateToLabelDevice() string {
 func GetRootDir() string {
 	cmdline, _ := os.ReadFile("/proc/cmdline")
 	switch {
-	case strings.Contains(string(cmdline), "rd.immucore.uki"):
+	case strings.Contains(string(cmdline), "IMMUCORE_NOPIVOT"):
 		return "/"
 	default:
 		// Default is sysroot for normal no-pivot boot
@@ -99,7 +99,7 @@ func CleanupSlice(slice []string) []string {
 
 // GetTarget gets the target image and device to mount in /sysroot
 func GetTarget(dryRun bool) (string, string) {
-	var label string
+	var img, label string
 
 	label = BootStateToLabelDevice()
 
@@ -108,20 +108,16 @@ func GetTarget(dryRun bool) (string, string) {
 		return "fake", label
 	}
 
-	imgs := ReadCMDLineArg("cos-img/filename=")
+	img = ReadCMDLineArg("cos-img/filename=")[0]
 
 	// If no image just panic here, we cannot longer continue
-	if len(imgs) == 0 {
-		if IsUKI() {
-			imgs = []string{""}
-		} else {
-			Log.Fatal().Msg("could not get the image name from cmdline (i.e. cos-img/filename=/cOS/active.img)")
-		}
+	if img == "" {
+		log.Logger.Fatal().Msg("Could not get the image name from cmdline (i.e. cos-img/filename=/cOS/active.img)")
 	}
 
-	Log.Debug().Str("what", imgs[0]).Msg("Target device")
-	Log.Debug().Str("what", label).Msg("Target label")
-	return imgs[0], label
+	log.Debug().Str("what", img).Msg("Target device")
+	log.Debug().Str("what", label).Msg("Target label")
+	return img, label
 }
 
 // DisableImmucore identifies if we need to be disabled
@@ -136,7 +132,7 @@ func DisableImmucore() bool {
 // RootRW tells us if the mode to mount root
 func RootRW() string {
 	if len(ReadCMDLineArg("rd.cos.debugrw")) > 0 {
-		Log.Warn().Msg("Mounting root as RW")
+		log.Logger.Warn().Msg("Mounting root as RW")
 		return "rw"
 	}
 	return "ro"
@@ -156,24 +152,6 @@ func GetState() string {
 	case state.Recovery:
 		label = filepath.Join("/dev/disk/by-label/", runtime.Recovery.Label)
 	}
-	Log.Debug().Str("what", label).Msg("Get state label")
+	log.Logger.Debug().Str("what", label).Msg("Get state label")
 	return label
-}
-
-func IsUKI() bool {
-	if len(ReadCMDLineArg("rd.immucore.uki")) > 0 {
-		return true
-	}
-	return false
-}
-
-// CommandWithPath runs a command adding the usual PATH to environment
-// Useful under UKI as there is nothing setting the PATH
-func CommandWithPath(c string) (string, error) {
-	cmd := exec.Command("/bin/sh", "-c", c)
-	cmd.Env = os.Environ()
-	// TODO: extract PATH from env and append to existing instead of overwriting
-	cmd.Env = append(cmd.Env, "PATH=/usr/bin:/usr/sbin")
-	o, err := cmd.CombinedOutput()
-	return string(o), err
 }

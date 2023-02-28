@@ -6,6 +6,8 @@ import (
 	"github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/immucore/internal/version"
 	"github.com/kairos-io/immucore/pkg/mount"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spectrocloud-labs/herd"
 	"github.com/urfave/cli/v2"
 	"os"
@@ -18,23 +20,27 @@ func main() {
 	app.Authors = []*cli.Author{{Name: "Kairos authors"}}
 	app.Copyright = "kairos authors"
 	app.Action = func(c *cli.Context) (err error) {
-		var targetDevice, targetImage string
-		var state *mount.State
-
-		utils.MinimalMounts()
-		utils.SetLogger()
+		debug := len(utils.ReadCMDLineArg("rd.immucore.debug")) > 0
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+		debugFromEnv := os.Getenv("IMMUCORE_DEBUG") != ""
+		if debug || debugFromEnv {
+			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+			zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		}
 
 		v := version.Get()
-		utils.Log.Info().Str("commit", v.GitCommit).Str("compiled with", v.GoVersion).Str("version", v.Version).Msg("Immucore")
+		log.Logger.Info().Str("commit", v.GitCommit).Str("compiled with", v.GoVersion).Str("version", v.Version).Msg("Immucore")
 
 		cmdline, _ := os.ReadFile("/proc/cmdline")
-		utils.Log.Debug().Str("content", string(cmdline)).Msg("cmdline")
+		log.Logger.Debug().Msg(string(cmdline))
 		g := herd.DAG(herd.EnableInit)
 
 		// Get targets and state
-		targetImage, targetDevice = utils.GetTarget(c.Bool("dry-run"))
+		targetImage, targetDevice := utils.GetTarget(c.Bool("dry-run"))
 
-		state = &mount.State{
+		s := &mount.State{
+			Logger:        log.Logger,
 			Rootdir:       utils.GetRootDir(),
 			TargetDevice:  targetDevice,
 			TargetImage:   targetImage,
@@ -42,21 +48,19 @@ func main() {
 		}
 
 		if utils.DisableImmucore() {
-			utils.Log.Info().Msg("Stanza rd.cos.disable on the cmdline or booting from CDROM/Netboot/Squash recovery. Disabling immucore.")
-			err = state.RegisterLiveMedia(g)
-		} else if utils.IsUKI() {
-			utils.Log.Info().Msg("UKI booting!")
-			err = state.RegisterUKI(g)
+			log.Logger.Info().Msg("Stanza rd.cos.disable on the cmdline or booting from CDROM/Netboot/Squash recovery. Disabling immucore.")
+			err = s.RegisterLiveMedia(g)
 		} else {
-			utils.Log.Info().Msg("Booting on active/passive/recovery.")
-			err = state.RegisterNormalBoot(g)
+			log.Logger.Info().Msg("Booting on active/passive/recovery.")
+			err = s.RegisterNormalBoot(g)
 		}
 
 		if err != nil {
+			s.Logger.Err(err)
 			return err
 		}
 
-		utils.Log.Info().Msg(state.WriteDAG(g))
+		log.Info().Msg(s.WriteDAG(g))
 
 		// Once we print the dag we can exit already
 		if c.Bool("dry-run") {
@@ -64,7 +68,7 @@ func main() {
 		}
 
 		err = g.Run(context.Background())
-		utils.Log.Info().Msg(state.WriteDAG(g))
+		log.Info().Msg(s.WriteDAG(g))
 		return err
 	}
 	app.Flags = []cli.Flag{
@@ -77,8 +81,10 @@ func main() {
 			Name:  "version",
 			Usage: "version",
 			Action: func(c *cli.Context) error {
+				log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger()
+				zerolog.SetGlobalLevel(zerolog.InfoLevel)
 				v := version.Get()
-				utils.Log.Info().Str("commit", v.GitCommit).Str("compiled with", v.GoVersion).Str("version", v.Version).Msg("Immucore")
+				log.Logger.Info().Str("commit", v.GitCommit).Str("compiled with", v.GoVersion).Str("version", v.Version).Msg("Immucore")
 				return nil
 			},
 		},
