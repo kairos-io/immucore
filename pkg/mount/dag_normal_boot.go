@@ -2,7 +2,6 @@ package mount
 
 import (
 	cnst "github.com/kairos-io/immucore/internal/constants"
-	internalUtils "github.com/kairos-io/immucore/internal/utils"
 	"github.com/spectrocloud-labs/herd"
 )
 
@@ -52,6 +51,5 @@ func (s *State) RegisterNormalBoot(g *herd.Graph) error {
 
 	// Write fstab file
 	s.LogIfError(s.WriteFstabDagStep(g), "write fstab")
-	internalUtils.CloseLogFiles()
 	return err
 }
