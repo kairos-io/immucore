@@ -184,7 +184,7 @@ func (s *State) MountOemDagStep(g *herd.Graph, deps ...string) error {
 					//"noauto",
 					//"nouser",
 					"async",
-				}, 10*time.Second),
+				}, time.Duration(s.OemTimout)*time.Second),
 		),
 	)
 }
@@ -196,7 +196,7 @@ func (s *State) MountBaseOverlayDagStep(g *herd.Graph) error {
 			func(ctx context.Context) error {
 				op, err := baseOverlay(Overlay{
 					Base:        "/run/overlay",
-					BackingBase: "tmpfs:20%",
+					BackingBase: s.OverlayBase,
 				})
 				if err != nil {
 					return err

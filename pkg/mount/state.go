@@ -28,6 +28,9 @@ type State struct {
 	BindMounts   []string          // e.g. /etc/kubernetes
 	CustomMounts map[string]string // e.g. diskid : mountpoint
 
+	OverlayBase string // Overlay config, defaults to tmpfs:20%
+	OemTimout   int    // Time to wait for the oem to time out if not found, defaults to 5s
+
 	StateDir string // e.g. "/usr/local/.state"
 	fstabs   []*fstab.Mount
 }
