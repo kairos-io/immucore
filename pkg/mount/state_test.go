@@ -2,9 +2,6 @@ package mount_test
 
 import (
 	"context"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
-	"os"
 	"time"
 
 	"github.com/kairos-io/immucore/pkg/mount"
@@ -24,7 +21,6 @@ var _ = Describe("mounting immutable setup", func() {
 	Context("simple invocation", func() {
 		It("generates normal dag", func() {
 			s := &mount.State{
-				Logger:       log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Logger(),
 				Rootdir:      "/",
 				TargetImage:  "/cOS/myimage.img",
 				TargetDevice: "/dev/disk/by-label/COS_LABEL",
@@ -73,17 +69,10 @@ var _ = Describe("mounting immutable setup", func() {
 func checkLiveCDDag(dag [][]herd.GraphEntry, actualDag string) {
 	Expect(len(dag)).To(Equal(2), actualDag)
 	Expect(len(dag[0])).To(Equal(1), actualDag)
-	Expect(len(dag[1])).To(Equal(2), actualDag)
+	Expect(len(dag[1])).To(Equal(1), actualDag)
 
 	Expect(dag[0][0].Name).To(Equal("init"))
-	Expect(dag[1][0].Name).To(Or(
-		Equal("mount-tmpfs"),
-		Equal("create-sentinel"),
-	), actualDag)
-	Expect(dag[1][1].Name).To(Or(
-		Equal("mount-tmpfs"),
-		Equal("create-sentinel"),
-	), actualDag)
+	Expect(dag[1][0].Name).To(Equal("create-sentinel"))
 
 }
 func checkDag(dag [][]herd.GraphEntry, actualDag string) {
