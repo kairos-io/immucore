@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"github.com/joho/godotenv"
 	"github.com/kairos-io/kairos/sdk/state"
 	"os"
@@ -130,12 +131,14 @@ func DisableImmucore() bool {
 	cmdline, _ := os.ReadFile("/proc/cmdline")
 	cmdlineS := string(cmdline)
 
-	return strings.Contains(cmdlineS, "live:LABEL") || strings.Contains(cmdlineS, "live:CDLABEL") || strings.Contains(cmdlineS, "netboot") || strings.Contains(cmdlineS, "rd.cos.disable")
+	return strings.Contains(cmdlineS, "live:LABEL") || strings.Contains(cmdlineS, "live:CDLABEL") ||
+		strings.Contains(cmdlineS, "netboot") || strings.Contains(cmdlineS, "rd.cos.disable") ||
+		strings.Contains(cmdlineS, "rd.immucore.disable")
 }
 
 // RootRW tells us if the mode to mount root
 func RootRW() string {
-	if len(ReadCMDLineArg("rd.cos.debugrw")) > 0 {
+	if len(ReadCMDLineArg("rd.cos.debugrw")) > 0 || len(ReadCMDLineArg("rd.immucore.debugrw")) > 0 {
 		Log.Warn().Msg("Mounting root as RW")
 		return "rw"
 	}
@@ -172,8 +175,16 @@ func IsUKI() bool {
 func CommandWithPath(c string) (string, error) {
 	cmd := exec.Command("/bin/sh", "-c", c)
 	cmd.Env = os.Environ()
-	// TODO: extract PATH from env and append to existing instead of overwriting
-	cmd.Env = append(cmd.Env, "PATH=/usr/bin:/usr/sbin")
+	pathAppend := "/usr/bin:/usr/sbin:/bin:/sbin"
+	// try to extract any existing path from the environment
+	for _, env := range cmd.Env {
+		splitted := strings.Split(env, "=")
+		if splitted[0] == "PATH" {
+			pathAppend = fmt.Sprintf("%s:%s", pathAppend, splitted[1])
+		}
+	}
+	Log.Debug().Str("content", pathAppend).Msg("PATH")
+	cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%s", pathAppend))
 	o, err := cmd.CombinedOutput()
 	return string(o), err
 }
