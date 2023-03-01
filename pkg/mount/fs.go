@@ -12,14 +12,28 @@ import (
 
 // https://github.com/kairos-io/packages/blob/94aa3bef3d1330cb6c6905ae164f5004b6a58b8c/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L129
 func baseOverlay(overlay Overlay) (mountOperation, error) {
+	var dat []string
 	if err := os.MkdirAll(overlay.Base, 0700); err != nil {
 		return mountOperation{}, err
 	}
 
-	dat := strings.Split(overlay.BackingBase, ":")
+	// BackingBase can be a device (LABEL=COS_PERSISTENT) or a tmpfs+size (tmpfs:20%)
+	// We need to properly parse to understand what it is
+	// We probably should deprecate changing the overlay but leave the size, I don't see much use of this
 
+	// Load both separated
+	datTmpfs := strings.Split(overlay.BackingBase, ":")
+	datDevice := strings.Split(overlay.BackingBase, "=")
+
+	// Add whichever has 2 len as that indicates that it's the correct one
+	if len(datDevice) == 2 {
+		dat = datDevice
+	}
+	if len(datTmpfs) == 2 {
+		dat = datTmpfs
+	}
 	if len(dat) != 2 {
-		return mountOperation{}, fmt.Errorf("invalid backing base. must be a tmpfs with a size or a block device. e.g. tmpfs:30%%, block:/dev/sda1. Input: %s", overlay.BackingBase)
+		return mountOperation{}, fmt.Errorf("invalid backing base. must be a tmpfs with a size or a LABEL/UUID device. e.g. tmpfs:30%%, LABEL:COS_PERSISTENT. Input: %s", overlay.BackingBase)
 	}
 
 	t := dat[0]
@@ -33,8 +47,9 @@ func baseOverlay(overlay Overlay) (mountOperation, error) {
 			FstabEntry:  *tmpFstab,
 			Target:      overlay.Base,
 		}, nil
-	case "block":
-		blockMount := mount.Mount{Type: "auto", Source: dat[1]}
+	case "LABEL", "UUID":
+		fsType := internalUtils.DiskFSType(internalUtils.ParseMount(overlay.BackingBase))
+		blockMount := mount.Mount{Type: fsType, Source: internalUtils.ParseMount(overlay.BackingBase)}
 		tmpFstab := internalUtils.MountToFstab(blockMount)
 		// TODO: Check if this is properly written to fstab, currently have no examples
 		tmpFstab.File = internalUtils.CleanSysrootForFstab(overlay.Base)

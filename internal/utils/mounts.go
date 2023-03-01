@@ -5,6 +5,7 @@ import (
 	"github.com/containerd/containerd/mount"
 	"github.com/deniswernert/go-fstab"
 	"os"
+	"strconv"
 	"strings"
 	"syscall"
 )
@@ -180,5 +181,30 @@ func MountProc() {
 	if !IsMounted("/proc") {
 		_ = syscall.Mount("proc", "/proc", "proc", syscall.MS_NOSUID|syscall.MS_NODEV|syscall.MS_NOEXEC|syscall.MS_RELATIME, "")
 	}
+
+}
+
+// GetOemTimeout parses the cmdline to get the oem timeout to use. Defaults to 5 (converted into seconds afterwards)
+func GetOemTimeout() int {
+	time := ReadCMDLineArg("rd.cos.oemtimeout=")
+	if len(time) == 0 {
+		return 5
+	}
+	converted, err := strconv.Atoi(time[1])
+	if err != nil {
+		return 5
+	}
+	return converted
+}
+
+// GetOverlayBase parses the cdmline and gets the overlay config
+// Format is rd.cos.overlay=tmpfs:20% or rd.cos.overlay=LABEL=$LABEL or rd.cos.overlay=UUID=$UUID
+func GetOverlayBase() string {
+	overlayConfig := ReadCMDLineArg("rd.cos.overlay=")
+	if len(overlayConfig) == 0 {
+		return "tmpfs:20%"
+	}
+
+	return overlayConfig[1]
 
 }
