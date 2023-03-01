@@ -11,7 +11,7 @@ var Log zerolog.Logger
 
 func SetLogger() {
 	var loggers []io.Writer
-	devKmsg, err := os.OpenFile("/dev/kmsg", unix.O_APPEND, 0o600)
+	devKmsg, err := os.OpenFile("/dev/kmsg", unix.O_WRONLY, 0o600)
 	if err == nil {
 		loggers = append(loggers, zerolog.ConsoleWriter{Out: devKmsg})
 	}

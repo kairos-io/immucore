@@ -193,6 +193,9 @@ func MinimalMounts() {
 	}
 	for _, mnt := range toMount {
 		_ = os.MkdirAll(mnt.target, 0755)
-		_ = syscall.Mount(mnt.source, mnt.target, mnt.t, uintptr(mnt.flags), mnt.data)
+		err := syscall.Mount(mnt.source, mnt.target, mnt.t, uintptr(mnt.flags), mnt.data)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
 	}
 }
