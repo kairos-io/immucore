@@ -69,17 +69,10 @@ var _ = Describe("mounting immutable setup", func() {
 func checkLiveCDDag(dag [][]herd.GraphEntry, actualDag string) {
 	Expect(len(dag)).To(Equal(2), actualDag)
 	Expect(len(dag[0])).To(Equal(1), actualDag)
-	Expect(len(dag[1])).To(Equal(2), actualDag)
+	Expect(len(dag[1])).To(Equal(1), actualDag)
 
 	Expect(dag[0][0].Name).To(Equal("init"))
-	Expect(dag[1][0].Name).To(Or(
-		Equal("mount-tmpfs"),
-		Equal("create-sentinel"),
-	), actualDag)
-	Expect(dag[1][1].Name).To(Or(
-		Equal("mount-tmpfs"),
-		Equal("create-sentinel"),
-	), actualDag)
+	Expect(dag[1][0].Name).To(Equal("create-sentinel"))
 
 }
 func checkDag(dag [][]herd.GraphEntry, actualDag string) {
