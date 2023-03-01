@@ -181,16 +181,18 @@ func MinimalMounts() {
 		source string
 		target string
 		t      string
+		flags  int
+		data   string
 	}
 	toMount := []m{
-		{"dev", "/dev", "devtmpfs"},
-		{"proc", "/proc", "proc"},
-		{"sys", "/sys", "sysfs"},
-		{"tmp", "/tmp", "tmpfs"},
-		{"run", "/run", "tmpfs"},
+		{"dev", "/dev", "devtmpfs", syscall.MS_NOSUID, "mode=755"},
+		{"proc", "/proc", "proc", syscall.MS_NOSUID | syscall.MS_NODEV | syscall.MS_NOEXEC | syscall.MS_RELATIME, ""},
+		{"sys", "/sys", "sysfs", syscall.MS_NOSUID | syscall.MS_NODEV | syscall.MS_NOEXEC | syscall.MS_RELATIME, ""},
+		{"tmp", "/tmp", "tmpfs", syscall.MS_NOSUID | syscall.MS_NODEV, ""},
+		{"run", "/run", "tmpfs", syscall.MS_NOSUID | syscall.MS_NODEV | syscall.MS_NOEXEC | syscall.MS_RELATIME, "mode=755"},
 	}
 	for _, mnt := range toMount {
 		_ = os.MkdirAll(mnt.target, 0755)
-		_ = syscall.Mount(mnt.source, mnt.target, mnt.t, 0, "")
+		_ = syscall.Mount(mnt.source, mnt.target, mnt.t, uintptr(mnt.flags), mnt.data)
 	}
 }

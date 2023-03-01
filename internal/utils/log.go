@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"github.com/rs/zerolog"
 	"golang.org/x/sys/unix"
 	"io"
@@ -12,16 +11,8 @@ var Log zerolog.Logger
 
 func SetLogger() {
 	var loggers []io.Writer
-	devKmsg, err := os.OpenFile("/dev/kmsg", unix.O_WRONLY, 0o600)
+	devKmsg, err := os.OpenFile("/dev/kmsg", unix.O_APPEND, 0o600)
 	if err == nil {
-		err := os.WriteFile("/proc/sys/kernel/printk_ratelimit", []byte("100"), os.ModeType)
-		if err != nil {
-			fmt.Println(err)
-		}
-		err = os.WriteFile("/proc/sys/kernel/printk_ratelimit_burst", []byte("1000"), os.ModeType)
-		if err != nil {
-			fmt.Println(err)
-		}
 		loggers = append(loggers, zerolog.ConsoleWriter{Out: devKmsg})
 	}
 	logFile, err := os.Create("/run/immucore.log")
