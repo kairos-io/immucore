@@ -131,12 +131,14 @@ func DisableImmucore() bool {
 	cmdline, _ := os.ReadFile("/proc/cmdline")
 	cmdlineS := string(cmdline)
 
-	return strings.Contains(cmdlineS, "live:LABEL") || strings.Contains(cmdlineS, "live:CDLABEL") || strings.Contains(cmdlineS, "netboot") || strings.Contains(cmdlineS, "rd.cos.disable")
+	return strings.Contains(cmdlineS, "live:LABEL") || strings.Contains(cmdlineS, "live:CDLABEL") ||
+		strings.Contains(cmdlineS, "netboot") || strings.Contains(cmdlineS, "rd.cos.disable") ||
+		strings.Contains(cmdlineS, "rd.immucore.disable")
 }
 
 // RootRW tells us if the mode to mount root
 func RootRW() string {
-	if len(ReadCMDLineArg("rd.cos.debugrw")) > 0 {
+	if len(ReadCMDLineArg("rd.cos.debugrw")) > 0 || len(ReadCMDLineArg("rd.immucore.debugrw")) > 0 {
 		Log.Warn().Msg("Mounting root as RW")
 		return "rw"
 	}
@@ -178,7 +180,7 @@ func CommandWithPath(c string) (string, error) {
 	for _, env := range cmd.Env {
 		splitted := strings.Split(env, "=")
 		if splitted[0] == "PATH" {
-			pathAppend = fmt.Sprint("%s:%s", pathAppend, splitted[1])
+			pathAppend = fmt.Sprintf("%s:%s", pathAppend, splitted[1])
 		}
 	}
 	Log.Debug().Str("content", pathAppend).Msg("PATH")

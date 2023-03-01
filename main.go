@@ -21,7 +21,7 @@ func main() {
 		var targetDevice, targetImage string
 		var state *mount.State
 
-		utils.MinimalMounts()
+		utils.MountProc()
 		utils.SetLogger()
 
 		v := version.Get()
@@ -42,7 +42,7 @@ func main() {
 		}
 
 		if utils.DisableImmucore() {
-			utils.Log.Info().Msg("Stanza rd.cos.disable on the cmdline or booting from CDROM/Netboot/Squash recovery. Disabling immucore.")
+			utils.Log.Info().Msg("Stanza rd.cos.disable/rd.immucore.disable on the cmdline or booting from CDROM/Netboot/Squash recovery. Disabling immucore.")
 			err = state.RegisterLiveMedia(g)
 		} else if utils.IsUKI() {
 			utils.Log.Info().Msg("UKI booting!")

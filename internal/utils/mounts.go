@@ -172,32 +172,13 @@ func Fsck(device string) error {
 	return e
 }
 
-// MinimalMounts will set the minimal mounts needed for immucore
-// For now only proc is needed to read the cmdline fully in uki mode
-// in normal modes this should already be done by the initramfs process, so we can ignore errors
-// Just mount dev, tmp and sys just in case
-func MinimalMounts() {
-	type m struct {
-		source string
-		target string
-		t      string
-		flags  int
-		data   string
+// MountProc will mount /proc
+// For now proc is needed to read the cmdline fully in uki mode
+// in normal modes this should already be done by the initramfs process, so we can skip this
+func MountProc() {
+	_ = os.MkdirAll("/proc", 0755)
+	if !IsMounted("/proc") {
+		_ = syscall.Mount("proc", "/proc", "proc", syscall.MS_NOSUID|syscall.MS_NODEV|syscall.MS_NOEXEC|syscall.MS_RELATIME, "")
 	}
-	toMount := []m{
-		//{"dev", "/dev", "devtmpfs", syscall.MS_NOSUID, "mode=755"},
-		{"proc", "/proc", "proc", syscall.MS_NOSUID | syscall.MS_NODEV | syscall.MS_NOEXEC | syscall.MS_RELATIME, ""},
-		//{"sys", "/sys", "sysfs", syscall.MS_NOSUID | syscall.MS_NODEV | syscall.MS_NOEXEC | syscall.MS_RELATIME, ""},
-		//{"tmp", "/tmp", "tmpfs", syscall.MS_NOSUID | syscall.MS_NODEV, ""},
-		//{"run", "/run", "tmpfs", syscall.MS_NOSUID | syscall.MS_NODEV | syscall.MS_NOEXEC | syscall.MS_RELATIME, "mode=755"},
-	}
-	for _, mnt := range toMount {
-		_ = os.MkdirAll(mnt.target, 0755)
-		if !IsMounted(mnt.target) {
-			err := syscall.Mount(mnt.source, mnt.target, mnt.t, uintptr(mnt.flags), mnt.data)
-			if err != nil {
-				fmt.Println(err.Error())
-			}
-		}
-	}
+
 }
