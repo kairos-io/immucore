@@ -384,6 +384,7 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph, deps ...string) error {
 			// Print dag before exit, otherwise its never printed as we never exit the program
 			internalUtils.Log.Info().Msg(s.WriteDAG(g))
 			internalUtils.Log.Debug().Msg("Executing init callback!")
+			internalUtils.CloseLogFiles()
 			if err := unix.Exec("/sbin/init", []string{"/sbin/init", "--system"}, os.Environ()); err != nil {
 				internalUtils.Log.Err(err).Msg("running init")
 				// drop to emergency shell
