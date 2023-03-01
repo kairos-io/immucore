@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/kairos-io/kairos/pkg/utils"
 	"os"
 	"path/filepath"
 	"time"
@@ -81,7 +82,7 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 		if internalUtils.Log.GetLevel() == zerolog.DebugLevel {
 			cmd = fmt.Sprintf("%s --debug", cmd)
 		}
-		output, err := internalUtils.CommandWithPath(cmd)
+		output, err := utils.SH(cmd)
 		internalUtils.Log.Debug().Msg(output)
 		return err
 	}
