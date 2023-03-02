@@ -163,8 +163,8 @@ func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, deps ...string) error {
 			// Parse custom mounts also from cmdline (rd.immucore.mount=)
 			// Parse custom mounts also from env file (VOLUMES)
 			var mounts []string
-			mounts = internalUtils.ReadCMDLineArg("rd.cos.mount=")
-			mounts = append(mounts, internalUtils.ReadCMDLineArg("rd.immucore.mount=")...)
+			mounts = internalUtils.CleanupSlice(internalUtils.ReadCMDLineArg("rd.cos.mount="))
+			mounts = append(mounts, internalUtils.CleanupSlice(internalUtils.ReadCMDLineArg("rd.immucore.mount="))...)
 			mounts = append(mounts, env["VOLUMES"])
 			for _, v := range mounts {
 				addLine(internalUtils.ParseMount(v))
@@ -356,7 +356,7 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph) error {
 
 			// Workaround for runtime not detecting netboot/rd.cos.disable/rd.immucore.disable as live_mode
 			// TODO: drop once the netboot/rd.cos.disable detection change is on the kairos sdk
-			cmdline, err := os.ReadFile("/proc/cmdline")
+			cmdline, _ := os.ReadFile(internalUtils.GetHostProcCmdline())
 			cmdlineS := string(cmdline)
 			if strings.Contains(cmdlineS, "netboot") || len(internalUtils.ReadCMDLineArg("rd.cos.disable")) > 0 || len(internalUtils.ReadCMDLineArg("rd.immucore.disable")) > 0 {
 				sentinel = "live_mode"

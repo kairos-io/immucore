@@ -27,12 +27,15 @@ func main() {
 		v := version.Get()
 		utils.Log.Info().Str("commit", v.GitCommit).Str("compiled with", v.GoVersion).Str("version", v.Version).Msg("Immucore")
 
-		cmdline, _ := os.ReadFile("/proc/cmdline")
+		cmdline, _ := os.ReadFile(utils.GetHostProcCmdline())
 		utils.Log.Debug().Str("content", string(cmdline)).Msg("cmdline")
 		g := herd.DAG(herd.EnableInit)
 
 		// Get targets and state
-		targetImage, targetDevice = utils.GetTarget(c.Bool("dry-run"))
+		targetImage, targetDevice, err = utils.GetTarget(c.Bool("dry-run"))
+		if err != nil {
+			return err
+		}
 
 		state = &mount.State{
 			Rootdir:       utils.GetRootDir(),

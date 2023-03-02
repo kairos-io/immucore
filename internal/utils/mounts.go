@@ -30,8 +30,9 @@ func ParseMount(s string) string {
 }
 
 // ReadCMDLineArg will return the pair of arg=value for a given arg if it was passed on the cmdline
+// TODO: Split this into GetBool and GetValue to return decent defaults
 func ReadCMDLineArg(arg string) []string {
-	cmdLine, err := os.ReadFile("/proc/cmdline")
+	cmdLine, err := os.ReadFile(GetHostProcCmdline())
 	if err != nil {
 		return []string{}
 	}
@@ -43,7 +44,7 @@ func ReadCMDLineArg(arg string) []string {
 			// For stanzas that have no value, we should return something better than an empty value
 			// Otherwise anything can easily clean the value
 			if dat[1] == "" {
-				res = append(res, "true")
+				res = append(res, "")
 			} else {
 				res = append(res, dat[1])
 			}
@@ -131,8 +132,8 @@ func Fsck(device string) error {
 	if device == "tmpfs" {
 		return nil
 	}
-	mode := ReadCMDLineArg("fsck.mode=")
-	repair := ReadCMDLineArg("fsck.repair=")
+	mode := CleanupSlice(ReadCMDLineArg("fsck.mode="))
+	repair := CleanupSlice(ReadCMDLineArg("fsck.repair="))
 	// Be safe with defaults
 	if len(mode) == 0 {
 		mode = []string{"auto"}
@@ -190,8 +191,8 @@ func GetOemTimeout() int {
 	var time []string
 
 	// Pick both stanzas until we deprecate the cos ones
-	timeCos := ReadCMDLineArg("rd.cos.oemtimeout=")
-	timeImmucore := ReadCMDLineArg("rd.immucore.oemtimeout=")
+	timeCos := CleanupSlice(ReadCMDLineArg("rd.cos.oemtimeout="))
+	timeImmucore := CleanupSlice(ReadCMDLineArg("rd.immucore.oemtimeout="))
 
 	if len(timeCos) != 0 {
 		time = timeCos
@@ -203,7 +204,7 @@ func GetOemTimeout() int {
 	if len(time) == 0 {
 		return 5
 	}
-	converted, err := strconv.Atoi(time[1])
+	converted, err := strconv.Atoi(time[0])
 	if err != nil {
 		return 5
 	}
@@ -217,8 +218,9 @@ func GetOverlayBase() string {
 	var overlayConfig []string
 
 	// Pick both stanzas until we deprecate the cos ones
-	overlayConfigCos := ReadCMDLineArg("rd.cos.overlay=")
-	overlayConfigImmucore := ReadCMDLineArg("rd.immucore.overlay=")
+	// Clean up the slice in case the values are empty
+	overlayConfigCos := CleanupSlice(ReadCMDLineArg("rd.cos.overlay="))
+	overlayConfigImmucore := CleanupSlice(ReadCMDLineArg("rd.immucore.overlay="))
 
 	if len(overlayConfigCos) != 0 {
 		overlayConfig = overlayConfigCos
@@ -231,7 +233,7 @@ func GetOverlayBase() string {
 		return "tmpfs:20%"
 	}
 
-	return overlayConfig[1]
+	return overlayConfig[0]
 
 }
 
@@ -240,13 +242,13 @@ func GetOverlayBase() string {
 func GetOemLabel() string {
 	var oemLabel string
 	// Pick both stanzas until we deprecate the cos ones
-	oemLabelCos := ReadCMDLineArg("rd.cos.oemlabel=")
-	oemLabelImmucore := ReadCMDLineArg("rd.immucore.oemlabel=")
+	oemLabelCos := CleanupSlice(ReadCMDLineArg("rd.cos.oemlabel="))
+	oemLabelImmucore := CleanupSlice(ReadCMDLineArg("rd.immucore.oemlabel="))
 	if len(oemLabelCos) != 0 {
-		oemLabel = oemLabelCos[1]
+		oemLabel = oemLabelCos[0]
 	}
 	if len(oemLabelImmucore) != 0 {
-		oemLabel = oemLabelImmucore[1]
+		oemLabel = oemLabelImmucore[0]
 	}
 
 	if oemLabel != "" {
