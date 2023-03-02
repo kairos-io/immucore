@@ -49,24 +49,28 @@ The immutable rootfs can be configured with the following kernel parameters:
   the location of the image file to boot from. This defines the booting mode for
   Immucore, setting in motion the full DAG to set up the system.
 
-* `rd.cos.overlay=tmpfs:<size>`: This defines the size of the tmpfs used for
+* `rd.immucore.overlay=tmpfs:<size>`: This defines the size of the tmpfs used for
   the ephemeral overlayfs. It can be expressed in MiB or as a % of the available
-  memory. Defaults to `rd.cos.overlay=tmpfs:20%` if not present.
+  memory. Defaults to `rd.immucore.overlay=tmpfs:20%` if not present.
+  Backwards compatible with the old `rd.cos.overlay` stanza.
 
-* `rd.cos.overlay=LABEL=<vol_label>`: Optionally and mostly for debugging
+* `rd.immucore.overlay=LABEL=<vol_label>`: Optionally and mostly for debugging
   purposes the overlayfs can be mounted on top of a persistent block device.
   Block devices can be expressed by LABEL (`LABEL=<blk_label>`) or by UUID
   (`UUID=<blk_uuid>`)
+  Backwards compatible with the old `rd.cos.overlay` stanza.
 
-* `rd.cos.mount=LABEL:<blk_label>:<mountpoint>`: This option defines a
+* `rd.immucore.mount=LABEL:<blk_label>:<mountpoint>`: This option defines a
   persistent block device and its mountpoint. Block devices can also be
   defined by UUID (`UUID=<blk_uuid>:<mountpoint>`). This option can be passed
   multiple times.
+  Backwards compatible with the old `rd.cos.mount` stanza.
 
-* `rd.cos.oemlabel=<label>`: This option sets the label to search for in order
+* `rd.immucore.oemlabel=<label>`: This option sets the label to search for in order
   to mount the OEM partition. Defaults to COS_OEM
+  Backwards compatible with the old `rd.cos.oemlabel` stanza.
 
-* `rd.cos.oemtimeout=<seconds>`: By default we assume the existence of a
+* `rd.immucore.oemtimeout=<seconds>`: By default we assume the existence of a
   persistent block device labelled `COS_OEM` which is used to keep some
   configuration data (mostly cloud-init files). The immutable rootfs tries
   to mount this device at very early stages of the boot even before applying
@@ -74,7 +78,8 @@ The immutable rootfs can be configured with the following kernel parameters:
   immutable rootfs module within the cloud-init files. As the `COS_OEM` device
   might not be always present the boot process just continues without failing
   after a certain timeout. This option configures such a timeout. Defaults to
-  10s.
+  5s.
+  Backwards compatible with the old `rd.cos.oemtimeout` stanza.
 
 * `rd.cos.debugrw`/`rd.immucore.debugrw`: This is a boolean option, true if present, false if not.
   This option sets the root image to be mounted as a writable device. Note this
