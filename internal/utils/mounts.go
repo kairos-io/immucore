@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/containerd/containerd/mount"
 	"github.com/deniswernert/go-fstab"
+	"github.com/kairos-io/kairos/sdk/state"
 	"os"
 	"strconv"
 	"strings"
@@ -232,4 +233,29 @@ func GetOverlayBase() string {
 
 	return overlayConfig[1]
 
+}
+
+// GetOemLabel will ge the oem label to mount, first from the cmdline and if that fails, from the runtime
+// This way users can override the oem label
+func GetOemLabel() string {
+	var oemLabel string
+	// Pick both stanzas until we deprecate the cos ones
+	oemLabelCos := ReadCMDLineArg("rd.cos.oemlabel=")
+	oemLabelImmucore := ReadCMDLineArg("rd.immucore.oemlabel=")
+	if len(oemLabelCos) != 0 {
+		oemLabel = oemLabelCos[1]
+	}
+	if len(oemLabelImmucore) != 0 {
+		oemLabel = oemLabelImmucore[1]
+	}
+
+	if oemLabel != "" {
+		return oemLabel
+	}
+	// We could not get it from the cmdline so get it from the runtime
+	runtime, err := state.NewRuntime()
+	if err != nil {
+		Log.Debug().Err(err).Msg("runtime")
+	}
+	return runtime.OEM.Label
 }

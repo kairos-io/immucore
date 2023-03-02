@@ -176,24 +176,18 @@ func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, deps ...string) error {
 
 // MountOemDagStep will add mounting COS_OEM partition under s.Rootdir + /oem
 func (s *State) MountOemDagStep(g *herd.Graph, deps ...string) error {
-	runtime, err := state.NewRuntime()
-	if err != nil {
-		internalUtils.Log.Debug().Err(err).Msg("runtime")
-	}
 	return g.Add(cnst.OpMountOEM,
 		herd.WithDeps(deps...),
 		herd.WithCallback(
 			s.MountOP(
-				fmt.Sprintf("/dev/disk/by-label/%s", runtime.OEM.Label),
+				fmt.Sprintf("/dev/disk/by-label/%s", internalUtils.GetOemLabel()),
 				s.path("/oem"),
-				runtime.OEM.Type,
+				internalUtils.DiskFSType(fmt.Sprintf("/dev/disk/by-label/%s", internalUtils.GetOemLabel())),
 				[]string{
 					"rw",
 					"suid",
 					"dev",
 					"exec",
-					//"noauto",
-					//"nouser",
 					"async",
 				}, time.Duration(s.OemTimout)*time.Second),
 		),
