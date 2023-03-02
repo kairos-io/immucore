@@ -1,16 +1,18 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
-	"github.com/joho/godotenv"
-	"github.com/kairos-io/kairos/sdk/state"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/joho/godotenv"
+	"github.com/kairos-io/kairos/sdk/state"
 )
 
-// BootStateToLabelDevice lets us know the device we need to mount sysroot on based on labels
+// BootStateToLabelDevice lets us know the device we need to mount sysroot on based on labels.
 func BootStateToLabelDevice() string {
 	runtime, err := state.NewRuntime()
 	if err != nil {
@@ -29,9 +31,9 @@ func BootStateToLabelDevice() string {
 }
 
 // GetRootDir returns the proper dir to mount all the stuff
-// Useful if we want to move to a no-pivot boot
+// Useful if we want to move to a no-pivot boot.
 func GetRootDir() string {
-	cmdline, _ := os.ReadFile("/proc/cmdline")
+	cmdline, _ := os.ReadFile(GetHostProcCmdline())
 	switch {
 	case strings.Contains(string(cmdline), "rd.immucore.uki"):
 		return "/"
@@ -54,7 +56,7 @@ func UniqueSlice(slice []string) []string {
 	return list
 }
 
-// ReadEnv will reaed an env file (key=value) and return a nice map
+// ReadEnv will read an env file (key=value) and return a nice map.
 func ReadEnv(file string) (map[string]string, error) {
 	var envMap map[string]string
 	var err error
@@ -75,7 +77,7 @@ func ReadEnv(file string) (map[string]string, error) {
 	return envMap, err
 }
 
-// CreateIfNotExists will check if a path exists and create it if needed
+// CreateIfNotExists will check if a path exists and create it if needed.
 func CreateIfNotExists(path string) error {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return os.MkdirAll(path, os.ModePerm)
@@ -86,7 +88,7 @@ func CreateIfNotExists(path string) error {
 
 // CleanupSlice will clean a slice of strings of empty items
 // Typos can be made on writing the cos-layout.env file and that could introduce empty items
-// In the lists that we need to go over, which causes bad stuff
+// In the lists that we need to go over, which causes bad stuff.
 func CleanupSlice(slice []string) []string {
 	var cleanSlice []string
 	for _, item := range slice {
@@ -98,37 +100,37 @@ func CleanupSlice(slice []string) []string {
 	return cleanSlice
 }
 
-// GetTarget gets the target image and device to mount in /sysroot
-func GetTarget(dryRun bool) (string, string) {
-	var label string
-
-	label = BootStateToLabelDevice()
+// GetTarget gets the target image and device to mount in /sysroot.
+func GetTarget(dryRun bool) (string, string, error) {
+	label := BootStateToLabelDevice()
 
 	// If dry run, or we are disabled return whatever values, we won't go much further
 	if dryRun || DisableImmucore() {
-		return "fake", label
+		return "fake", label, nil
 	}
 
-	imgs := ReadCMDLineArg("cos-img/filename=")
+	imgs := CleanupSlice(ReadCMDLineArg("cos-img/filename="))
 
 	// If no image just panic here, we cannot longer continue
 	if len(imgs) == 0 {
 		if IsUKI() {
 			imgs = []string{""}
 		} else {
-			Log.Fatal().Msg("could not get the image name from cmdline (i.e. cos-img/filename=/cOS/active.img)")
+			msg := "could not get the image name from cmdline (i.e. cos-img/filename=/cOS/active.img)"
+			Log.Error().Msg(msg)
+			return "", "", errors.New(msg)
 		}
 	}
 
 	Log.Debug().Str("what", imgs[0]).Msg("Target device")
 	Log.Debug().Str("what", label).Msg("Target label")
-	return imgs[0], label
+	return imgs[0], label, nil
 }
 
 // DisableImmucore identifies if we need to be disabled
-// We disable if we boot from CD, netboot, squashfs recovery or have the rd.cos.disable stanza in cmdline
+// We disable if we boot from CD, netboot, squashfs recovery or have the rd.cos.disable stanza in cmdline.
 func DisableImmucore() bool {
-	cmdline, _ := os.ReadFile("/proc/cmdline")
+	cmdline, _ := os.ReadFile(GetHostProcCmdline())
 	cmdlineS := string(cmdline)
 
 	return strings.Contains(cmdlineS, "live:LABEL") || strings.Contains(cmdlineS, "live:CDLABEL") ||
@@ -136,7 +138,7 @@ func DisableImmucore() bool {
 		strings.Contains(cmdlineS, "rd.immucore.disable")
 }
 
-// RootRW tells us if the mode to mount root
+// RootRW tells us if the mode to mount root.
 func RootRW() string {
 	if len(ReadCMDLineArg("rd.cos.debugrw")) > 0 || len(ReadCMDLineArg("rd.immucore.debugrw")) > 0 {
 		Log.Warn().Msg("Mounting root as RW")
@@ -146,7 +148,7 @@ func RootRW() string {
 }
 
 // GetState returns the disk-by-label of the state partition to mount
-// This is only valid for either active/passive or normal recovery
+// This is only valid for either active/passive or normal recovery.
 func GetState() string {
 	var label string
 	runtime, err := state.NewRuntime()
@@ -164,14 +166,11 @@ func GetState() string {
 }
 
 func IsUKI() bool {
-	if len(ReadCMDLineArg("rd.immucore.uki")) > 0 {
-		return true
-	}
-	return false
+	return len(ReadCMDLineArg("rd.immucore.uki")) > 0
 }
 
 // CommandWithPath runs a command adding the usual PATH to environment
-// Useful under UKI as there is nothing setting the PATH
+// Useful under UKI as there is nothing setting the PATH.
 func CommandWithPath(c string) (string, error) {
 	cmd := exec.Command("/bin/sh", "-c", c)
 	cmd.Env = os.Environ()
@@ -187,4 +186,14 @@ func CommandWithPath(c string) (string, error) {
 	cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%s", pathAppend))
 	o, err := cmd.CombinedOutput()
 	return string(o), err
+}
+
+// GetHostProcCmdline returns the path to /proc/cmdline
+// Mainly used to override the cmdline during testing.
+func GetHostProcCmdline() string {
+	proc := os.Getenv("HOST_PROC_CMDLINE")
+	if proc == "" {
+		return "/proc/cmdline"
+	}
+	return proc
 }

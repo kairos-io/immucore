@@ -4,7 +4,7 @@ import "runtime"
 
 var (
 	version = "v0.0.1"
-	// gitCommit is the git sha1 + dirty if build from a dirty git
+	// gitCommit is the git sha1 + dirty if build from a dirty git.
 	gitCommit = "none"
 )
 
@@ -22,7 +22,7 @@ type BuildInfo struct {
 	GoVersion string `json:"go_version,omitempty"`
 }
 
-// Get returns build info
+// Get returns build info.
 func Get() BuildInfo {
 	v := BuildInfo{
 		Version:   GetVersion(),

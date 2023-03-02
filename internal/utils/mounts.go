@@ -2,20 +2,21 @@ package utils
 
 import (
 	"fmt"
-	"github.com/containerd/containerd/mount"
-	"github.com/deniswernert/go-fstab"
-	"github.com/kairos-io/kairos/sdk/state"
 	"os"
 	"strconv"
 	"strings"
 	"syscall"
+
+	"github.com/containerd/containerd/mount"
+	"github.com/deniswernert/go-fstab"
+	"github.com/kairos-io/kairos/sdk/state"
 )
 
 // https://github.com/kairos-io/packages/blob/7c3581a8ba6371e5ce10c3a98bae54fde6a505af/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L58
 
 // ParseMount will return a proper full disk path based on UUID or LABEL given
 // input: LABEL=FOO:/mount
-// output: /dev/disk...:/mount
+// output: /dev/disk...:/mount .
 func ParseMount(s string) string {
 	switch {
 	case strings.Contains(s, "UUID="):
@@ -30,8 +31,9 @@ func ParseMount(s string) string {
 }
 
 // ReadCMDLineArg will return the pair of arg=value for a given arg if it was passed on the cmdline
+// TODO: Split this into GetBool and GetValue to return decent defaults.
 func ReadCMDLineArg(arg string) []string {
-	cmdLine, err := os.ReadFile("/proc/cmdline")
+	cmdLine, err := os.ReadFile(GetHostProcCmdline())
 	if err != nil {
 		return []string{}
 	}
@@ -43,7 +45,7 @@ func ReadCMDLineArg(arg string) []string {
 			// For stanzas that have no value, we should return something better than an empty value
 			// Otherwise anything can easily clean the value
 			if dat[1] == "" {
-				res = append(res, "true")
+				res = append(res, "")
 			} else {
 				res = append(res, dat[1])
 			}
@@ -52,7 +54,7 @@ func ReadCMDLineArg(arg string) []string {
 	return res
 }
 
-// IsMounted lets us know if the given device is currently mounted
+// IsMounted lets us know if the given device is currently mounted.
 func IsMounted(dev string) bool {
 	_, err := CommandWithPath(fmt.Sprintf("findmnt %s", dev))
 	return err == nil
@@ -60,7 +62,7 @@ func IsMounted(dev string) bool {
 
 // DiskFSType will return the FS type for a given disk
 // Does NOT need to be mounted
-// Needs full path so either /dev/sda1 or /dev/disk/by-{label,uuid}/{label,uuid}
+// Needs full path so either /dev/sda1 or /dev/disk/by-{label,uuid}/{label,uuid} .
 func DiskFSType(s string) string {
 	out, e := CommandWithPath(fmt.Sprintf("blkid %s -s TYPE -o value", s))
 	if e != nil {
@@ -85,7 +87,7 @@ func AppendSlash(path string) string {
 	return path
 }
 
-// MountToFstab transforms a mount.Mount into a fstab.Mount so we can transform existing mounts into the fstab format
+// MountToFstab transforms a mount.Mount into a fstab.Mount so we can transform existing mounts into the fstab format.
 func MountToFstab(m mount.Mount) *fstab.Mount {
 	opts := map[string]string{}
 	for _, o := range m.Options {
@@ -112,7 +114,7 @@ func MountToFstab(m mount.Mount) *fstab.Mount {
 // As we mount on /sysroot during initramfs but the fstab file is for the real init process, we need to remove
 // Any mentions to /sysroot from the fstab lines, otherwise they won't work
 // Special care for the root (/sysroot) path as we can't just simple remove that path and call it a day
-// as that will return an empty mountpoint which will break fstab mounting
+// as that will return an empty mountpoint which will break fstab mounting.
 func CleanSysrootForFstab(path string) string {
 	if IsUKI() {
 		return path
@@ -126,13 +128,13 @@ func CleanSysrootForFstab(path string) string {
 
 // Fsck will run fsck over the device
 // options are set on cmdline, but they are for systemd-fsck,
-// so we need to interpret ourselves
+// so we need to interpret ourselves.
 func Fsck(device string) error {
 	if device == "tmpfs" {
 		return nil
 	}
-	mode := ReadCMDLineArg("fsck.mode=")
-	repair := ReadCMDLineArg("fsck.repair=")
+	mode := CleanupSlice(ReadCMDLineArg("fsck.mode="))
+	repair := CleanupSlice(ReadCMDLineArg("fsck.repair="))
 	// Be safe with defaults
 	if len(mode) == 0 {
 		mode = []string{"auto"}
@@ -176,7 +178,7 @@ func Fsck(device string) error {
 
 // MountProc will mount /proc
 // For now proc is needed to read the cmdline fully in uki mode
-// in normal modes this should already be done by the initramfs process, so we can skip this
+// in normal modes this should already be done by the initramfs process, so we can skip this.
 func MountProc() {
 	_ = os.MkdirAll("/proc", 0755)
 	if !IsMounted("/proc") {
@@ -185,13 +187,13 @@ func MountProc() {
 
 }
 
-// GetOemTimeout parses the cmdline to get the oem timeout to use. Defaults to 5 (converted into seconds afterwards)
+// GetOemTimeout parses the cmdline to get the oem timeout to use. Defaults to 5 (converted into seconds afterwards).
 func GetOemTimeout() int {
 	var time []string
 
 	// Pick both stanzas until we deprecate the cos ones
-	timeCos := ReadCMDLineArg("rd.cos.oemtimeout=")
-	timeImmucore := ReadCMDLineArg("rd.immucore.oemtimeout=")
+	timeCos := CleanupSlice(ReadCMDLineArg("rd.cos.oemtimeout="))
+	timeImmucore := CleanupSlice(ReadCMDLineArg("rd.immucore.oemtimeout="))
 
 	if len(timeCos) != 0 {
 		time = timeCos
@@ -203,7 +205,7 @@ func GetOemTimeout() int {
 	if len(time) == 0 {
 		return 5
 	}
-	converted, err := strconv.Atoi(time[1])
+	converted, err := strconv.Atoi(time[0])
 	if err != nil {
 		return 5
 	}
@@ -212,13 +214,14 @@ func GetOemTimeout() int {
 
 // GetOverlayBase parses the cdmline and gets the overlay config
 // Format is rd.cos.overlay=tmpfs:20% or rd.cos.overlay=LABEL=$LABEL or rd.cos.overlay=UUID=$UUID
-// Notice that this can be later override by the config coming from cos-layout.env
+// Notice that this can be later override by the config coming from cos-layout.env .
 func GetOverlayBase() string {
 	var overlayConfig []string
 
 	// Pick both stanzas until we deprecate the cos ones
-	overlayConfigCos := ReadCMDLineArg("rd.cos.overlay=")
-	overlayConfigImmucore := ReadCMDLineArg("rd.immucore.overlay=")
+	// Clean up the slice in case the values are empty
+	overlayConfigCos := CleanupSlice(ReadCMDLineArg("rd.cos.overlay="))
+	overlayConfigImmucore := CleanupSlice(ReadCMDLineArg("rd.immucore.overlay="))
 
 	if len(overlayConfigCos) != 0 {
 		overlayConfig = overlayConfigCos
@@ -231,22 +234,22 @@ func GetOverlayBase() string {
 		return "tmpfs:20%"
 	}
 
-	return overlayConfig[1]
+	return overlayConfig[0]
 
 }
 
 // GetOemLabel will ge the oem label to mount, first from the cmdline and if that fails, from the runtime
-// This way users can override the oem label
+// This way users can override the oem label.
 func GetOemLabel() string {
 	var oemLabel string
 	// Pick both stanzas until we deprecate the cos ones
-	oemLabelCos := ReadCMDLineArg("rd.cos.oemlabel=")
-	oemLabelImmucore := ReadCMDLineArg("rd.immucore.oemlabel=")
+	oemLabelCos := CleanupSlice(ReadCMDLineArg("rd.cos.oemlabel="))
+	oemLabelImmucore := CleanupSlice(ReadCMDLineArg("rd.immucore.oemlabel="))
 	if len(oemLabelCos) != 0 {
-		oemLabel = oemLabelCos[1]
+		oemLabel = oemLabelCos[0]
 	}
 	if len(oemLabelImmucore) != 0 {
-		oemLabel = oemLabelImmucore[1]
+		oemLabel = oemLabelImmucore[0]
 	}
 
 	if oemLabel != "" {

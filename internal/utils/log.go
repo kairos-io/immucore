@@ -1,9 +1,10 @@
 package utils
 
 import (
-	"github.com/rs/zerolog"
 	"io"
 	"os"
+
+	"github.com/rs/zerolog"
 )
 
 var Log zerolog.Logger
