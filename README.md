@@ -19,7 +19,7 @@
 </p>
 
 
-## What is immucore?
+## What is Immucore?
 
 ---
 
@@ -40,8 +40,6 @@ and `/var`.
 
 
 ## Kernel configuration parameters
-
----
 
 The immutable rootfs can be configured with the following kernel parameters:
 
@@ -74,15 +72,15 @@ The immutable rootfs can be configured with the following kernel parameters:
   persistent block device labelled `COS_OEM` which is used to keep some
   configuration data (mostly cloud-init files). The immutable rootfs tries
   to mount this device at very early stages of the boot even before applying
-  the immutable rootfs configs. It's done this way to enable to configure the
+  the immutable rootfs configs. It's done this way to enable the configuration of the
   immutable rootfs module within the cloud-init files. As the `COS_OEM` device
-  might not be always present the boot process just continues without failing
+  might not be always present, the boot process just continues without failing
   after a certain timeout. This option configures such a timeout. Defaults to
   5s.
   Backwards compatible with the old `rd.cos.oemtimeout` stanza.
 
 * `rd.cos.debugrw`/`rd.immucore.debugrw`: This is a boolean option, true if present, false if not.
-  This option sets the root image to be mounted as a writable device. Note this
+  This option sets the root image to be mounted as a writable device. Note that this
   completely breaks the concept of an immutable root. This is helpful for
   debugging or testing purposes, so changes persist across reboots.
 
@@ -101,26 +99,25 @@ The immutable rootfs can be configured with the following kernel parameters:
 The immutable rootfs can be configured with the `/run/cos/cos-layout.env`
 environment file. It is important to note that all the immutable root
 configuration is applied in initrd before switching root and after
-`rootfs` cloud-init stage but before `initramfs` stage. So immutable rootfs
+`rootfs` cloud-init stage but before `initramfs` stage. So the immutable rootfs
 configuration via cloud-init using the `/run/cos/cos-layout.env` file is
 only effective if called in any of the `rootfs.before`, `rootfs` or
 `rootfs.after` cloud-init stages.
 
 
-In the environment file few options are available:
-
+In the environment file, a few options are available:
 
 * `VOLUMES=LABEL=<blk_label>:<mountpoint>`: This variable expects a block device
-  and it mountpoint pair space separated list. The default cOS configuration is:
+  and its mountpoint pair space separated list. The default cOS configuration is:
 
   `VOLUMES="LABEL=COS_OEM:/oem LABEL=COS_PERSISTENT:/usr/local"`
 
 * `OVERLAY`: It defines the underlying device for the overlayfs as in
   `rd.cos.overlay=` kernel parameter.
 
-* `MERGE=true`: Sets makes the `VOLUMES` values to be merged with any other
+* `MERGE=true`: When set, it makes the `VOLUMES` values to be merged with any other
   volume that might have been defined in the kernel command line. The merging
-  criteria is simple: any overlapping volume is overwritten all others are
+  criteria is simple: any overlapping volume is overwritten, all others are
   appended to whatever was already defined as a kernel parameter. If not
   defined defaults to `true`.
 
@@ -144,14 +141,14 @@ In the environment file few options are available:
   **Note**: The specified paths needs either to exist or be located in an area
   which is writeable ( for example, inside locations specified with `RW_PATHS`).
   The dracut module will attempt to create non-existant directories,
-  but might fail if the mountpoint where are located is read-only.
+  but might fail if the mountpoint where they are located is read-only.
 
 * `PERSISTENT_STATE_BIND="true|false"`: When this variable is set to true
   the persistent state paths are bind mounted (instead of using overlayfs)
   after being mirrored with the original content. By default, this variable is
   set to `false`.
 
-Note that persistent state are is set up once the ephemeral paths and persistent
+Note that persistent state is set up once the ephemeral paths and persistent
 volumes are mounted. Persistent state paths can't be an already existing mount
 point. If the persistent state requires any of the paths that are part of the
 ephemeral area by default, then `RW_PATHS` needs to be defined to avoid
@@ -177,20 +174,20 @@ You can also see the default config that we provide in https://github.com/kairos
 
 ----
 
-It starts pretty early in the boot process, just after `systemd-udev-settle.service` and before `dracut-initqueue.service`
-To see the full bootup process from dracut you can check [here](https://man7.org/linux/man-pages/man7/dracut.bootup.7.html)
+It starts pretty early in the boot process, just after `systemd-udev-settle.service` and before `dracut-initqueue.service`.
+To see the full bootup process from dracut you can check [here](https://man7.org/linux/man-pages/man7/dracut.bootup.7.html).
 
-Just after starting, Immucore mounts `/proc` if it's not mounted in order to read the `/proc/cmdline` and obtains the different stanzas in order to configure itself.
+Just after starting, Immucore mounts `/proc` if it's not mounted, it does so in order to read the `/proc/cmdline` and obtains the different stanzas in order to configure itself.
 After checking the cmdline, it knows in which path is being booted, either active/passive/recovery or Netboot/LiveCD/Do nothing.
 
 Based on that it builds a DAG with the steps needed to complete and process through the DAG until its completed. It also builds a `State` object which has all the configs needed to mount and configure the system properly.
 Once the DAG has been completed (and with no errors), Immucore its finished, and it's ready for the initramfs init process to do a switch_root and pivot into the final root to boot the system.
 
 When booting from Netboot/LiveCD/Do nothing (`rd.cos.disable` or `rd.immucore.disable` on the cmdline) the DAG It's pretty simple. 
-It proceeds to create a sentinel file under `/run/cos/` with the boot mode (`live_mode`) so cloud configs can identify that they are booting from live media and ends.
+It proceeds to create a sentinel file under `/run/cos/` with the boot mode (`live_mode`), so cloud configs can identify that they are booting from live media and ends.
 
 
-When booting from active/passive/recovery the DAG gets a bit more complicated. You can see the default DAG for an active/passive/recovery system by running immucore with `--dry-run`
+When booting from active/passive/recovery the DAG gets a bit more complicated. You can see the default DAG for an active/passive/recovery system by running Immucore with `--dry-run`.
 
 ```bash
 1.
@@ -219,7 +216,7 @@ When booting from active/passive/recovery the DAG gets a bit more complicated. Y
  <write-fstab> (background: false) (weak: true)
 ```
 
-As shown in the DAG, the steps are in order and that shows their dependencies, i.e. `mount-root` depends on `discover-state`and that is why it's just below it.
+As shown in the DAG, the steps are in order and that shows their dependencies, i.e. `mount-root` depends on `discover-state` and that is why it's just below it.
 It won't run until the previous step has completed **without errors**.
 There is also the `weak` value which indicates that this step has weak dependencies. It will run even if its dependencies failed, instead of refusing to run.
 
@@ -233,10 +230,10 @@ There is also the `weak` value which indicates that this step has weak dependenc
  - `mount-base-overlay`: Will mount the base overlay under `/run/overlay`
  - `discover-state`: Will find the correct image under `/run/initramfs/cos-state` and mount it as a loop device
  - `mount-root`: Will mount the `/dev/disk/by-label/$LABEL` device under the sysroot (Usually `/sysroot`). This label is set in grub depending on the selected entry, as part of the cmdline (i.e. `root=LABEL=COS_ACTIVE`) 
- - `mount-oem`: Will **try** to mount the oem label device under `/sysroot/oem`. This label is set in grub by default (`rd.cos.oemlabel=COS_OEM`) but also on the default `cos-layout.env` file with Kairos. This partition is not mandatory so It's allowed to fail.
- - `rootfs-hook`: Runs the cloud config stage `rootfs`. Notice that this runs very early in the process so things like binds or RW paths are not yet mounted.
- - `load-config`: This parses the `/run/cos/cos-layout.env` file (usually generated by the `rootfs` stage) and loads all the configurations.
- - `overlay-mount`: This mounts the paths set in the config (`RW_PATHS`) under the `/run/overlay` dir, so they are RW.
+ - `mount-oem`: Will **try** to mount the oem label device under `/sysroot/oem`. This label is set in grub by default (`rd.cos.oemlabel=COS_OEM`) but also on the default `cos-layout.env` file with Kairos. This partition is not mandatory so It's allowed to fail
+ - `rootfs-hook`: Runs the cloud config stage `rootfs`. Notice that this runs very early in the process so things like binds or RW paths are not yet mounted
+ - `load-config`: This parses the `/run/cos/cos-layout.env` file (usually generated by the `rootfs` stage) and loads all the configurations
+ - `overlay-mount`: This mounts the paths set in the config (`RW_PATHS`) under the `/run/overlay` dir, so they are RW
  - `custom-mount`: This mounts the paths set in the config (`VOLUMES`) or in cmdline `rd.cos.mount=` in the given path (`LABEL=COS_PERSISTENT:/usr/local`)
  - `mount-bind`: This mounts the paths set in the config (`PERSISTENT_STATE_PATHS` and `CUSTOM_BIND_MOUNTS`) as bind mounts under the `PERSISTENT_STATE_TARGET` which defaults to `/usr/local/.state`
  - `write-fstab`: Writes the final fstab with all the mounts into `/sysroot/fstab`
@@ -246,8 +243,8 @@ There is also the `weak` value which indicates that this step has weak dependenc
 ---
 
 There is currently support to boot in UKI mode without doing a final switch_root into `/sysroot`
-This means that the initramfs is not really an initramfs but the final system and contains all the needed stuff to boot.
-This mixed with a UKI binary in which we dump everything into the final binary means that you can have a single EFI file with your full system.
+This means that the initramfs is not really an initramfs but the final system and contains all the needed parts to boot.
+This, mixed with a UKI binary in which we dump everything into the final binary, means that you can have a single EFI file with your full system.
 
 This is currently activated by setting the `rd.immucore.uki` on the cmdline.
 
