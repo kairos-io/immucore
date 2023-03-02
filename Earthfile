@@ -43,7 +43,7 @@ test:
     WORKDIR /build
     RUN go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo
     COPY . .
-    RUN ginkgo run --race --fail-fast --slow-spec-threshold 30s --covermode=atomic --coverprofile=coverage.out -p -r ./...
+    RUN ginkgo run --race --covermode=atomic --coverprofile=coverage.out -p -r ./...
     SAVE ARTIFACT coverage.out AS LOCAL coverage.out
 
 lint:
