@@ -3,7 +3,7 @@ package constants
 import "errors"
 
 func DefaultRWPaths() []string {
-	// Default RW_PATHS to mount if not overriden by the cos-layout.env file
+	// Default RW_PATHS to mount if not override by the cos-layout.env file
 	return []string{"/etc", "/root", "/home", "/opt", "/srv", "/usr/local", "/var"}
 }
 

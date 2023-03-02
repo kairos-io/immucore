@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/kairos-io/kairos/pkg/utils"
 	"os"
 	"path/filepath"
 	"time"
@@ -13,6 +12,7 @@ import (
 	"github.com/deniswernert/go-fstab"
 	"github.com/kairos-io/immucore/internal/constants"
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
+	"github.com/kairos-io/kairos/pkg/utils"
 	"github.com/rs/zerolog"
 	"github.com/spectrocloud-labs/herd"
 )
@@ -62,7 +62,7 @@ func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 }
 
 // RunStageOp runs elemental run-stage stage. If its rootfs its special as it needs som symlinks
-// If its uki we don't symlink as we already have everything in the sysroot
+// If its uki we don't symlink as we already have everything in the sysroot.
 func (s *State) RunStageOp(stage string) func(context.Context) error {
 	return func(ctx context.Context) error {
 		if stage == "rootfs" && !internalUtils.IsUKI() {
@@ -91,7 +91,7 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 	}
 }
 
-// MountOP creates and executes a mount operation
+// MountOP creates and executes a mount operation.
 func (s *State) MountOP(what, where, t string, options []string, timeout time.Duration) func(context.Context) error {
 	internalUtils.Log.With().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Logger()
 
@@ -149,7 +149,7 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 	}
 }
 
-// WriteDAG writes the dag
+// WriteDAG writes the dag.
 func (s *State) WriteDAG(g *herd.Graph) (out string) {
 	for i, layer := range g.Analyze() {
 		out += fmt.Sprintf("%d.\n", i+1)
@@ -165,7 +165,7 @@ func (s *State) WriteDAG(g *herd.Graph) (out string) {
 }
 
 // LogIfError will log if there is an error with the given context as message
-// Context can be empty
+// Context can be empty.
 func (s *State) LogIfError(e error, msgContext string) {
 	if e != nil {
 		internalUtils.Log.Err(e).Msg(msgContext)
@@ -174,7 +174,7 @@ func (s *State) LogIfError(e error, msgContext string) {
 
 // LogIfErrorAndReturn will log if there is an error with the given context as message
 // Context can be empty
-// Will also return the error
+// Will also return the error.
 func (s *State) LogIfErrorAndReturn(e error, msgContext string) error {
 	if e != nil {
 		internalUtils.Log.Err(e).Msg(msgContext)
@@ -184,7 +184,7 @@ func (s *State) LogIfErrorAndReturn(e error, msgContext string) error {
 
 // LogIfErrorAndPanic will log if there is an error with the given context as message
 // Context can be empty
-// Will also panic
+// Will also panic.
 func (s *State) LogIfErrorAndPanic(e error, msgContext string) {
 	if e != nil {
 		internalUtils.Log.Err(e).Msg(msgContext)

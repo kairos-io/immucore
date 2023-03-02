@@ -34,7 +34,7 @@ import (
 // it easily and make it read from a different location.
 // This mock is used to construct a fake FS with all its needed files on a different chroot and just add a Disk with its
 // partitions and let the struct do its thing creating files and mountpoints and such
-// You can even just pass no disks to simulate a system in which there is no disk/no cos partitions
+// You can even just pass no disks to simulate a system in which there is no disk/no cos partitions.
 type GhwMock struct {
 	chroot string
 	paths  *linuxpath.Paths
@@ -42,13 +42,13 @@ type GhwMock struct {
 	mounts []string
 }
 
-// AddDisk adds a disk to GhwMock
+// AddDisk adds a disk to GhwMock.
 func (g *GhwMock) AddDisk(disk block.Disk) {
 	g.disks = append(g.disks, disk)
 }
 
 // AddPartitionToDisk will add a partition to the given disk and call Clean+CreateDevices, so we recreate all files
-// It makes no effort checking if the disk exists
+// It makes no effort checking if the disk exists.
 func (g *GhwMock) AddPartitionToDisk(diskName string, partition *block.Partition) {
 	for _, disk := range g.disks {
 		if disk.Name == diskName {
@@ -60,7 +60,7 @@ func (g *GhwMock) AddPartitionToDisk(diskName string, partition *block.Partition
 }
 
 // CreateDevices will create a new context and paths for ghw using the Chroot value as base, then set the env var GHW_ROOT so the
-// ghw library picks that up and then iterate over the disks and partitions and create the necessary files
+// ghw library picks that up and then iterate over the disks and partitions and create the necessary files.
 func (g *GhwMock) CreateDevices() {
 	d, _ := os.MkdirTemp("", "ghwmock")
 	g.chroot = d
@@ -108,7 +108,7 @@ func (g *GhwMock) CreateDevices() {
 	_ = os.WriteFile(g.paths.ProcMounts, []byte(strings.Join(g.mounts, "")), 0644)
 }
 
-// RemoveDisk will remove the files for a disk. It makes no effort to check if the disk exists or not
+// RemoveDisk will remove the files for a disk. It makes no effort to check if the disk exists or not.
 func (g *GhwMock) RemoveDisk(disk string) {
 	// This could be simpler I think, just removing the /sys/block/DEVICE should make ghw not find anything and not search
 	// for partitions, but just in case do it properly
@@ -130,7 +130,7 @@ func (g *GhwMock) RemoveDisk(disk string) {
 }
 
 // RemovePartitionFromDisk will remove the files for a partition
-// It makes no effort checking if the disk/partition/files exist
+// It makes no effort checking if the disk/partition/files exist.
 func (g *GhwMock) RemovePartitionFromDisk(diskName string, partitionName string) {
 	var newMounts []string
 	diskPath := filepath.Join(g.paths.SysBlock, diskName)
@@ -166,7 +166,7 @@ func (g *GhwMock) RemovePartitionFromDisk(diskName string, partitionName string)
 	}
 }
 
-// Clean will remove the chroot dir and unset the env var
+// Clean will remove the chroot dir and unset the env var.
 func (g *GhwMock) Clean() {
 	_ = os.Unsetenv("GHW_CHROOT")
 	_ = os.RemoveAll(g.chroot)

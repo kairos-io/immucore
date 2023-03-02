@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+
 	"github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/immucore/internal/version"
 	"github.com/kairos-io/immucore/pkg/mount"
 	"github.com/spectrocloud-labs/herd"
 	"github.com/urfave/cli/v2"
-	"os"
 )
 
 // Apply Immutability profiles.
