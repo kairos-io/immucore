@@ -78,39 +78,30 @@ func checkLiveCDDag(dag [][]herd.GraphEntry, actualDag string) {
 func checkDag(dag [][]herd.GraphEntry, actualDag string) {
 	Expect(len(dag)).To(Equal(10), actualDag)
 	Expect(len(dag[0])).To(Equal(1), actualDag)
-	Expect(len(dag[1])).To(Equal(4), actualDag)
+	Expect(len(dag[1])).To(Equal(3), actualDag)
 	Expect(len(dag[2])).To(Equal(1), actualDag)
 	Expect(len(dag[3])).To(Equal(1), actualDag)
 	Expect(len(dag[4])).To(Equal(1), actualDag)
 	Expect(len(dag[5])).To(Equal(1), actualDag)
 	Expect(len(dag[6])).To(Equal(1), actualDag)
 	Expect(len(dag[7])).To(Equal(2), actualDag)
-	Expect(len(dag[8])).To(Equal(1), actualDag)
+	Expect(len(dag[8])).To(Equal(2), actualDag)
 	Expect(len(dag[9])).To(Equal(1), actualDag)
 
 	Expect(dag[0][0].Name).To(Equal("init"))
 	Expect(dag[1][0].Name).To(Or(
 		Equal("mount-tmpfs"),
 		Equal("create-sentinel"),
-		Equal("mount-base-overlay"),
 		Equal("mount-state"),
 	), actualDag)
 	Expect(dag[1][1].Name).To(Or(
 		Equal("mount-tmpfs"),
 		Equal("create-sentinel"),
-		Equal("mount-base-overlay"),
 		Equal("mount-state"),
 	), actualDag)
 	Expect(dag[1][2].Name).To(Or(
 		Equal("mount-tmpfs"),
 		Equal("create-sentinel"),
-		Equal("mount-base-overlay"),
-		Equal("mount-state"),
-	), actualDag)
-	Expect(dag[1][3].Name).To(Or(
-		Equal("mount-tmpfs"),
-		Equal("create-sentinel"),
-		Equal("mount-base-overlay"),
 		Equal("mount-state"),
 	), actualDag)
 	Expect(dag[2][0].Name).To(Equal("discover-state"), actualDag)
@@ -118,8 +109,9 @@ func checkDag(dag [][]herd.GraphEntry, actualDag string) {
 	Expect(dag[4][0].Name).To(Equal("mount-oem"), actualDag)
 	Expect(dag[5][0].Name).To(Equal("rootfs-hook"), actualDag)
 	Expect(dag[6][0].Name).To(Equal("load-config"), actualDag)
-	Expect(dag[7][0].Name).To(Or(Equal("overlay-mount"), Equal("custom-mount")), actualDag)
-	Expect(dag[7][1].Name).To(Or(Equal("overlay-mount"), Equal("custom-mount")), actualDag)
-	Expect(dag[8][0].Name).To(Equal("mount-bind"), actualDag)
+	Expect(dag[7][0].Name).To(Or(Equal("mount-base-overlay"), Equal("custom-mount")), actualDag)
+	Expect(dag[7][1].Name).To(Or(Equal("mount-base-overlay"), Equal("custom-mount")), actualDag)
+	Expect(dag[8][0].Name).To(Or(Equal("mount-bind"), Equal("overlay-mount")), actualDag)
+	Expect(dag[8][1].Name).To(Or(Equal("mount-bind"), Equal("overlay-mount")), actualDag)
 	Expect(dag[9][0].Name).To(Equal("write-fstab"), actualDag)
 }

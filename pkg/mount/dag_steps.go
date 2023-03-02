@@ -140,6 +140,12 @@ func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, deps ...string) error {
 			// Remove any duplicates
 			s.BindMounts = internalUtils.UniqueSlice(internalUtils.CleanupSlice(s.BindMounts))
 
+			// Load Overlay config
+			overlayConfig := env["OVERLAY"]
+			if overlayConfig != "" {
+				s.OverlayBase = overlayConfig
+			}
+
 			s.StateDir = env["PERSISTENT_STATE_TARGET"]
 			if s.StateDir == "" {
 				s.StateDir = cnst.PersistentStateTarget
@@ -190,8 +196,10 @@ func (s *State) MountOemDagStep(g *herd.Graph, deps ...string) error {
 }
 
 // MountBaseOverlayDagStep will add mounting /run/overlay as an overlay dir
+// Requires the config-load step because some parameters can come from there
 func (s *State) MountBaseOverlayDagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpMountBaseOverlay,
+		herd.WithDeps(cnst.OpLoadConfig),
 		herd.WithCallback(
 			func(ctx context.Context) error {
 				op, err := baseOverlay(Overlay{
@@ -221,7 +229,7 @@ func (s *State) MountBaseOverlayDagStep(g *herd.Graph) error {
 // MountCustomOverlayDagStep will add mounting s.OverlayDirs under /run/overlay
 func (s *State) MountCustomOverlayDagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpOverlayMount,
-		herd.WithDeps(cnst.OpLoadConfig),
+		herd.WithDeps(cnst.OpLoadConfig, cnst.OpMountBaseOverlay),
 		herd.WithCallback(
 			func(ctx context.Context) error {
 				var multierr *multierror.Error
