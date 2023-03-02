@@ -186,7 +186,19 @@ func MountProc() {
 
 // GetOemTimeout parses the cmdline to get the oem timeout to use. Defaults to 5 (converted into seconds afterwards)
 func GetOemTimeout() int {
-	time := ReadCMDLineArg("rd.cos.oemtimeout=")
+	var time []string
+
+	// Pick both stanzas until we deprecate the cos ones
+	timeCos := ReadCMDLineArg("rd.cos.oemtimeout=")
+	timeImmucore := ReadCMDLineArg("rd.immucore.oemtimeout=")
+
+	if len(timeCos) != 0 {
+		time = timeCos
+	}
+	if len(timeImmucore) != 0 {
+		time = timeImmucore
+	}
+
 	if len(time) == 0 {
 		return 5
 	}
@@ -201,7 +213,19 @@ func GetOemTimeout() int {
 // Format is rd.cos.overlay=tmpfs:20% or rd.cos.overlay=LABEL=$LABEL or rd.cos.overlay=UUID=$UUID
 // Notice that this can be later override by the config coming from cos-layout.env
 func GetOverlayBase() string {
-	overlayConfig := ReadCMDLineArg("rd.cos.overlay=")
+	var overlayConfig []string
+
+	// Pick both stanzas until we deprecate the cos ones
+	overlayConfigCos := ReadCMDLineArg("rd.cos.overlay=")
+	overlayConfigImmucore := ReadCMDLineArg("rd.immucore.overlay=")
+
+	if len(overlayConfigCos) != 0 {
+		overlayConfig = overlayConfigCos
+	}
+	if len(overlayConfigImmucore) != 0 {
+		overlayConfig = overlayConfigImmucore
+	}
+
 	if len(overlayConfig) == 0 {
 		return "tmpfs:20%"
 	}
