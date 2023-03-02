@@ -178,10 +178,10 @@ To see the full bootup process from dracut you can check [here](https://man7.org
 Just after starting, Immucore mounts `/proc` if it's not mounted in order to read the `/proc/cmdline` and obtains the different stanzas in order to configure itself.
 After checking the cmdline, it knows in which path is being booted, either active/passive/recovery or Netboot/LiveCD/Do nothing.
 
-Based on that it builds a DAG with the steps needed to complete and process through the DAG until its completed. It also builds a `State` object which has all the configs needed to properly mount and configure the system properly.
+Based on that it builds a DAG with the steps needed to complete and process through the DAG until its completed. It also builds a `State` object which has all the configs needed to mount and configure the system properly.
 Once the DAG has been completed (and with no errors), Immucore its finished, and it's ready for the initramfs init process to do a switch_root and pivot into the final root to boot the system.
 
-When booting from Netboot/LiveCD/Do nothing (`rd.cos.disable` or `rd.immucore.disable` on the cmdline) the DAD It's pretty simple. 
+When booting from Netboot/LiveCD/Do nothing (`rd.cos.disable` or `rd.immucore.disable` on the cmdline) the DAG It's pretty simple. 
 It proceeds to create a sentinel file under `/run/cos/` with the boot mode (`live_mode`) so cloud configs can identify that they are booting from live media and ends.
 
 
@@ -214,8 +214,8 @@ When booting from active/passive/recovery the DAG gets a bit more complicated. Y
  <write-fstab> (background: false) (weak: true)
 ```
 
-As show in the DAG, the steps are in order and that shows their dependencies, i.e. `mount-root` depends on `discover-state`and that is why it's just below it.
-It won't run until the previous step has completed **without errors**
+As shown in the DAG, the steps are in order and that shows their dependencies, i.e. `mount-root` depends on `discover-state`and that is why it's just below it.
+It won't run until the previous step has completed **without errors**.
 There is also the `weak` value which indicates that this step has weak dependencies. It will run even if its dependencies failed, instead of refusing to run.
 
 
