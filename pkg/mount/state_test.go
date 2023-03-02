@@ -1,4 +1,4 @@
-package tests
+package mount_test
 
 import (
 	"context"

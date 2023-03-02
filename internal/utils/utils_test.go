@@ -1,4 +1,4 @@
-package tests
+package utils_test
 
 import (
 	"github.com/containerd/containerd/mount"
