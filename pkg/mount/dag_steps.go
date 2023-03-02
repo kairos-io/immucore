@@ -4,6 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"syscall"
+	"time"
+
 	"github.com/hashicorp/go-multierror"
 	cnst "github.com/kairos-io/immucore/internal/constants"
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
@@ -12,14 +18,9 @@ import (
 	"github.com/mudler/go-kdetect"
 	"github.com/spectrocloud-labs/herd"
 	"golang.org/x/sys/unix"
-	"os"
-	"path/filepath"
-	"strings"
-	"syscall"
-	"time"
 )
 
-// MountTmpfsDagStep adds the step to mount /tmp
+// MountTmpfsDagStep adds the step to mount /tmp .
 func (s *State) MountTmpfsDagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpMountTmpfs, herd.WithCallback(s.MountOP("tmpfs", "/tmp", "tmpfs", []string{"rw"}, 10*time.Second)))
 }
@@ -27,7 +28,7 @@ func (s *State) MountTmpfsDagStep(g *herd.Graph) error {
 // MountRootDagStep will add the step to mount the Rootdir for the system
 // 1 - mount the state partition to find the images (active/passive/recovery)
 // 2 - mount the image as a loop device
-// 3 - Mount the labels as /sysroot
+// 3 - Mount the labels as /sysroot .
 func (s *State) MountRootDagStep(g *herd.Graph) error {
 	var err error
 
@@ -82,7 +83,7 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 			s.MountOP(
 				s.TargetDevice,
 				s.Rootdir,
-				"ext4", // TODO: Get this just in time? Currently if using DiskFSType is run immediately which is bad becuase its not mounted
+				"ext4", // TODO: Get this just in time? Currently if using DiskFSType is run immediately which is bad because its not mounted
 				[]string{
 					s.RootMountMode,
 					"suid",
@@ -110,7 +111,7 @@ func (s *State) InitramfsStageDagStep(g *herd.Graph, deps ...string) error {
 	return g.Add(cnst.OpInitramfsHook, herd.WithDeps(deps...), herd.WeakDeps, herd.WithCallback(s.RunStageOp("initramfs")))
 }
 
-// LoadEnvLayoutDagStep will add the stage to load from cos-layout.env and fill the proper CustomMounts, OverlayDirs and BindMounts
+// LoadEnvLayoutDagStep will add the stage to load from cos-layout.env and fill the proper CustomMounts, OverlayDirs and BindMounts.
 func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, deps ...string) error {
 	return g.Add(cnst.OpLoadConfig,
 		herd.WithDeps(deps...),
@@ -163,8 +164,8 @@ func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, deps ...string) error {
 			// Parse custom mounts also from cmdline (rd.immucore.mount=)
 			// Parse custom mounts also from env file (VOLUMES)
 			var mounts []string
-			mounts = internalUtils.ReadCMDLineArg("rd.cos.mount=")
-			mounts = append(mounts, internalUtils.ReadCMDLineArg("rd.immucore.mount=")...)
+			mounts = internalUtils.CleanupSlice(internalUtils.ReadCMDLineArg("rd.cos.mount="))
+			mounts = append(mounts, internalUtils.CleanupSlice(internalUtils.ReadCMDLineArg("rd.immucore.mount="))...)
 			mounts = append(mounts, env["VOLUMES"])
 			for _, v := range mounts {
 				addLine(internalUtils.ParseMount(v))
@@ -174,7 +175,7 @@ func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, deps ...string) error {
 		}))
 }
 
-// MountOemDagStep will add mounting COS_OEM partition under s.Rootdir + /oem
+// MountOemDagStep will add mounting COS_OEM partition under s.Rootdir + /oem .
 func (s *State) MountOemDagStep(g *herd.Graph, deps ...string) error {
 	return g.Add(cnst.OpMountOEM,
 		herd.WithDeps(deps...),
@@ -195,7 +196,7 @@ func (s *State) MountOemDagStep(g *herd.Graph, deps ...string) error {
 }
 
 // MountBaseOverlayDagStep will add mounting /run/overlay as an overlay dir
-// Requires the config-load step because some parameters can come from there
+// Requires the config-load step because some parameters can come from there.
 func (s *State) MountBaseOverlayDagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpMountBaseOverlay,
 		herd.WithDeps(cnst.OpLoadConfig),
@@ -225,7 +226,7 @@ func (s *State) MountBaseOverlayDagStep(g *herd.Graph) error {
 	)
 }
 
-// MountCustomOverlayDagStep will add mounting s.OverlayDirs under /run/overlay
+// MountCustomOverlayDagStep will add mounting s.OverlayDirs under /run/overlay .
 func (s *State) MountCustomOverlayDagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpOverlayMount,
 		herd.WithDeps(cnst.OpLoadConfig, cnst.OpMountBaseOverlay),
@@ -250,7 +251,7 @@ func (s *State) MountCustomOverlayDagStep(g *herd.Graph) error {
 	)
 }
 
-// MountCustomMountsDagStep will add mounting s.CustomMounts
+// MountCustomMountsDagStep will add mounting s.CustomMounts .
 func (s *State) MountCustomMountsDagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpCustomMounts,
 		herd.WithDeps(cnst.OpLoadConfig),
@@ -287,7 +288,7 @@ func (s *State) MountCustomMountsDagStep(g *herd.Graph) error {
 }
 
 // MountCustomBindsDagStep will add mounting s.BindMounts
-// mount state is defined over a custom mount (/usr/local/.state for instance, needs to be mounted over a device)
+// mount state is defined over a custom mount (/usr/local/.state for instance, needs to be mounted over a device).
 func (s *State) MountCustomBindsDagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpMountBind,
 		herd.WithDeps(cnst.OpCustomMounts, cnst.OpLoadConfig),
@@ -317,7 +318,7 @@ func (s *State) MountCustomBindsDagStep(g *herd.Graph) error {
 }
 
 // WriteFstabDagStep will add writing the final fstab file with all the mounts
-// Depends on everything but weak, so it will still try to write
+// Depends on everything but weak, so it will still try to write.
 func (s *State) WriteFstabDagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpWriteFstab,
 		herd.WithDeps(cnst.OpMountRoot, cnst.OpDiscoverState, cnst.OpLoadConfig, cnst.OpMountOEM, cnst.OpCustomMounts, cnst.OpMountBind, cnst.OpOverlayMount),
@@ -326,7 +327,7 @@ func (s *State) WriteFstabDagStep(g *herd.Graph) error {
 }
 
 // WriteSentinelDagStep sets the sentinel file to identify the boot mode.
-// This is used by several things to know in which state they are, for example cloud configs
+// This is used by several things to know in which state they are, for example cloud configs.
 func (s *State) WriteSentinelDagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpSentinel,
 		herd.WithCallback(func(ctx context.Context) error {
@@ -356,7 +357,7 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph) error {
 
 			// Workaround for runtime not detecting netboot/rd.cos.disable/rd.immucore.disable as live_mode
 			// TODO: drop once the netboot/rd.cos.disable detection change is on the kairos sdk
-			cmdline, err := os.ReadFile("/proc/cmdline")
+			cmdline, _ := os.ReadFile(internalUtils.GetHostProcCmdline())
 			cmdlineS := string(cmdline)
 			if strings.Contains(cmdlineS, "netboot") || len(internalUtils.ReadCMDLineArg("rd.cos.disable")) > 0 || len(internalUtils.ReadCMDLineArg("rd.immucore.disable")) > 0 {
 				sentinel = "live_mode"
@@ -382,7 +383,7 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph) error {
 
 // UKIBootInitDagStep tries to launch /sbin/init in root and pass over the system
 // booting to the real init process
-// Drops to emergency if not able to. Panic if it cant even launch emergency
+// Drops to emergency if not able to. Panic if it cant even launch emergency.
 func (s *State) UKIBootInitDagStep(g *herd.Graph, deps ...string) error {
 	return g.Add(cnst.OpUkiInit,
 		herd.WithDeps(deps...),
@@ -403,7 +404,7 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph, deps ...string) error {
 		}))
 }
 
-// UKIRemountRootRODagStep remount root read only
+// UKIRemountRootRODagStep remount root read only.
 func (s *State) UKIRemountRootRODagStep(g *herd.Graph, deps ...string) error {
 	return g.Add(cnst.OpRemountRootRO,
 		herd.WithDeps(deps...),
@@ -450,7 +451,7 @@ func (s *State) UKIUdevDaemon(g *herd.Graph) error {
 
 // LoadKernelModules loads kernel modules needed during uki boot to load the disks for.
 // Mainly block devices and net devices
-// probably others down the line
+// probably others down the line.
 func (s *State) LoadKernelModules(g *herd.Graph) error {
 	return g.Add("kernel-modules",
 		herd.WithCallback(func(ctx context.Context) error {

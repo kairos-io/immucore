@@ -8,7 +8,7 @@ import (
 // RegisterNormalBoot registers a dag for a normal boot, where we want to mount all the pieces that make up the
 // final system. This mounts root, oem, runs rootfs, loads the cos-layout.env file and mounts custom stuff from that file
 // and finally writes the fstab.
-// This is all done on initramfs, very early, and ends up pivoting to the final system, usually under /sysroot
+// This is all done on initramfs, very early, and ends up pivoting to the final system, usually under /sysroot.
 func (s *State) RegisterNormalBoot(g *herd.Graph) error {
 	var err error
 

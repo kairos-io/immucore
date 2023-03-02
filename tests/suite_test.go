@@ -1,4 +1,4 @@
-package mount_test
+package tests
 
 import (
 	"testing"
@@ -9,5 +9,5 @@ import (
 
 func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "mount test Suite")
+	RunSpecs(t, "Test Suite")
 }
