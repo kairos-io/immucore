@@ -24,10 +24,10 @@
 ---
 
 Immucore is the management interface to mount Kairos disks and filesystems.
-Is a dracut module responsible for mounting the root tree during boot time with the immutable specific setup.
+It is a dracut module responsible for mounting the root tree during boot time with the specific immutable setup.
 The immutability concept refers to read only root (/) system.
-To ensure the linux OS is still functional certain paths or areas are required to be writable,
-in those cases an ephemeral overlay tmpfs is set in place.
+To ensure the linux OS is still functional certain filesystem paths are required to be writable,
+in those cases an ephemeral overlay tmpfs filesystem is set in place. Ephemeral refers that changes to files or dirs in this filesystem will be lost upon reboot.
 
 Additionally, the immutable rootfs module can also mount a custom list of device blocks with read write permissions, those are mostly devoted to store persistent data.
 
@@ -45,28 +45,28 @@ The immutable rootfs can be configured with the following kernel parameters:
 
 * `cos-img/filename=<imgfile>`: This is one of the main parameters, it defines
   the location of the image file to boot from. This defines the booting mode for
-  Immucore, setting in motion the full DAG to set up the system.
+  Immucore, setting in motion the full workflow to end up with an immutable system.
 
 * `rd.immucore.overlay=tmpfs:<size>`: This defines the size of the tmpfs used for
   the ephemeral overlayfs. It can be expressed in MiB or as a % of the available
   memory. Defaults to `rd.immucore.overlay=tmpfs:20%` if not present.
-  Backwards compatible with the old `rd.cos.overlay` stanza.
+  Backwards compatible with the old `rd.cos.overlay` directive.
 
 * `rd.immucore.overlay=LABEL=<vol_label>`: Optionally and mostly for debugging
   purposes the overlayfs can be mounted on top of a persistent block device.
   Block devices can be expressed by LABEL (`LABEL=<blk_label>`) or by UUID
   (`UUID=<blk_uuid>`)
-  Backwards compatible with the old `rd.cos.overlay` stanza.
+  Backwards compatible with the old `rd.cos.overlay` directive.
 
 * `rd.immucore.mount=LABEL:<blk_label>:<mountpoint>`: This option defines a
   persistent block device and its mountpoint. Block devices can also be
   defined by UUID (`UUID=<blk_uuid>:<mountpoint>`). This option can be passed
   multiple times.
-  Backwards compatible with the old `rd.cos.mount` stanza.
+  Backwards compatible with the old `rd.cos.mount` directive.
 
 * `rd.immucore.oemlabel=<label>`: This option sets the label to search for in order
   to mount the OEM partition. Defaults to COS_OEM
-  Backwards compatible with the old `rd.cos.oemlabel` stanza.
+  Backwards compatible with the old `rd.cos.oemlabel` directive.
 
 * `rd.immucore.oemtimeout=<seconds>`: By default we assume the existence of a
   persistent block device labelled `COS_OEM` which is used to keep some
@@ -77,7 +77,7 @@ The immutable rootfs can be configured with the following kernel parameters:
   might not be always present, the boot process just continues without failing
   after a certain timeout. This option configures such a timeout. Defaults to
   5s.
-  Backwards compatible with the old `rd.cos.oemtimeout` stanza.
+  Backwards compatible with the old `rd.cos.oemtimeout` directive.
 
 * `rd.cos.debugrw`/`rd.immucore.debugrw`: This is a boolean option, true if present, false if not.
   This option sets the root image to be mounted as a writable device. Note that this
@@ -180,10 +180,10 @@ To see the full bootup process from dracut you can check [here](https://man7.org
 Just after starting, Immucore mounts `/proc` if it's not mounted, it does so in order to read the `/proc/cmdline` and obtains the different stanzas in order to configure itself.
 After checking the cmdline, it knows in which path is being booted, either active/passive/recovery or Netboot/LiveCD/Do nothing.
 
-Based on that it builds a DAG with the steps needed to complete and process through the DAG until its completed. It also builds a `State` object which has all the configs needed to mount and configure the system properly.
+Based on that it builds a [DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph) with the steps needed to complete and process through the DAG until its completed. It also builds a `State` object which has all the configs needed to mount and configure the system properly.
 Once the DAG has been completed (and with no errors), Immucore its finished, and it's ready for the initramfs init process to do a switch_root and pivot into the final root to boot the system.
 
-When booting from Netboot/LiveCD/Do nothing (`rd.cos.disable` or `rd.immucore.disable` on the cmdline) the DAG It's pretty simple. 
+When booting from Netboot/LiveCD/Do nothing (`rd.cos.disable` or `rd.immucore.disable` on the cmdline) the DAG is pretty simple. 
 It proceeds to create a sentinel file under `/run/cos/` with the boot mode (`live_mode`), so cloud configs can identify that they are booting from live media and ends.
 
 
@@ -242,8 +242,8 @@ There is also the `weak` value which indicates that this step has weak dependenc
 
 ---
 
-There is currently support to boot in UKI mode without doing a final switch_root into `/sysroot`
-This means that the initramfs is not really an initramfs but the final system and contains all the needed parts to boot.
+Currently, there is experimental support to boot in UKI mode without doing a final switch_root into `/sysroot`
+This means that the initramfs is not really an initramfs. Nevertheless, the final system and contains all the needed parts to boot.
 This, mixed with a UKI binary in which we dump everything into the final binary, means that you can have a single EFI file with your full system.
 
 This is currently activated by setting the `rd.immucore.uki` on the cmdline.
