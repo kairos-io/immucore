@@ -199,6 +199,7 @@ func GetOemTimeout() int {
 
 // GetOverlayBase parses the cdmline and gets the overlay config
 // Format is rd.cos.overlay=tmpfs:20% or rd.cos.overlay=LABEL=$LABEL or rd.cos.overlay=UUID=$UUID
+// Notice that this can be later override by the config coming from cos-layout.env
 func GetOverlayBase() string {
 	overlayConfig := ReadCMDLineArg("rd.cos.overlay=")
 	if len(overlayConfig) == 0 {
