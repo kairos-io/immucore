@@ -1,8 +1,8 @@
 [Unit]
 Description=kairos system initramfs setup before switch root
 DefaultDependencies=no
-After=initrd-fs.target
-Requires=initrd-fs.target
+After=immucore.service
+Requires=immucore.service
 Before=initrd.target
 
 [Service]

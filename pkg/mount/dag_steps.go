@@ -163,11 +163,8 @@ func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, deps ...string) error {
 			// Parse custom mounts also from cmdline (rd.cos.mount=)
 			// Parse custom mounts also from cmdline (rd.immucore.mount=)
 			// Parse custom mounts also from env file (VOLUMES)
-			var mounts []string
-			mounts = internalUtils.CleanupSlice(internalUtils.ReadCMDLineArg("rd.cos.mount="))
-			mounts = append(mounts, internalUtils.CleanupSlice(internalUtils.ReadCMDLineArg("rd.immucore.mount="))...)
-			mounts = append(mounts, env["VOLUMES"])
-			for _, v := range mounts {
+
+			for _, v := range append(append(internalUtils.ReadCMDLineArg("rd.cos.mount="), internalUtils.ReadCMDLineArg("rd.immucore.mount=")...), strings.Split(env["VOLUMES"], " ")...) {
 				addLine(internalUtils.ParseMount(v))
 			}
 
@@ -257,6 +254,7 @@ func (s *State) MountCustomMountsDagStep(g *herd.Graph) error {
 		herd.WithDeps(cnst.OpLoadConfig),
 		herd.WithCallback(func(ctx context.Context) error {
 			var err *multierror.Error
+			internalUtils.Log.Debug().Interface("mounts", s.CustomMounts).Msg("Mounting custom mounts")
 
 			for what, where := range s.CustomMounts {
 				// TODO: scan for the custom mount disk to know the underlying fs and set it proper
