@@ -67,7 +67,7 @@ func (c *Chroot) Prepare() error {
 		if err != nil {
 			return err
 		}
-		err = syscall.Mount(mnt, mountPoint, "bind", syscall.MS_BIND, "")
+		err = syscall.Mount(mnt, mountPoint, "bind", syscall.MS_BIND|syscall.MS_REC, "")
 		if err != nil {
 			return err
 		}
