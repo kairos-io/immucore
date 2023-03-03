@@ -91,6 +91,7 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 			internalUtils.Log.Debug().Msg(output)
 			return err
 		case "initramfs":
+			// Not sure if it will work under UKI where the s.Rootdir is the current root already
 			chroot := internalUtils.NewChroot(s.Rootdir)
 			defer func(chroot *internalUtils.Chroot) {
 				err := chroot.Close()
@@ -171,9 +172,9 @@ func (s *State) WriteDAG(g *herd.Graph) (out string) {
 		out += fmt.Sprintf("%d.\n", i+1)
 		for _, op := range layer {
 			if op.Error != nil {
-				out += fmt.Sprintf(" <%s> (error: %s) (background: %t) (weak: %t)\n", op.Name, op.Error.Error(), op.Background, op.WeakDeps)
+				out += fmt.Sprintf(" <%s> (error: %s) (background: %t) (weak: %t) (run: %t)\n", op.Name, op.Error.Error(), op.Background, op.WeakDeps, op.Executed)
 			} else {
-				out += fmt.Sprintf(" <%s> (background: %t) (weak: %t)\n", op.Name, op.Background, op.WeakDeps)
+				out += fmt.Sprintf(" <%s> (background: %t) (weak: %t) (run: %t)\n", op.Name, op.Background, op.WeakDeps, op.Executed)
 			}
 		}
 	}

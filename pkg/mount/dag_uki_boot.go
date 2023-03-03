@@ -39,7 +39,7 @@ func (s *State) RegisterUKI(g *herd.Graph) error {
 	s.LogIfError(s.MountCustomBindsDagStep(g), "custom binds mount")
 
 	// run initramfs stage
-	s.LogIfError(s.InitramfsStageDagStep(g, cnst.OpMountBind), "uki initramfs")
+	s.LogIfError(s.InitramfsStageDagStep(g, herd.WithDeps(cnst.OpMountBind), herd.WithWeakDeps()), "uki initramfs")
 
 	s.LogIfError(g.Add(cnst.OpWriteFstab,
 		herd.WithDeps(cnst.OpLoadConfig, cnst.OpCustomMounts, cnst.OpMountBind, cnst.OpOverlayMount),

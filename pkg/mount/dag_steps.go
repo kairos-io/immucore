@@ -107,8 +107,8 @@ func (s *State) RootfsStageDagStep(g *herd.Graph, deps ...string) error {
 }
 
 // InitramfsStageDagStep will add the rootfs stage.
-func (s *State) InitramfsStageDagStep(g *herd.Graph, deps ...string) error {
-	return g.Add(cnst.OpInitramfsHook, herd.WithDeps(deps...), herd.WeakDeps, herd.WithCallback(s.RunStageOp("initramfs")))
+func (s *State) InitramfsStageDagStep(g *herd.Graph, deps herd.OpOption, weakDeps herd.OpOption) error {
+	return g.Add(cnst.OpInitramfsHook, deps, weakDeps, herd.WithCallback(s.RunStageOp("initramfs")))
 }
 
 // LoadEnvLayoutDagStep will add the stage to load from cos-layout.env and fill the proper CustomMounts, OverlayDirs and BindMounts.
@@ -468,4 +468,38 @@ func (s *State) LoadKernelModules(g *herd.Graph) error {
 			return nil
 		}),
 	)
+}
+
+// WaitForSysrootDagStep waits for the s.Rootdir and s.Rootdir/system paths to be there
+// Useful for livecd/netboot as we want to run steps after s.Rootdir is ready but we don't mount it ourselves.
+func (s *State) WaitForSysrootDagStep(g *herd.Graph) error {
+	return g.Add(cnst.OpWaitForSysroot,
+		herd.WithCallback(func(ctx context.Context) error {
+			cc := time.After(60 * time.Second)
+			for {
+				select {
+				default:
+					time.Sleep(1 * time.Second)
+					_, err := os.Stat(s.Rootdir)
+					if err != nil {
+						internalUtils.Log.Err(err).Str("what", s.Rootdir).Msg("Checking path existence")
+						continue
+					}
+					_, err = os.Stat(filepath.Join(s.Rootdir, "system"))
+					if err != nil {
+						internalUtils.Log.Err(err).Str("what", filepath.Join(s.Rootdir, "system")).Msg("Checking path existence")
+						continue
+					}
+					return nil
+				case <-ctx.Done():
+					e := fmt.Errorf("context canceled")
+					internalUtils.Log.Err(e).Str("what", s.Rootdir).Msg("filepath check canceled")
+					return e
+				case <-cc:
+					e := fmt.Errorf("timeout exhausted")
+					internalUtils.Log.Err(e).Str("what", s.Rootdir).Msg("filepath check timeout")
+					return e
+				}
+			}
+		}))
 }
