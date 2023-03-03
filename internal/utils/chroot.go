@@ -52,7 +52,7 @@ func (c *Chroot) Prepare() error {
 	var err error
 
 	if len(c.activeMounts) > 0 {
-		return errors.New("There are already active mountpoints for this instance")
+		return errors.New("there are already active mountpoints for this instance")
 	}
 
 	defer func() {
@@ -172,11 +172,13 @@ func (c *Chroot) RunCallback(callback func() error) (err error) {
 }
 
 // Run executes a command inside a chroot
-func (c *Chroot) Run(command string, args ...string) (string, error) {
+func (c *Chroot) Run(command string) (string, error) {
 	var err error
 	var out []byte
 	callback := func() error {
-		cmd := exec.Command(command, args...)
+		cmd := exec.Command("/bin/sh", "-c", command)
+		cmd.Env = os.Environ()
+		Log.Debug().Strs("env", cmd.Env).Msg("running command")
 		out, err = cmd.CombinedOutput()
 		return err
 	}
