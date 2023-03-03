@@ -65,29 +65,45 @@ func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 // If its uki we don't symlink as we already have everything in the sysroot.
 func (s *State) RunStageOp(stage string) func(context.Context) error {
 	return func(ctx context.Context) error {
-		if stage == "rootfs" && !internalUtils.IsUKI() {
-			if _, err := os.Stat("/system"); os.IsNotExist(err) {
-				err = os.Symlink("/sysroot/system", "/system")
-				if err != nil {
-					internalUtils.Log.Err(err).Msg("creating symlink")
-				}
-			}
-			if _, err := os.Stat("/oem"); os.IsNotExist(err) {
-				err = os.Symlink("/sysroot/oem", "/oem")
-				if err != nil {
-					internalUtils.Log.Err(err).Msg("creating symlink")
-				}
-			}
-		}
-
 		cmd := fmt.Sprintf("/usr/bin/elemental run-stage %s", stage)
 		// If we set the level to debug, also call elemental with debug
 		if internalUtils.Log.GetLevel() == zerolog.DebugLevel {
 			cmd = fmt.Sprintf("%s --debug", cmd)
 		}
-		output, err := utils.SH(cmd)
-		internalUtils.Log.Debug().Msg(output)
-		return err
+
+		switch stage {
+		case "rootfs":
+			if !internalUtils.IsUKI() {
+				if _, err := os.Stat("/system"); os.IsNotExist(err) {
+					err = os.Symlink("/sysroot/system", "/system")
+					if err != nil {
+						internalUtils.Log.Err(err).Msg("creating symlink")
+					}
+				}
+				if _, err := os.Stat("/oem"); os.IsNotExist(err) {
+					err = os.Symlink("/sysroot/oem", "/oem")
+					if err != nil {
+						internalUtils.Log.Err(err).Msg("creating symlink")
+					}
+				}
+			}
+			output, err := utils.SH(cmd)
+			internalUtils.Log.Debug().Msg(output)
+			return err
+		case "initramfs":
+			chroot := internalUtils.NewChroot(s.Rootdir)
+			defer func(chroot *internalUtils.Chroot) {
+				err := chroot.Close()
+				if err != nil {
+					internalUtils.Log.Err(err).Msg("closing chroot")
+				}
+			}(chroot)
+			output, err := chroot.Run(cmd)
+			internalUtils.Log.Debug().Msg(output)
+			return err
+		default:
+			return errors.New("no stage that we know off")
+		}
 	}
 }
 
