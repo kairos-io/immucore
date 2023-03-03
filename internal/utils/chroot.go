@@ -36,7 +36,7 @@ type Chroot struct {
 func NewChroot(path string) *Chroot {
 	return &Chroot{
 		path:          path,
-		defaultMounts: []string{"/dev", "/dev/pts", "/proc", "/sys"},
+		defaultMounts: []string{"/dev", "/dev/pts", "/proc", "/sys", "/run", "/tmp"},
 		activeMounts:  []string{},
 	}
 }
