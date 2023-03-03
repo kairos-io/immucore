@@ -27,5 +27,6 @@ const (
 	OpUkiInit             = "uki-init"
 	OpSentinel            = "create-sentinel"
 	OpUkiUdev             = "uki-udev"
+	OpWaitForSysroot      = "wait-for-sysroot"
 	PersistentStateTarget = "/usr/local/.state"
 )
