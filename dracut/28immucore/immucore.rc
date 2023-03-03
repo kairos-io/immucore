@@ -1,0 +1,8 @@
+#!/sbin/openrc-run
+
+name="immucore"
+command="/usr/bin/immucore"
+
+depend() {
+        need udev
+}
