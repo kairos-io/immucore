@@ -93,12 +93,6 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 		case "initramfs":
 			// Not sure if it will work under UKI where the s.Rootdir is the current root already
 			chroot := internalUtils.NewChroot(s.Rootdir)
-			defer func(chroot *internalUtils.Chroot) {
-				err := chroot.Close()
-				if err != nil {
-					internalUtils.Log.Err(err).Msg("closing chroot")
-				}
-			}(chroot)
 			output, err := chroot.Run(cmd)
 			internalUtils.Log.Debug().Msg(output)
 			return err
