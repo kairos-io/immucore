@@ -479,15 +479,15 @@ func (s *State) WaitForSysrootDagStep(g *herd.Graph) error {
 			for {
 				select {
 				default:
-					time.Sleep(1 * time.Second)
+					time.Sleep(2 * time.Second)
 					_, err := os.Stat(s.Rootdir)
 					if err != nil {
-						internalUtils.Log.Err(err).Str("what", s.Rootdir).Msg("Checking path existence")
+						internalUtils.Log.Debug().Str("what", s.Rootdir).Msg("Checking path existence")
 						continue
 					}
 					_, err = os.Stat(filepath.Join(s.Rootdir, "system"))
 					if err != nil {
-						internalUtils.Log.Err(err).Str("what", filepath.Join(s.Rootdir, "system")).Msg("Checking path existence")
+						internalUtils.Log.Debug().Str("what", filepath.Join(s.Rootdir, "system")).Msg("Checking path existence")
 						continue
 					}
 					return nil

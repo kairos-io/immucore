@@ -51,8 +51,9 @@ func (s *State) RegisterNormalBoot(g *herd.Graph) error {
 
 	// Write fstab file
 	s.LogIfError(s.WriteFstabDagStep(g), "write fstab")
+	// do it after fstab is created
 	s.LogIfError(s.InitramfsStageDagStep(g,
-		herd.WithDeps(cnst.OpMountRoot, cnst.OpDiscoverState, cnst.OpLoadConfig),
+		herd.WithDeps(cnst.OpMountRoot, cnst.OpDiscoverState, cnst.OpLoadConfig, cnst.OpWriteFstab),
 		herd.WithWeakDeps(cnst.OpMountBaseOverlay, cnst.OpMountOEM, cnst.OpMountBind, cnst.OpMountBind, cnst.OpCustomMounts, cnst.OpOverlayMount),
 	), "initramfs stage")
 	return err

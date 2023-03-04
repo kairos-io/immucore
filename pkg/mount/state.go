@@ -41,6 +41,11 @@ func (s *State) path(p ...string) string {
 
 func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 	return func(ctx context.Context) error {
+		f, err := os.Create(fstabFile)
+		if err != nil {
+			return err
+		}
+		f.Close()
 		for _, fst := range s.fstabs {
 			select {
 			case <-ctx.Done():
@@ -88,13 +93,23 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 				}
 			}
 			output, err := utils.SH(cmd)
-			internalUtils.Log.Debug().Msg(output)
+			internalUtils.Log.Info().Msg("Running rootfs stage")
+			f, ferr := os.Create("/run/immucore_rootfs.log")
+			if ferr == nil {
+				f.WriteString(output)
+				f.Close()
+			}
 			return err
 		case "initramfs":
 			// Not sure if it will work under UKI where the s.Rootdir is the current root already
 			chroot := internalUtils.NewChroot(s.Rootdir)
 			output, err := chroot.Run(cmd)
-			internalUtils.Log.Debug().Msg(output)
+			internalUtils.Log.Info().Msg("Running initramfs stage")
+			f, ferr := os.Create("/run/immucore_initramfs.log")
+			if ferr == nil {
+				f.WriteString(output)
+				f.Close()
+			}
 			return err
 		default:
 			return errors.New("no stage that we know off")

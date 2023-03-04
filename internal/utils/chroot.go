@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
+	"path/filepath"
 	"syscall"
 )
 
@@ -36,7 +36,7 @@ type Chroot struct {
 func NewChroot(path string) *Chroot {
 	return &Chroot{
 		path:          path,
-		defaultMounts: []string{"/dev", "/dev/pts", "/proc", "/sys", "/run", "/tmp"},
+		defaultMounts: []string{"/dev", "/proc", "/sys", "/run", "/tmp"},
 		activeMounts:  []string{},
 	}
 }
@@ -62,13 +62,15 @@ func (c *Chroot) Prepare() error {
 	}()
 
 	for _, mnt := range c.defaultMounts {
-		mountPoint := fmt.Sprintf("%s%s", strings.TrimSuffix(c.path, "/"), mnt)
-		err = os.MkdirAll(mountPoint, os.ModeDir|os.ModePerm)
+		mountPoint := filepath.Join(c.path, mnt)
+		err = CreateIfNotExists(mountPoint)
 		if err != nil {
+			Log.Err(err).Str("what", mountPoint).Msg("Creating dir")
 			return err
 		}
 		err = syscall.Mount(mnt, mountPoint, "bind", syscall.MS_BIND|syscall.MS_REC, "")
 		if err != nil {
+			Log.Err(err).Str("where", mountPoint).Str("what", mnt).Msg("Mounting chroot bind")
 			return err
 		}
 		c.activeMounts = append(c.activeMounts, mountPoint)

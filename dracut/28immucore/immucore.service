@@ -3,7 +3,8 @@ Description=immucore
 DefaultDependencies=no
 After=systemd-udev-settle.service
 Requires=systemd-udev-settle.service
-Before=initrd.target
+Before=initrd-root-fs.target
+
 
 [Service]
 Type=oneshot
