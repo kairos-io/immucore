@@ -180,14 +180,12 @@ func (c *Chroot) Run(command string) (string, error) {
 	callback := func() error {
 		cmd := exec.Command("/bin/sh", "-c", command)
 		cmd.Env = os.Environ()
-		Log.Debug().Strs("env", cmd.Env).Msg("running command")
 		out, err = cmd.CombinedOutput()
 		return err
 	}
 	err = c.RunCallback(callback)
 	if err != nil {
 		Log.Err(err).Str("cmd", command).Msg("Cant run command on chroot")
-		Log.Debug().Str("cmd", command).Str("output", string(out)).Msg("Output from command")
 	}
 	return string(out), err
 }

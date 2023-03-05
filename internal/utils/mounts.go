@@ -171,7 +171,7 @@ func Fsck(device string) error {
 	out, e := CommandWithPath(cmd)
 	Log.Debug().Str("output", out).Msg("fsck output")
 	if e != nil {
-		Log.Warn().Str("error", e.Error()).Str("what", device).Msg("fsck")
+		Log.Debug().Str("error", e.Error()).Str("what", device).Msg("fsck")
 	}
 	return e
 }

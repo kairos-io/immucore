@@ -41,6 +41,7 @@ func (s *State) path(p ...string) string {
 
 func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 	return func(ctx context.Context) error {
+		// Create the file first, override if something is there, we don't care, we are on initramfs
 		f, err := os.Create(fstabFile)
 		if err != nil {
 			return err
@@ -119,7 +120,7 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 
 // MountOP creates and executes a mount operation.
 func (s *State) MountOP(what, where, t string, options []string, timeout time.Duration) func(context.Context) error {
-	internalUtils.Log.With().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Logger()
+	l := internalUtils.Log.With().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Logger()
 
 	return func(c context.Context) error {
 		cc := time.After(timeout)
@@ -128,7 +129,7 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 			default:
 				err := internalUtils.CreateIfNotExists(where)
 				if err != nil {
-					internalUtils.Log.Err(err).Msg("Creating dir")
+					l.Err(err).Msg("Creating dir")
 					continue
 				}
 				time.Sleep(1 * time.Second)
@@ -157,18 +158,18 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 
 				// only continue the loop if it's an error and not an already mounted error
 				if err != nil && !errors.Is(err, constants.ErrAlreadyMounted) {
-					internalUtils.Log.Err(err).Send()
+					l.Err(err).Send()
 					continue
 				}
-				internalUtils.Log.Debug().Msg("mount done")
+				l.Info().Msg("mount done")
 				return nil
 			case <-c.Done():
 				e := fmt.Errorf("context canceled")
-				internalUtils.Log.Err(e).Msg("mount canceled")
+				l.Err(e).Msg("mount canceled")
 				return e
 			case <-cc:
 				e := fmt.Errorf("timeout exhausted")
-				internalUtils.Log.Err(e).Msg("Mount timeout")
+				l.Err(e).Msg("Mount timeout")
 				return e
 			}
 		}
