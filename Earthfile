@@ -74,7 +74,5 @@ dracut-artifacts:
     WORKDIR /build
     COPY --dir dracut/28immucore .
     COPY dracut/10-immucore.conf .
-    COPY dracut/50-kairos-initrd.conf .
     SAVE ARTIFACT 28immucore 28immucore
     SAVE ARTIFACT 10-immucore.conf 10-immucore.conf
-    SAVE ARTIFACT 50-kairos-initrd.conf 50-kairos-initrd.conf

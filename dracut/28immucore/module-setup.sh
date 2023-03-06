@@ -2,14 +2,12 @@
 
 # called by dracut
 check() {
-    require_binaries "$systemdutildir"/systemd || return 1
-    return 255
+    return 0
 }
 
 # called by dracut 
 depends() {
-    echo systemd rootfs-block dm fs-lib 
-    #tpm2-tss
+    echo rootfs-block dm fs-lib
     return 0
 }
 
