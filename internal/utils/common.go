@@ -182,7 +182,6 @@ func CommandWithPath(c string) (string, error) {
 			pathAppend = fmt.Sprintf("%s:%s", pathAppend, splitted[1])
 		}
 	}
-	Log.Debug().Str("content", pathAppend).Msg("PATH")
 	cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%s", pathAppend))
 	o, err := cmd.CombinedOutput()
 	return string(o), err
