@@ -95,6 +95,7 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 			}
 			output, err := utils.SH(cmd)
 			internalUtils.Log.Info().Msg("Running rootfs stage")
+			internalUtils.Log.Info().Msg(output)
 			f, ferr := os.Create("/run/immucore_rootfs.log")
 			if ferr == nil {
 				f.WriteString(output)
@@ -106,6 +107,7 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 			chroot := internalUtils.NewChroot(s.Rootdir)
 			output, err := chroot.Run(cmd)
 			internalUtils.Log.Info().Msg("Running initramfs stage")
+			internalUtils.Log.Info().Msg(output)
 			f, ferr := os.Create("/run/immucore_initramfs.log")
 			if ferr == nil {
 				f.WriteString(output)
