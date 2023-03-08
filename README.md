@@ -237,6 +237,8 @@ There is also the `weak` value which indicates that this step has weak dependenc
  - `custom-mount`: This mounts the paths set in the config (`VOLUMES`) or in cmdline `rd.cos.mount=` in the given path (`LABEL=COS_PERSISTENT:/usr/local`)
  - `mount-bind`: This mounts the paths set in the config (`PERSISTENT_STATE_PATHS` and `CUSTOM_BIND_MOUNTS`) as bind mounts under the `PERSISTENT_STATE_TARGET` which defaults to `/usr/local/.state`
  - `write-fstab`: Writes the final fstab with all the mounts into `/sysroot/fstab`
+ - `initramfs-hook`: Runs the cloud config stage `initramfs`. Note that this is run under a chroot into what will be the final system (/sysroot).
+ - `wait-for-sysroot`: Waits for the /sysroot and /sysroot/system dirs to be available, which means that they are mounted. Useful when booting from CD/Netboot as immucore doesn't mount the /sysroot in those cases, but we want to run the initramfs stage once the system is ready.
 
 ### UKI mode (Experimental)
 
