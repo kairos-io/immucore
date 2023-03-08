@@ -35,16 +35,13 @@ type Chroot struct {
 
 func NewChroot(path string) *Chroot {
 	return &Chroot{
-		path:          path,
-		defaultMounts: []string{"/dev", "/proc", "/sys", "/run", "/tmp"},
-		activeMounts:  []string{},
+		path: path,
+		defaultMounts: []string{
+			"/sys", "/dev", "/dev/pts", "/dev/shm", "/proc", "/tmp",
+			"/run/rootfsbase", "/run/initramfs/live", "/run",
+		},
+		activeMounts: []string{},
 	}
-}
-
-// ChrootedCallback runs the given callback in a chroot environment.
-func ChrootedCallback(path string, bindMounts map[string]string, callback func() error) error {
-	chroot := NewChroot(path)
-	return chroot.RunCallback(callback)
 }
 
 // Prepare will mount the defaultMounts as bind mounts, to be ready when we run chroot.
@@ -55,20 +52,35 @@ func (c *Chroot) Prepare() error {
 		return errors.New("there are already active mountpoints for this instance")
 	}
 
-	defer func() {
-		if err != nil {
-			c.Close()
-		}
-	}()
-
 	for _, mnt := range c.defaultMounts {
 		mountPoint := filepath.Join(c.path, mnt)
+		if _, err := os.Stat(mnt); os.IsNotExist(err) {
+			// Source doesnt exist, skip it
+			Log.Debug().Str("what", mnt).Msg("Source does not exists, not mounting in chroot")
+			continue
+		}
+
 		err = CreateIfNotExists(mountPoint)
 		if err != nil {
 			Log.Err(err).Str("what", mountPoint).Msg("Creating dir")
 			return err
 		}
-		err = syscall.Mount(mnt, mountPoint, "bind", syscall.MS_BIND|syscall.MS_REC, "")
+		// Don't mount /sys, /dev or /run as MS_REC as this brings a lot of submounts for cgroups and such and those are not needed
+		// and prevents up from cleaning up the chroot afterwards
+		// For example you can also have a cdrom device mounted under /dev/sr0 or /dev/cdrom and we dont know how to find it and mark it private
+		switch {
+		case mnt == "/sys", mnt == "/dev", mnt == "/run":
+			err = syscall.Mount(mnt, mountPoint, "", syscall.MS_BIND, "")
+		default:
+			err = syscall.Mount(mnt, mountPoint, "", syscall.MS_BIND|syscall.MS_REC, "")
+		}
+
+		if err != nil {
+			Log.Err(err).Str("where", mountPoint).Str("what", mnt).Msg("Mounting chroot bind")
+			return err
+		}
+		// "remount" with private so unmount events do not propagate
+		err = syscall.Mount("", mountPoint, "", syscall.MS_PRIVATE, "")
 		if err != nil {
 			Log.Err(err).Str("where", mountPoint).Str("what", mnt).Msg("Mounting chroot bind")
 			return err
@@ -82,6 +94,9 @@ func (c *Chroot) Prepare() error {
 // Close will unmount all active mounts created in Prepare on reverse order.
 func (c *Chroot) Close() error {
 	failures := []string{}
+	Log.Debug().Strs("activeMounts", c.activeMounts).Msg("Closing chroot")
+	// Something mounts this due to selinux, so we need to try to manually unmount and ignore any errors
+	_ = syscall.Unmount(filepath.Join(c.path, "/sys/fs/selinux"), 0)
 	for len(c.activeMounts) > 0 {
 		curr := c.activeMounts[len(c.activeMounts)-1]
 		Log.Debug().Str("what", curr).Msg("Unmounting from chroot")
@@ -131,12 +146,9 @@ func (c *Chroot) RunCallback(callback func() error) (err error) {
 			Log.Err(err).Msg("Can't mount default mounts")
 			return err
 		}
-		defer func() {
-			tmpErr := c.Close()
-			if err == nil {
-				err = tmpErr
-			}
-		}()
+		defer func(c *Chroot) {
+			err = c.Close()
+		}(c)
 	}
 	// Change to new dir before running chroot!
 	err = syscall.Chdir(c.path)

@@ -95,7 +95,6 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 			}
 			output, err := utils.SH(cmd)
 			internalUtils.Log.Info().Msg("Running rootfs stage")
-			internalUtils.Log.Info().Msg(output)
 			f, ferr := os.Create(filepath.Join(constants.LogDir, "rootfs_stage.log"))
 			if ferr == nil {
 				_, _ = f.WriteString(output)
@@ -104,10 +103,9 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 			return err
 		case "initramfs":
 			// Not sure if it will work under UKI where the s.Rootdir is the current root already
+			internalUtils.Log.Info().Msg("Running initramfs stage")
 			chroot := internalUtils.NewChroot(s.Rootdir)
 			output, err := chroot.Run(cmd)
-			internalUtils.Log.Info().Msg("Running initramfs stage")
-			internalUtils.Log.Info().Msg(output)
 			f, ferr := os.Create(filepath.Join(constants.LogDir, "initramfs_stage.log"))
 			if ferr == nil {
 				_, _ = f.WriteString(output)
