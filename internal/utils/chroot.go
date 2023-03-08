@@ -35,16 +35,14 @@ type Chroot struct {
 
 func NewChroot(path string) *Chroot {
 	return &Chroot{
-		path:          path,
-		defaultMounts: []string{"/dev", "/proc", "/sys", "/run", "/tmp"},
-		activeMounts:  []string{},
+		path: path,
+		defaultMounts: []string{
+			"/dev", "/dev/pts", "/dev/shm", "/proc", "/tmp",
+			"/run/rootfsbase", "/run/initramfs/live", "/run",
+			"/sys",
+		},
+		activeMounts: []string{},
 	}
-}
-
-// ChrootedCallback runs the given callback in a chroot environment.
-func ChrootedCallback(path string, bindMounts map[string]string, callback func() error) error {
-	chroot := NewChroot(path)
-	return chroot.RunCallback(callback)
 }
 
 // Prepare will mount the defaultMounts as bind mounts, to be ready when we run chroot.
@@ -63,12 +61,33 @@ func (c *Chroot) Prepare() error {
 
 	for _, mnt := range c.defaultMounts {
 		mountPoint := filepath.Join(c.path, mnt)
+		if _, err := os.Stat(mnt); os.IsNotExist(err) {
+			// Source doesnt exist, skip it
+			Log.Debug().Str("what", mnt).Msg("Source does not exists, not mounting in chroot")
+			continue
+		}
+
 		err = CreateIfNotExists(mountPoint)
 		if err != nil {
 			Log.Err(err).Str("what", mountPoint).Msg("Creating dir")
 			return err
 		}
-		err = syscall.Mount(mnt, mountPoint, "bind", syscall.MS_BIND|syscall.MS_REC, "")
+		// Don't mount /sys, /dev or /run as MS_REC as this brings a lot of submounts for cgroups and such and those are not needed
+		// and prevents up from cleaning up the chroot afterwards
+		// For example you can also have a cdrom device mounted under /dev/sr0 or /dev/cdrom and we dont know how to find it and mark it private
+		switch {
+		case mnt == "/sys", mnt == "/dev", mnt == "/run":
+			err = syscall.Mount(mnt, mountPoint, "", syscall.MS_BIND, "")
+		default:
+			err = syscall.Mount(mnt, mountPoint, "", syscall.MS_BIND|syscall.MS_REC, "")
+		}
+
+		if err != nil {
+			Log.Err(err).Str("where", mountPoint).Str("what", mnt).Msg("Mounting chroot bind")
+			return err
+		}
+		// "remount" with private so unmount events do not propagate
+		err = syscall.Mount("", mountPoint, "", syscall.MS_PRIVATE, "")
 		if err != nil {
 			Log.Err(err).Str("where", mountPoint).Str("what", mnt).Msg("Mounting chroot bind")
 			return err
@@ -88,10 +107,13 @@ func (c *Chroot) Close() error {
 		c.activeMounts = c.activeMounts[:len(c.activeMounts)-1]
 		err := syscall.Unmount(curr, 0)
 		if err != nil {
+			out, _ := CommandWithPath("findmnt -o TARGET,PROPAGATIO")
+			Log.Debug().Str("out", out).Msg("debug mounts")
 			Log.Err(err).Str("what", curr).Msg("Error unmounting")
 			failures = append(failures, curr)
 		}
 	}
+
 	if len(failures) > 0 {
 		c.activeMounts = failures
 		return fmt.Errorf("failed closing chroot environment. Unmount failures: %v", failures)
