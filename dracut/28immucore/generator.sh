@@ -11,7 +11,6 @@ GENERATOR_DIR="$2"
 # Add a timeout to the sysroot so it waits a bit for immucore to mount it properly
 mkdir -p "$GENERATOR_DIR"/sysroot.mount.d
 {
-    echo "[Unit]"
     echo "[Mount]"
     echo "TimeoutSec=300"
 } > "$GENERATOR_DIR"/sysroot.mount.d/timeout.conf
