@@ -26,7 +26,7 @@ import (
 	"syscall"
 )
 
-// Chroot represents the struct that will allow us to run commands inside a given chroot
+// Chroot represents the struct that will allow us to run commands inside a given chroot.
 type Chroot struct {
 	path          string
 	defaultMounts []string
@@ -41,13 +41,13 @@ func NewChroot(path string) *Chroot {
 	}
 }
 
-// ChrootedCallback runs the given callback in a chroot environment
+// ChrootedCallback runs the given callback in a chroot environment.
 func ChrootedCallback(path string, bindMounts map[string]string, callback func() error) error {
 	chroot := NewChroot(path)
 	return chroot.RunCallback(callback)
 }
 
-// Prepare will mount the defaultMounts as bind mounts, to be ready when we run chroot
+// Prepare will mount the defaultMounts as bind mounts, to be ready when we run chroot.
 func (c *Chroot) Prepare() error {
 	var err error
 
@@ -79,7 +79,7 @@ func (c *Chroot) Prepare() error {
 	return nil
 }
 
-// Close will unmount all active mounts created in Prepare on reverse order
+// Close will unmount all active mounts created in Prepare on reverse order.
 func (c *Chroot) Close() error {
 	failures := []string{}
 	for len(c.activeMounts) > 0 {
@@ -99,7 +99,7 @@ func (c *Chroot) Close() error {
 	return nil
 }
 
-// RunCallback runs the given callback in a chroot environment
+// RunCallback runs the given callback in a chroot environment.
 func (c *Chroot) RunCallback(callback func() error) (err error) {
 	var currentPath string
 	var oldRootF *os.File
@@ -173,7 +173,7 @@ func (c *Chroot) RunCallback(callback func() error) (err error) {
 	return callback()
 }
 
-// Run executes a command inside a chroot
+// Run executes a command inside a chroot.
 func (c *Chroot) Run(command string) (string, error) {
 	var err error
 	var out []byte

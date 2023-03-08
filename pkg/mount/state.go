@@ -98,8 +98,8 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 			internalUtils.Log.Info().Msg(output)
 			f, ferr := os.Create(filepath.Join(constants.LogDir, "rootfs_stage.log"))
 			if ferr == nil {
-				f.WriteString(output)
-				f.Close()
+				_, _ = f.WriteString(output)
+				_ = f.Close()
 			}
 			return err
 		case "initramfs":
@@ -110,8 +110,8 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 			internalUtils.Log.Info().Msg(output)
 			f, ferr := os.Create(filepath.Join(constants.LogDir, "initramfs_stage.log"))
 			if ferr == nil {
-				f.WriteString(output)
-				f.Close()
+				_, _ = f.WriteString(output)
+				_ = f.Close()
 			}
 			return err
 		default:
