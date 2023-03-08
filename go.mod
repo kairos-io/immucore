@@ -11,7 +11,7 @@ require (
 	github.com/kairos-io/kairos v1.5.0
 	github.com/moby/sys/mountinfo v0.6.2
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
-	github.com/onsi/ginkgo/v2 v2.8.4
+	github.com/onsi/ginkgo/v2 v2.9.0
 	github.com/onsi/gomega v1.27.2
 	github.com/rs/zerolog v1.29.0
 	github.com/spectrocloud-labs/herd v0.4.2
