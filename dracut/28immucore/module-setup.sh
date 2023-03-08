@@ -22,9 +22,8 @@ install() {
     declare systemdutildir=${systemdutildir}
     declare systemdsystemunitdir=${systemdsystemunitdir}
 
-    # Add missing elemental binary, drop once we get yip lib inside immucore as its only needed to run the stages
-    inst_multiple immucore elemental
-    # add utils used by elemental or stages
+    inst_multiple immucore
+    # add utils used by yip stages
     inst_multiple partprobe sync udevadm parted mkfs.ext2 mkfs.ext3 mkfs.ext4 mkfs.vfat mkfs.fat blkid e2fsck resize2fs mount umount sgdisk rsync
     # missing mkfs.xfs xfs_growfs in image?
     inst_script "${moddir}/generator.sh" "${systemdutildir}/system-generators/immucore-generator"

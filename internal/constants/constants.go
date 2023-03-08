@@ -7,6 +7,10 @@ func DefaultRWPaths() []string {
 	return []string{"/etc", "/root", "/home", "/opt", "/srv", "/usr/local", "/var"}
 }
 
+func GetCloudInitPaths() []string {
+	return []string{"/system/oem", "/oem/", "/usr/local/cloud-config/"}
+}
+
 var ErrAlreadyMounted = errors.New("already mounted")
 
 const (
