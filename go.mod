@@ -6,6 +6,7 @@ require (
 	github.com/containerd/containerd v1.6.19
 	github.com/deniswernert/go-fstab v0.0.0-20141204152952-eb4090f26517
 	github.com/hashicorp/go-multierror v1.1.1
+	github.com/jaypipes/ghw v0.9.0
 	github.com/joho/godotenv v1.5.1
 	github.com/kairos-io/kairos v1.5.0
 	github.com/moby/sys/mountinfo v0.6.2
@@ -15,7 +16,7 @@ require (
 	github.com/rs/zerolog v1.29.0
 	github.com/spectrocloud-labs/herd v0.4.2
 	github.com/twpayne/go-vfs v1.7.2
-	github.com/urfave/cli/v2 v2.24.4
+	github.com/urfave/cli/v2 v2.25.0
 	golang.org/x/sys v0.5.0
 )
 
@@ -43,7 +44,6 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/itchyny/gojq v0.12.11 // indirect
 	github.com/itchyny/timefmt-go v0.1.5 // indirect
-	github.com/jaypipes/ghw v0.9.0 // indirect
 	github.com/jaypipes/pcidb v1.0.0 // indirect
 	github.com/kendru/darwin/go/depgraph v0.0.0-20221105232959-877d6a81060c // indirect
 	github.com/lithammer/fuzzysearch v1.1.5 // indirect
