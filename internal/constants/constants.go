@@ -29,4 +29,5 @@ const (
 	OpUkiUdev             = "uki-udev"
 	OpWaitForSysroot      = "wait-for-sysroot"
 	PersistentStateTarget = "/usr/local/.state"
+	LogDir                = "/run/immucore"
 )

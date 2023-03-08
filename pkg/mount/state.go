@@ -96,7 +96,7 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 			output, err := utils.SH(cmd)
 			internalUtils.Log.Info().Msg("Running rootfs stage")
 			internalUtils.Log.Info().Msg(output)
-			f, ferr := os.Create("/run/immucore_rootfs.log")
+			f, ferr := os.Create(filepath.Join(constants.LogDir, "rootfs_stage.log"))
 			if ferr == nil {
 				f.WriteString(output)
 				f.Close()
@@ -108,7 +108,7 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 			output, err := chroot.Run(cmd)
 			internalUtils.Log.Info().Msg("Running initramfs stage")
 			internalUtils.Log.Info().Msg(output)
-			f, ferr := os.Create("/run/immucore_initramfs.log")
+			f, ferr := os.Create(filepath.Join(constants.LogDir, "initramfs_stage.log"))
 			if ferr == nil {
 				f.WriteString(output)
 				f.Close()
@@ -122,7 +122,12 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 
 // MountOP creates and executes a mount operation.
 func (s *State) MountOP(what, where, t string, options []string, timeout time.Duration) func(context.Context) error {
-	l := internalUtils.Log.With().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Logger()
+	l := internalUtils.Log.With().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Logger().Level(zerolog.InfoLevel)
+	// Not sure why this defaults to debuglevel when creating a sublogger, so make sure we set it properly
+	debug := len(internalUtils.ReadCMDLineArg("rd.immucore.debug")) > 0
+	if debug {
+		l.Level(zerolog.DebugLevel)
+	}
 
 	return func(c context.Context) error {
 		cc := time.After(timeout)
