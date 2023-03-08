@@ -41,6 +41,12 @@ func (s *State) path(p ...string) string {
 
 func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 	return func(ctx context.Context) error {
+		// Create the file first, override if something is there, we don't care, we are on initramfs
+		f, err := os.Create(fstabFile)
+		if err != nil {
+			return err
+		}
+		f.Close()
 		for _, fst := range s.fstabs {
 			select {
 			case <-ctx.Done():
@@ -65,35 +71,63 @@ func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 // If its uki we don't symlink as we already have everything in the sysroot.
 func (s *State) RunStageOp(stage string) func(context.Context) error {
 	return func(ctx context.Context) error {
-		if stage == "rootfs" && !internalUtils.IsUKI() {
-			if _, err := os.Stat("/system"); os.IsNotExist(err) {
-				err = os.Symlink("/sysroot/system", "/system")
-				if err != nil {
-					internalUtils.Log.Err(err).Msg("creating symlink")
-				}
-			}
-			if _, err := os.Stat("/oem"); os.IsNotExist(err) {
-				err = os.Symlink("/sysroot/oem", "/oem")
-				if err != nil {
-					internalUtils.Log.Err(err).Msg("creating symlink")
-				}
-			}
-		}
-
-		cmd := fmt.Sprintf("/usr/bin/elemental run-stage %s", stage)
+		cmd := fmt.Sprintf("elemental run-stage %s", stage)
 		// If we set the level to debug, also call elemental with debug
 		if internalUtils.Log.GetLevel() == zerolog.DebugLevel {
 			cmd = fmt.Sprintf("%s --debug", cmd)
 		}
-		output, err := utils.SH(cmd)
-		internalUtils.Log.Debug().Msg(output)
-		return err
+
+		switch stage {
+		case "rootfs":
+			if !internalUtils.IsUKI() {
+				if _, err := os.Stat("/system"); os.IsNotExist(err) {
+					err = os.Symlink("/sysroot/system", "/system")
+					if err != nil {
+						internalUtils.Log.Err(err).Msg("creating symlink")
+					}
+				}
+				if _, err := os.Stat("/oem"); os.IsNotExist(err) {
+					err = os.Symlink("/sysroot/oem", "/oem")
+					if err != nil {
+						internalUtils.Log.Err(err).Msg("creating symlink")
+					}
+				}
+			}
+			output, err := utils.SH(cmd)
+			internalUtils.Log.Info().Msg("Running rootfs stage")
+			internalUtils.Log.Info().Msg(output)
+			f, ferr := os.Create(filepath.Join(constants.LogDir, "rootfs_stage.log"))
+			if ferr == nil {
+				_, _ = f.WriteString(output)
+				_ = f.Close()
+			}
+			return err
+		case "initramfs":
+			// Not sure if it will work under UKI where the s.Rootdir is the current root already
+			chroot := internalUtils.NewChroot(s.Rootdir)
+			output, err := chroot.Run(cmd)
+			internalUtils.Log.Info().Msg("Running initramfs stage")
+			internalUtils.Log.Info().Msg(output)
+			f, ferr := os.Create(filepath.Join(constants.LogDir, "initramfs_stage.log"))
+			if ferr == nil {
+				_, _ = f.WriteString(output)
+				_ = f.Close()
+			}
+			return err
+		default:
+			return errors.New("no stage that we know off")
+		}
 	}
 }
 
 // MountOP creates and executes a mount operation.
 func (s *State) MountOP(what, where, t string, options []string, timeout time.Duration) func(context.Context) error {
-	internalUtils.Log.With().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Logger()
+	l := internalUtils.Log.With().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Logger().Level(zerolog.InfoLevel)
+	// Not sure why this defaults to debuglevel when creating a sublogger, so make sure we set it properly
+	debug := len(internalUtils.ReadCMDLineArg("rd.immucore.debug")) > 0
+	if debug {
+		l.Level(zerolog.DebugLevel)
+	}
 
 	return func(c context.Context) error {
 		cc := time.After(timeout)
@@ -102,7 +136,7 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 			default:
 				err := internalUtils.CreateIfNotExists(where)
 				if err != nil {
-					internalUtils.Log.Err(err).Msg("Creating dir")
+					l.Err(err).Msg("Creating dir")
 					continue
 				}
 				time.Sleep(1 * time.Second)
@@ -131,18 +165,18 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 
 				// only continue the loop if it's an error and not an already mounted error
 				if err != nil && !errors.Is(err, constants.ErrAlreadyMounted) {
-					internalUtils.Log.Err(err).Send()
+					l.Err(err).Send()
 					continue
 				}
-				internalUtils.Log.Debug().Msg("mount done")
+				l.Info().Msg("mount done")
 				return nil
 			case <-c.Done():
 				e := fmt.Errorf("context canceled")
-				internalUtils.Log.Err(e).Msg("mount canceled")
+				l.Err(e).Msg("mount canceled")
 				return e
 			case <-cc:
 				e := fmt.Errorf("timeout exhausted")
-				internalUtils.Log.Err(e).Msg("Mount timeout")
+				l.Err(e).Msg("Mount timeout")
 				return e
 			}
 		}
@@ -155,9 +189,9 @@ func (s *State) WriteDAG(g *herd.Graph) (out string) {
 		out += fmt.Sprintf("%d.\n", i+1)
 		for _, op := range layer {
 			if op.Error != nil {
-				out += fmt.Sprintf(" <%s> (error: %s) (background: %t) (weak: %t)\n", op.Name, op.Error.Error(), op.Background, op.WeakDeps)
+				out += fmt.Sprintf(" <%s> (error: %s) (background: %t) (weak: %t) (run: %t)\n", op.Name, op.Error.Error(), op.Background, op.WeakDeps, op.Executed)
 			} else {
-				out += fmt.Sprintf(" <%s> (background: %t) (weak: %t)\n", op.Name, op.Background, op.WeakDeps)
+				out += fmt.Sprintf(" <%s> (background: %t) (weak: %t) (run: %t)\n", op.Name, op.Background, op.WeakDeps, op.Executed)
 			}
 		}
 	}

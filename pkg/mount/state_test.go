@@ -2,6 +2,7 @@ package mount_test
 
 import (
 	"context"
+	cnst "github.com/kairos-io/immucore/internal/constants"
 	"time"
 
 	"github.com/kairos-io/immucore/pkg/mount"
@@ -67,16 +68,21 @@ var _ = Describe("mounting immutable setup", func() {
 })
 
 func checkLiveCDDag(dag [][]herd.GraphEntry, actualDag string) {
-	Expect(len(dag)).To(Equal(2), actualDag)
+	Expect(len(dag)).To(Equal(4), actualDag)
 	Expect(len(dag[0])).To(Equal(1), actualDag)
-	Expect(len(dag[1])).To(Equal(1), actualDag)
+	Expect(len(dag[1])).To(Equal(2), actualDag)
+	Expect(len(dag[2])).To(Equal(1), actualDag)
+	Expect(len(dag[3])).To(Equal(1), actualDag)
 
 	Expect(dag[0][0].Name).To(Equal("init"))
-	Expect(dag[1][0].Name).To(Equal("create-sentinel"))
+	Expect(dag[1][0].Name).To(Or(Equal(cnst.OpSentinel), Equal(cnst.OpWaitForSysroot)), actualDag)
+	Expect(dag[1][1].Name).To(Or(Equal(cnst.OpSentinel), Equal(cnst.OpWaitForSysroot)), actualDag)
+	Expect(dag[2][0].Name).To(Equal(cnst.OpRootfsHook), actualDag)
+	Expect(dag[3][0].Name).To(Equal(cnst.OpInitramfsHook), actualDag)
 
 }
 func checkDag(dag [][]herd.GraphEntry, actualDag string) {
-	Expect(len(dag)).To(Equal(10), actualDag)
+	Expect(len(dag)).To(Equal(11), actualDag)
 	Expect(len(dag[0])).To(Equal(1), actualDag)
 	Expect(len(dag[1])).To(Equal(3), actualDag)
 	Expect(len(dag[2])).To(Equal(1), actualDag)
@@ -87,31 +93,33 @@ func checkDag(dag [][]herd.GraphEntry, actualDag string) {
 	Expect(len(dag[7])).To(Equal(2), actualDag)
 	Expect(len(dag[8])).To(Equal(2), actualDag)
 	Expect(len(dag[9])).To(Equal(1), actualDag)
+	Expect(len(dag[10])).To(Equal(1), actualDag)
 
 	Expect(dag[0][0].Name).To(Equal("init"))
 	Expect(dag[1][0].Name).To(Or(
-		Equal("mount-tmpfs"),
-		Equal("create-sentinel"),
-		Equal("mount-state"),
+		Equal(cnst.OpMountTmpfs),
+		Equal(cnst.OpSentinel),
+		Equal(cnst.OpMountState),
 	), actualDag)
 	Expect(dag[1][1].Name).To(Or(
-		Equal("mount-tmpfs"),
-		Equal("create-sentinel"),
-		Equal("mount-state"),
+		Equal(cnst.OpMountTmpfs),
+		Equal(cnst.OpSentinel),
+		Equal(cnst.OpMountState),
 	), actualDag)
 	Expect(dag[1][2].Name).To(Or(
-		Equal("mount-tmpfs"),
-		Equal("create-sentinel"),
-		Equal("mount-state"),
+		Equal(cnst.OpMountTmpfs),
+		Equal(cnst.OpSentinel),
+		Equal(cnst.OpMountState),
 	), actualDag)
-	Expect(dag[2][0].Name).To(Equal("discover-state"), actualDag)
-	Expect(dag[3][0].Name).To(Equal("mount-root"), actualDag)
-	Expect(dag[4][0].Name).To(Equal("mount-oem"), actualDag)
-	Expect(dag[5][0].Name).To(Equal("rootfs-hook"), actualDag)
-	Expect(dag[6][0].Name).To(Equal("load-config"), actualDag)
-	Expect(dag[7][0].Name).To(Or(Equal("mount-base-overlay"), Equal("custom-mount")), actualDag)
-	Expect(dag[7][1].Name).To(Or(Equal("mount-base-overlay"), Equal("custom-mount")), actualDag)
-	Expect(dag[8][0].Name).To(Or(Equal("mount-bind"), Equal("overlay-mount")), actualDag)
-	Expect(dag[8][1].Name).To(Or(Equal("mount-bind"), Equal("overlay-mount")), actualDag)
-	Expect(dag[9][0].Name).To(Equal("write-fstab"), actualDag)
+	Expect(dag[2][0].Name).To(Equal(cnst.OpDiscoverState), actualDag)
+	Expect(dag[3][0].Name).To(Equal(cnst.OpMountRoot), actualDag)
+	Expect(dag[4][0].Name).To(Equal(cnst.OpMountOEM), actualDag)
+	Expect(dag[5][0].Name).To(Equal(cnst.OpRootfsHook), actualDag)
+	Expect(dag[6][0].Name).To(Equal(cnst.OpLoadConfig), actualDag)
+	Expect(dag[7][0].Name).To(Or(Equal(cnst.OpMountBaseOverlay), Equal(cnst.OpCustomMounts)), actualDag)
+	Expect(dag[7][1].Name).To(Or(Equal(cnst.OpMountBaseOverlay), Equal(cnst.OpCustomMounts)), actualDag)
+	Expect(dag[8][0].Name).To(Or(Equal(cnst.OpMountBind), Equal(cnst.OpOverlayMount)), actualDag)
+	Expect(dag[8][1].Name).To(Or(Equal(cnst.OpMountBind), Equal(cnst.OpOverlayMount)), actualDag)
+	Expect(dag[9][0].Name).To(Equal(cnst.OpWriteFstab), actualDag)
+	Expect(dag[10][0].Name).To(Equal(cnst.OpInitramfsHook), actualDag)
 }

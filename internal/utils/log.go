@@ -3,7 +3,9 @@ package utils
 import (
 	"io"
 	"os"
+	"path/filepath"
 
+	"github.com/kairos-io/immucore/internal/constants"
 	"github.com/rs/zerolog"
 )
 
@@ -16,7 +18,8 @@ func CloseLogFiles() {
 
 func SetLogger() {
 	var loggers []io.Writer
-	logFile, err := os.Create("/run/immucore.log")
+	_ = os.MkdirAll(constants.LogDir, os.ModeDir|os.ModePerm)
+	logFile, err := os.Create(filepath.Join(constants.LogDir, "immucore.log"))
 	if err == nil {
 		loggers = append(loggers, zerolog.ConsoleWriter{Out: logFile})
 	}

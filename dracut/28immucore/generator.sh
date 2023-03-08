@@ -8,25 +8,19 @@ GENERATOR_DIR="$2"
 [ -z "$GENERATOR_DIR" ] && exit 1
 [ -d "$GENERATOR_DIR" ] || mkdir "$GENERATOR_DIR"
 
-
-## GENERATE SYSROOT
-cos_img=$(getarg cos-img/filename=)
-[ -z "${cos_img}" ] && exit 0
-
-# This is necessary because otherwise systemd-fstab-generator will se the cmdline with the root=LABEL=X stanza and
-# say, hey this is the ROOT where we need to boot! so it auto creates a sysroot.mount with the content of the value
-# passed in the cmdline. But because we usually pass the label of the img (COS_ACTIVE) it will create the wrong mount
-# service and be stuck in there forever.
-# by generating it ourselves we get the sysroot.mount into the generators.early dir, which tells systemd to not generate it
-# as it already exists and the rest is history
+# Add a timeout to the sysroot so it waits a bit for immucore to mount it properly
+mkdir -p "$GENERATOR_DIR"/sysroot.mount.d
 {
-    echo "[Unit]"
-    echo "Before=initrd-root-fs.target"
-    echo "DefaultDependencies=no"
     echo "[Mount]"
-    echo "Where=/sysroot"
-    echo "What=/run/initramfs/cos-state/${cos_img#/}"
-    echo "Options=ro,suid,dev,exec,auto,nouser,async"
-} > "$GENERATOR_DIR"/sysroot.mount
+    echo "TimeoutSec=300"
+} > "$GENERATOR_DIR"/sysroot.mount.d/timeout.conf
 
-## END GENERATE SYSROOT
+# Make sure initrd-root-fs.target depends on sysroot.mount
+# This seems to affect mainly ubuntu-22 where initrd-usr-fs depends on sysroot, but it has a broken link to it as sysroot.mount
+# is generated under the generator.early dir but the link points to the generator dir.
+# So it makes everything else a bit broken if you insert deps in the middle.
+# By default other distros seem to do this as it shows on the map page https://man7.org/linux/man-pages/man7/dracut.bootup.7.html
+if ! [ -L "$GENERATOR_DIR"/initrd-root-fs.target.wants/sysroot.mount ]; then
+  [ -d "$GENERATOR_DIR"/initrd-root-fs.target.wants ] || mkdir -p "$GENERATOR_DIR"/initrd-root-fs.target.wants
+  ln -s ../sysroot.mount "$GENERATOR_DIR"/initrd-root-fs.target.wants/sysroot.mount
+fi

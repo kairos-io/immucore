@@ -107,8 +107,8 @@ func (s *State) RootfsStageDagStep(g *herd.Graph, deps ...string) error {
 }
 
 // InitramfsStageDagStep will add the rootfs stage.
-func (s *State) InitramfsStageDagStep(g *herd.Graph, deps ...string) error {
-	return g.Add(cnst.OpInitramfsHook, herd.WithDeps(deps...), herd.WeakDeps, herd.WithCallback(s.RunStageOp("initramfs")))
+func (s *State) InitramfsStageDagStep(g *herd.Graph, deps herd.OpOption, weakDeps herd.OpOption) error {
+	return g.Add(cnst.OpInitramfsHook, deps, weakDeps, herd.WithCallback(s.RunStageOp("initramfs")))
 }
 
 // LoadEnvLayoutDagStep will add the stage to load from cos-layout.env and fill the proper CustomMounts, OverlayDirs and BindMounts.
@@ -163,11 +163,8 @@ func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, deps ...string) error {
 			// Parse custom mounts also from cmdline (rd.cos.mount=)
 			// Parse custom mounts also from cmdline (rd.immucore.mount=)
 			// Parse custom mounts also from env file (VOLUMES)
-			var mounts []string
-			mounts = internalUtils.CleanupSlice(internalUtils.ReadCMDLineArg("rd.cos.mount="))
-			mounts = append(mounts, internalUtils.CleanupSlice(internalUtils.ReadCMDLineArg("rd.immucore.mount="))...)
-			mounts = append(mounts, env["VOLUMES"])
-			for _, v := range mounts {
+
+			for _, v := range append(append(internalUtils.ReadCMDLineArg("rd.cos.mount="), internalUtils.ReadCMDLineArg("rd.immucore.mount=")...), strings.Split(env["VOLUMES"], " ")...) {
 				addLine(internalUtils.ParseMount(v))
 			}
 
@@ -257,6 +254,7 @@ func (s *State) MountCustomMountsDagStep(g *herd.Graph) error {
 		herd.WithDeps(cnst.OpLoadConfig),
 		herd.WithCallback(func(ctx context.Context) error {
 			var err *multierror.Error
+			internalUtils.Log.Debug().Interface("mounts", s.CustomMounts).Msg("Mounting custom mounts")
 
 			for what, where := range s.CustomMounts {
 				// TODO: scan for the custom mount disk to know the underlying fs and set it proper
@@ -470,4 +468,38 @@ func (s *State) LoadKernelModules(g *herd.Graph) error {
 			return nil
 		}),
 	)
+}
+
+// WaitForSysrootDagStep waits for the s.Rootdir and s.Rootdir/system paths to be there
+// Useful for livecd/netboot as we want to run steps after s.Rootdir is ready but we don't mount it ourselves.
+func (s *State) WaitForSysrootDagStep(g *herd.Graph) error {
+	return g.Add(cnst.OpWaitForSysroot,
+		herd.WithCallback(func(ctx context.Context) error {
+			cc := time.After(60 * time.Second)
+			for {
+				select {
+				default:
+					time.Sleep(2 * time.Second)
+					_, err := os.Stat(s.Rootdir)
+					if err != nil {
+						internalUtils.Log.Debug().Str("what", s.Rootdir).Msg("Checking path existence")
+						continue
+					}
+					_, err = os.Stat(filepath.Join(s.Rootdir, "system"))
+					if err != nil {
+						internalUtils.Log.Debug().Str("what", filepath.Join(s.Rootdir, "system")).Msg("Checking path existence")
+						continue
+					}
+					return nil
+				case <-ctx.Done():
+					e := fmt.Errorf("context canceled")
+					internalUtils.Log.Err(e).Str("what", s.Rootdir).Msg("filepath check canceled")
+					return e
+				case <-cc:
+					e := fmt.Errorf("timeout exhausted")
+					internalUtils.Log.Err(e).Str("what", s.Rootdir).Msg("filepath check timeout")
+					return e
+				}
+			}
+		}))
 }
