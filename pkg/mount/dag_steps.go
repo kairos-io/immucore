@@ -319,8 +319,8 @@ func (s *State) MountCustomBindsDagStep(g *herd.Graph) error {
 // Depends on everything but weak, so it will still try to write.
 func (s *State) WriteFstabDagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpWriteFstab,
-		herd.WithDeps(cnst.OpMountRoot, cnst.OpDiscoverState, cnst.OpLoadConfig, cnst.OpMountOEM, cnst.OpCustomMounts, cnst.OpMountBind, cnst.OpOverlayMount),
-		herd.WeakDeps,
+		herd.WithDeps(cnst.OpMountRoot, cnst.OpDiscoverState, cnst.OpLoadConfig),
+		herd.WithWeakDeps(cnst.OpMountOEM, cnst.OpCustomMounts, cnst.OpMountBind, cnst.OpOverlayMount),
 		herd.WithCallback(s.WriteFstab(s.path("/etc/fstab"))))
 }
 
