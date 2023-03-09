@@ -357,14 +357,6 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph) error {
 				sentinel = string(state.Unknown)
 			}
 
-			// Workaround for runtime not detecting netboot/rd.cos.disable/rd.immucore.disable as live_mode
-			// TODO: drop once the netboot/rd.cos.disable detection change is on the kairos sdk
-			cmdline, _ := os.ReadFile(internalUtils.GetHostProcCmdline())
-			cmdlineS := string(cmdline)
-			if strings.Contains(cmdlineS, "netboot") || len(internalUtils.ReadCMDLineArg("rd.cos.disable")) > 0 || len(internalUtils.ReadCMDLineArg("rd.immucore.disable")) > 0 {
-				sentinel = "live_mode"
-			}
-
 			internalUtils.Log.Info().Str("to", sentinel).Msg("Setting sentinel file")
 			err = os.WriteFile(filepath.Join("/run/cos/", sentinel), []byte("1"), os.ModePerm)
 			if err != nil {
@@ -372,7 +364,8 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph) error {
 			}
 
 			// Lets add a uki sentinel as well!
-			if strings.Contains(cmdlineS, "rd.immucore.uki") {
+			cmdline, _ := os.ReadFile(internalUtils.GetHostProcCmdline())
+			if strings.Contains(string(cmdline), "rd.immucore.uki") {
 				err = os.WriteFile("/run/cos/uki_mode", []byte("1"), os.ModePerm)
 				if err != nil {
 					return err

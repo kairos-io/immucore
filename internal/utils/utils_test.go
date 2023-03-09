@@ -330,6 +330,7 @@ var _ = Describe("mount utils", func() {
 					{
 						Name:            "device2",
 						FilesystemLabel: "COS_OEM",
+						Label:           "COS_OEM",
 						Type:            "ext4",
 						MountPoint:      "/oem",
 					},
