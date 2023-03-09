@@ -258,6 +258,7 @@ func GetOemLabel() string {
 	runtime, err := state.NewRuntime()
 	if err != nil {
 		Log.Debug().Err(err).Msg("runtime")
+		return ""
 	}
 	return runtime.OEM.Label
 }
