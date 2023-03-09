@@ -162,17 +162,8 @@ func GetState() string {
 	switch runtime.BootState {
 	case state.Active, state.Passive:
 		label = filepath.Join("/dev/disk/by-label/", runtime.State.Label)
-		// Workaround for ghw 0.10.0 while runtime uses the old one so it returns like everything is empty
-		// https://github.com/kairos-io/kairos/pull/1073
-		// This requires a bumped kairos sdk
-		if runtime.State.Label == "" {
-			label = "/dev/disk/by-label/COS_STATE"
-		}
 	case state.Recovery:
 		label = filepath.Join("/dev/disk/by-label/", runtime.Recovery.Label)
-		if runtime.Recovery.Label == "" {
-			label = "/dev/disk/by-label/COS_RECOVERY"
-		}
 	}
 	Log.Debug().Str("what", label).Msg("Get state label")
 	return label

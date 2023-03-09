@@ -852,6 +852,8 @@ github.com/google/pprof v0.0.0-20210601050228-01bbb1931b22/go.mod h1:kpwsk12EmLe
 github.com/google/pprof v0.0.0-20210609004039-a478d1d731e9/go.mod h1:kpwsk12EmLew5upagYY7GY0pfYCcupk39gWOCRROcvE=
 github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1 h1:K6RDEckDVWvDI9JAJYCmNdQXq6neHJOYx3V6jnqNEec=
 github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1/go.mod h1:kpwsk12EmLew5upagYY7GY0pfYCcupk39gWOCRROcvE=
+github.com/google/pprof v0.0.0-20230228050547-1710fef4ab10 h1:CqYfpuYIjnlNxM3msdyPRKabhXZWbKjf3Q8BWROFBso=
+github.com/google/pprof v0.0.0-20230228050547-1710fef4ab10/go.mod h1:79YE0hCXdHag9sBkw2o+N/YnZtTkXi0UT9Nnixa5eYk=
 github.com/google/renameio v0.1.0/go.mod h1:KWCgfxg9yswjAJkECMjeO8J8rahYeXnNhOm40UhjYkI=
 github.com/google/renameio v1.0.0 h1:xhp2CnJmgQmpJU4RY8chagahUq5mbPPAbiSQstKpVMA=
 github.com/google/renameio v1.0.0/go.mod h1:t/HQoYBZSsWSNK35C6CO/TpPLDVWvxOHboWUAweKUpk=
@@ -1063,6 +1065,10 @@ github.com/kairos-io/elemental-cli v0.1.0 h1:rx3J3YPaUIuPyMTb+5Nar+1GdUYAGFYEUkk
 github.com/kairos-io/elemental-cli v0.1.0/go.mod h1:QX1YLPTTSPOkoiYFtVQigDYeM7WqcLimFHgZS/sQbak=
 github.com/kairos-io/kairos v1.5.0 h1:aL+AvZ2EIyDxf2BaYQFeBejB06DfuAxxUqhtVAUtxb8=
 github.com/kairos-io/kairos v1.5.0/go.mod h1:Th2QAMG1Sze2d8S2vb/XjB/o3ap1yjQC+G/WzIX6v04=
+github.com/kairos-io/kairos v1.24.3-56.0.20230309150438-46f21494e301 h1:w3MxwZ66E3y29JQYUhBPm1yHke+XCjKKB1hsQa4c84w=
+github.com/kairos-io/kairos v1.24.3-56.0.20230309150438-46f21494e301/go.mod h1:fMHzLIulqB5J2TZOGYaMyO18eb3XIqhx9y/7PLjFAVw=
+github.com/kairos-io/kairos v1.24.3-56.0.20230309161837-a50b11904989 h1:U+cL7EEPtaJxnJT/ix73eVGJgujXWYtYbe4aWf2y4iw=
+github.com/kairos-io/kairos v1.24.3-56.0.20230309161837-a50b11904989/go.mod h1:MuKWsOjRevyfEe8Snbe1NZAKT1RzOLWvo2vKLTV4jjI=
 github.com/kendru/darwin/go/depgraph v0.0.0-20220319173517-8abc3541da93/go.mod h1:VOfm8h1NySetVlpHDSnbpCMsvCgYaU+YDn4XezUy2+4=
 github.com/kendru/darwin/go/depgraph v0.0.0-20221105232959-877d6a81060c h1:eKb4PqwAMhlqwXw0W3atpKaYaPGlXE/Fwh+xpCEYaPk=
 github.com/kendru/darwin/go/depgraph v0.0.0-20221105232959-877d6a81060c/go.mod h1:VOfm8h1NySetVlpHDSnbpCMsvCgYaU+YDn4XezUy2+4=
@@ -1267,6 +1273,8 @@ github.com/mudler/topsort v0.0.0-20201103161459-db5c7901c290 h1:426hFyXMpXeqIeGJ
 github.com/mudler/topsort v0.0.0-20201103161459-db5c7901c290/go.mod h1:uP5BBgFxq2wNWo7n1vnY5SSbgL0WDshVJrOO12tZ/lA=
 github.com/mudler/yip v0.11.5-0.20230124143654-91e88dfb6648 h1:+UZPjgWOTB1LyWI5qHTReIGXDSlXynGl2kIihi/lU98=
 github.com/mudler/yip v0.11.5-0.20230124143654-91e88dfb6648/go.mod h1:7d0bnZ326k/bmeTvLZL5ZQx4QNi0a7mfrnGzb+2ZkrA=
+github.com/mudler/yip v1.0.0 h1:GyW+XdkpS0PaAJh4rARiP8Bn/PmT+OOk190UJasO/z4=
+github.com/mudler/yip v1.0.0/go.mod h1:YJBE9DrPfBnNG+BmTy3zpI8dzZ2JJCEbZkrmvuHuNGQ=
 github.com/munnerz/goautoneg v0.0.0-20120707110453-a547fc61f48d/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
@@ -1878,6 +1886,8 @@ golang.org/x/crypto v0.1.0/go.mod h1:RecgLatLF4+eUMCP1PoPZQb+cVrJcOPbHkTkbkB9sbw
 golang.org/x/crypto v0.3.0/go.mod h1:hebNnKkNXi2UzZN1eVRvBB7co0a+JxK6XbPiWVs/3J4=
 golang.org/x/crypto v0.5.0 h1:U/0M97KRkSFvyD/3FSmdP5W5swImpNgle/EHFhOsQPE=
 golang.org/x/crypto v0.5.0/go.mod h1:NK/OQwhpMQP3MwtdjgLlYHnH9ebylxKWv3e0fK+mkQU=
+golang.org/x/crypto v0.6.0 h1:qfktjS5LUO+fFKeJXZ+ikTRijMmljikvG68fpMMruSc=
+golang.org/x/crypto v0.6.0/go.mod h1:OFC/31mSvZgRz0V1QTNCzfAI1aIRzbiufJtkMIlEp58=
 golang.org/x/exp v0.0.0-20190121172915-509febef88a4/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
 golang.org/x/exp v0.0.0-20190125153040-c74c464bbbf2/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
 golang.org/x/exp v0.0.0-20190306152737-a1d7652674e8/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
