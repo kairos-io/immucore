@@ -16,10 +16,15 @@ require (
 	github.com/onsi/gomega v1.27.2
 	github.com/rs/zerolog v1.29.0
 	github.com/spectrocloud-labs/herd v0.4.2
-	github.com/twpayne/go-vfs v1.7.2
+	github.com/twpayne/go-vfs/v4 v4.2.0
 	github.com/urfave/cli/v2 v2.25.0
 	golang.org/x/sys v0.5.0
 	gopkg.in/yaml.v3 v3.0.1
+)
+
+require (
+	github.com/sirupsen/logrus v1.8.1
+	github.com/twpayne/go-vfs v1.7.2
 )
 
 require (
@@ -93,7 +98,6 @@ require (
 	github.com/satori/go.uuid v1.2.1-0.20180404165556-75cca531ea76 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
-	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/tredoe/osutil/v2 v2.0.0-rc.16 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
