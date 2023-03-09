@@ -11,11 +11,11 @@ require (
 	github.com/kairos-io/kairos v1.5.0
 	github.com/moby/sys/mountinfo v0.6.2
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
-	github.com/mudler/yip v0.11.4
+	github.com/mudler/yip v1.0.0
 	github.com/onsi/ginkgo/v2 v2.9.0
 	github.com/onsi/gomega v1.27.2
 	github.com/rs/zerolog v1.29.0
-	github.com/sirupsen/logrus v1.8.1
+	github.com/sirupsen/logrus v1.9.0
 	github.com/spectrocloud-labs/herd v0.4.2
 	github.com/twpayne/go-vfs v1.7.2
 	github.com/urfave/cli/v2 v2.25.0
@@ -23,10 +23,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require (
-	github.com/rancher/elemental-cli v0.2.1
-	github.com/sirupsen/logrus v1.8.1
-)
+require github.com/rancher/elemental-cli v0.2.1
 
 require (
 	atomicgo.dev/cursor v0.1.1 // indirect
@@ -47,9 +44,9 @@ require (
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/crillab/gophersat v1.3.2-0.20210701121804-72b19f5b6b38 // indirect
-	github.com/davidcassany/linuxkit/pkg/metadata v0.0.0-20220725140037-b49d0fec13b3 // indirect
+	github.com/davidcassany/linuxkit/pkg/metadata v0.0.0-20230124104020-93ac9dd5b8e1 // indirect
 	github.com/denisbrodbeck/machineid v1.0.1 // indirect
-	github.com/diskfs/go-diskfs v1.2.1-0.20211109185859-9509735ba7a4 // indirect
+	github.com/diskfs/go-diskfs v1.2.1-0.20230123115902-fce1828bbbfa // indirect
 	github.com/distribution/distribution v2.8.1+incompatible // indirect
 	github.com/docker/distribution v2.8.0+incompatible // indirect
 	github.com/docker/docker v20.10.17+incompatible // indirect
@@ -95,7 +92,7 @@ require (
 	github.com/moby/libnetwork v0.8.0-dev.2.0.20200612180813-9e99af28df21 // indirect
 	github.com/moby/moby v20.10.9+incompatible // indirect
 	github.com/moby/sys/mount v0.3.0 // indirect
-	github.com/mudler/entities v0.0.0-20211108084227-d1414478861b // indirect
+	github.com/mudler/entities v0.0.0-20220905203055-68348bae0f49 // indirect
 	github.com/mudler/luet v0.0.0-20220526130937-264bf53fe7ab // indirect
 	github.com/mudler/topsort v0.0.0-20201103161459-db5c7901c290 // indirect
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
@@ -103,13 +100,13 @@ require (
 	github.com/opencontainers/image-spec v1.0.3-0.20211202183452-c5a74bcca799 // indirect
 	github.com/opencontainers/runc v1.1.2 // indirect
 	github.com/otiai10/copy v1.2.1-0.20200916181228-26f84a0b1578 // indirect
-	github.com/packethost/packngo v0.25.0 // indirect
+	github.com/packethost/packngo v0.29.0 // indirect
 	github.com/phayes/permbits v0.0.0-20190612203442-39d7c581d2ee // indirect
 	github.com/philopon/go-toposort v0.0.0-20170620085441-9be86dbd762f // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/pilebones/go-udev v0.0.0-20210126000448-a3c2a7a4afb7 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/pkg/xattr v0.4.7 // indirect
+	github.com/pkg/xattr v0.4.9 // indirect
 	github.com/pterm/pterm v0.12.54 // indirect
 	github.com/qeesung/image2ascii v1.0.1 // indirect
 	github.com/rivo/uniseg v0.4.3 // indirect
@@ -120,9 +117,9 @@ require (
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/tredoe/osutil/v2 v2.0.0-rc.16 // indirect
-	github.com/ulikunitz/xz v0.5.10 // indirect
+	github.com/ulikunitz/xz v0.5.11 // indirect
 	github.com/vishvananda/netlink v1.1.1-0.20210330154013-f5de75959ad5 // indirect
-	github.com/vishvananda/netns v0.0.0-20211101163701-50045581ed74 // indirect
+	github.com/vishvananda/netns v0.0.4 // indirect
 	github.com/wayneashleyberry/terminal-dimensions v1.1.0 // indirect
 	github.com/willdonnelly/passwd v0.0.0-20141013001024-7935dab3074c // indirect
 	github.com/xanzy/ssh-agent v0.3.1 // indirect
