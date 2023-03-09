@@ -161,9 +161,9 @@ func GetState() string {
 	}
 	switch runtime.BootState {
 	case state.Active, state.Passive:
-		label = filepath.Join("/dev/disk/by-label/", runtime.State.Label)
+		label = filepath.Join("/dev/disk/by-label/", runtime.State.FilesystemLabel)
 	case state.Recovery:
-		label = filepath.Join("/dev/disk/by-label/", runtime.Recovery.Label)
+		label = filepath.Join("/dev/disk/by-label/", runtime.Recovery.FilesystemLabel)
 	}
 	Log.Debug().Str("what", label).Msg("Get state label")
 	return label
