@@ -10,6 +10,7 @@ import (
 	"github.com/mudler/yip/pkg/console"
 	"github.com/mudler/yip/pkg/executor"
 	"github.com/mudler/yip/pkg/logger"
+	"github.com/mudler/yip/pkg/plugins"
 	"github.com/mudler/yip/pkg/schema"
 	"github.com/sirupsen/logrus"
 	"github.com/twpayne/go-vfs"
@@ -19,6 +20,32 @@ import (
 func NewYipExecutor(l logger.Interface) executor.Executor {
 	exec := executor.NewExecutor(
 		executor.WithLogger(l),
+		executor.WithConditionals(
+			plugins.NodeConditional,
+			plugins.IfConditional,
+		),
+		executor.WithPlugins(
+			// Note, the plugin execution order depends on the order passed here
+			plugins.DNS,
+			plugins.Download,
+			plugins.Git,
+			plugins.Entities,
+			plugins.EnsureDirectories,
+			plugins.EnsureFiles,
+			plugins.Commands,
+			plugins.DeleteEntities,
+			plugins.Hostname,
+			plugins.Sysctl,
+			plugins.User,
+			plugins.SSH,
+			plugins.LoadModules,
+			plugins.Timesyncd,
+			plugins.Systemctl,
+			plugins.Environment,
+			plugins.SystemdFirstboot,
+			plugins.DataSources,
+			YipLayoutPlugin,
+		),
 	)
 	return exec
 }
