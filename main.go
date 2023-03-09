@@ -43,7 +43,6 @@ func main() {
 			TargetDevice:  targetDevice,
 			TargetImage:   targetImage,
 			RootMountMode: utils.RootRW(),
-			OemTimout:     utils.GetOemTimeout(),
 			OverlayBase:   utils.GetOverlayBase(),
 		}
 

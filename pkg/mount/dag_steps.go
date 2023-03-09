@@ -176,6 +176,10 @@ func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, deps ...string) error {
 func (s *State) MountOemDagStep(g *herd.Graph, deps ...string) error {
 	return g.Add(cnst.OpMountOEM,
 		herd.WithDeps(deps...),
+		herd.EnableIf(func() bool {
+			// Check if we can get the label. If we cant then we don't run this step
+			return internalUtils.GetOemLabel() != ""
+		}),
 		herd.WithCallback(
 			s.MountOP(
 				fmt.Sprintf("/dev/disk/by-label/%s", internalUtils.GetOemLabel()),
@@ -187,7 +191,7 @@ func (s *State) MountOemDagStep(g *herd.Graph, deps ...string) error {
 					"dev",
 					"exec",
 					"async",
-				}, time.Duration(s.OemTimout)*time.Second),
+				}, time.Duration(internalUtils.GetOemTimeout())*time.Second),
 		),
 	)
 }
