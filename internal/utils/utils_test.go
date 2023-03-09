@@ -328,10 +328,10 @@ var _ = Describe("mount utils", func() {
 				Name: "device",
 				Partitions: []*block.Partition{
 					{
-						Name:       "device2",
-						Label:      "COS_OEM",
-						Type:       "ext4",
-						MountPoint: "/oem",
+						Name:            "device2",
+						FilesystemLabel: "COS_OEM",
+						Type:            "ext4",
+						MountPoint:      "/oem",
 					},
 				},
 			}

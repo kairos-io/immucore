@@ -7,8 +7,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/jaypipes/ghw"
+	"github.com/jaypipes/ghw/pkg/block"
 	"github.com/joho/godotenv"
+	"github.com/kairos-io/kairos/pkg/utils"
 	"github.com/kairos-io/kairos/sdk/state"
 )
 
@@ -158,8 +162,17 @@ func GetState() string {
 	switch runtime.BootState {
 	case state.Active, state.Passive:
 		label = filepath.Join("/dev/disk/by-label/", runtime.State.Label)
+		// Workaround for ghw 0.10.0 while runtime uses the old one so it returns like everything is empty
+		// https://github.com/kairos-io/kairos/pull/1073
+		// This requires a bumped kairos sdk
+		if runtime.State.Label == "" {
+			label = "/dev/disk/by-label/COS_STATE"
+		}
 	case state.Recovery:
 		label = filepath.Join("/dev/disk/by-label/", runtime.Recovery.Label)
+		if runtime.Recovery.Label == "" {
+			label = "/dev/disk/by-label/COS_RECOVERY"
+		}
 	}
 	Log.Debug().Str("what", label).Msg("Get state label")
 	return label
@@ -195,4 +208,25 @@ func GetHostProcCmdline() string {
 		return "/proc/cmdline"
 	}
 	return proc
+}
+
+// GetPartByLabel will identify the device by a given label.
+func GetPartByLabel(label string, attempts int) (string, error) {
+	for tries := 0; tries < attempts; tries++ {
+		_, _ = utils.SH("udevadm settle")
+		blockDevices, err := block.New(ghw.WithDisableTools(), ghw.WithDisableWarnings())
+		if err != nil {
+			return "", err
+		}
+		for _, d := range blockDevices.Disks {
+			for _, part := range d.Partitions {
+				Log.Info().Interface("part", part).Str("label", label).Msg("getpartbylabel")
+				if part.FilesystemLabel == label {
+					return filepath.Join("/dev/", part.Name), nil
+				}
+			}
+		}
+		time.Sleep(1 * time.Second)
+	}
+	return "", errors.New("no device found")
 }
