@@ -12,7 +12,6 @@ import (
 	"github.com/deniswernert/go-fstab"
 	"github.com/kairos-io/immucore/internal/constants"
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
-	"github.com/kairos-io/kairos/pkg/utils"
 	"github.com/rs/zerolog"
 	"github.com/spectrocloud-labs/herd"
 )
@@ -71,12 +70,6 @@ func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 // If its uki we don't symlink as we already have everything in the sysroot.
 func (s *State) RunStageOp(stage string) func(context.Context) error {
 	return func(ctx context.Context) error {
-		cmd := fmt.Sprintf("elemental run-stage %s", stage)
-		// If we set the level to debug, also call elemental with debug
-		if internalUtils.Log.GetLevel() == zerolog.DebugLevel {
-			cmd = fmt.Sprintf("%s --debug", cmd)
-		}
-
 		switch stage {
 		case "rootfs":
 			if !internalUtils.IsUKI() {
@@ -93,25 +86,26 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 					}
 				}
 			}
-			output, err := utils.SH(cmd)
+
 			internalUtils.Log.Info().Msg("Running rootfs stage")
-			f, ferr := os.Create(filepath.Join(constants.LogDir, "rootfs_stage.log"))
-			if ferr == nil {
-				_, _ = f.WriteString(output)
-				_ = f.Close()
+			output, err := internalUtils.RunStage("rootfs")
+			e := os.WriteFile(filepath.Join(constants.LogDir, "rootfs_stage.log"), output.Bytes(), os.ModePerm)
+			if e != nil {
+				internalUtils.Log.Err(e).Msg("Writing log for rootfs stage")
 			}
 			return err
 		case "initramfs":
 			// Not sure if it will work under UKI where the s.Rootdir is the current root already
 			internalUtils.Log.Info().Msg("Running initramfs stage")
 			chroot := internalUtils.NewChroot(s.Rootdir)
-			output, err := chroot.Run(cmd)
-			f, ferr := os.Create(filepath.Join(constants.LogDir, "initramfs_stage.log"))
-			if ferr == nil {
-				_, _ = f.WriteString(output)
-				_ = f.Close()
-			}
-			return err
+			return chroot.RunCallback(func() error {
+				output, err := internalUtils.RunStage("initramfs")
+				e := os.WriteFile(filepath.Join(constants.LogDir, "initramfs_stage.log"), output.Bytes(), os.ModePerm)
+				if e != nil {
+					internalUtils.Log.Err(e).Msg("Writing log for initramfs stage")
+				}
+				return err
+			})
 		default:
 			return errors.New("no stage that we know off")
 		}
