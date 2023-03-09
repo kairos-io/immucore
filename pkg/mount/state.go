@@ -26,12 +26,9 @@ type State struct {
 	OverlayDirs  []string          // e.g. /var
 	BindMounts   []string          // e.g. /etc/kubernetes
 	CustomMounts map[string]string // e.g. diskid : mountpoint
-
-	OverlayBase string // Overlay config, defaults to tmpfs:20%
-	OemTimout   int    // Time to wait for the oem to time out if not found, defaults to 5s
-
-	StateDir string // e.g. "/usr/local/.state"
-	fstabs   []*fstab.Mount
+	OverlayBase  string            // Overlay config, defaults to tmpfs:20%
+	StateDir     string            // e.g. "/usr/local/.state"
+	fstabs       []*fstab.Mount
 }
 
 func (s *State) path(p ...string) string {
