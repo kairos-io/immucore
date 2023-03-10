@@ -2,7 +2,15 @@ module github.com/kairos-io/immucore
 
 go 1.19
 
+// replace any upstream elemental dep with our own
 replace github.com/rancher/elemental-cli v0.2.1 => github.com/kairos-io/elemental-cli v0.1.0
+
+replace github.com/rancher/elemental-cli v0.2.0 => github.com/kairos-io/elemental-cli v0.1.0
+
+// Until yip is fixed, replace with an older known working version
+replace github.com/mudler/yip v1.0.0 => github.com/mudler/yip v0.11.5-0.20230124143654-91e88dfb6648
+
+replace github.com/mudler/yip v1.0.1 => github.com/mudler/yip v0.11.5-0.20230124143654-91e88dfb6648
 
 require (
 	github.com/containerd/containerd v1.6.19
@@ -13,10 +21,10 @@ require (
 	github.com/kairos-io/kairos v1.24.3-56.0.20230309161837-a50b11904989
 	github.com/moby/sys/mountinfo v0.6.2
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
-	github.com/mudler/yip v1.0.1
+	github.com/mudler/yip v1.0.0
 	github.com/onsi/ginkgo/v2 v2.9.0
 	github.com/onsi/gomega v1.27.2
-	github.com/rancher/elemental-cli v0.2.1
+	github.com/rancher/elemental-cli v0.2.0
 	github.com/rs/zerolog v1.29.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spectrocloud-labs/herd v0.4.2
@@ -73,7 +81,6 @@ require (
 	github.com/hashicorp/go-version v1.3.0 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
-	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/ishidawataru/sctp v0.0.0-20210707070123-9a39160e9062 // indirect
 	github.com/itchyny/gojq v0.12.11 // indirect
 	github.com/itchyny/timefmt-go v0.1.5 // indirect
@@ -117,8 +124,6 @@ require (
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
-	github.com/spf13/cobra v1.6.1 // indirect
-	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/tredoe/osutil/v2 v2.0.0-rc.16 // indirect
 	github.com/ulikunitz/xz v0.5.11 // indirect
 	github.com/vishvananda/netlink v1.2.1-beta.2 // indirect
