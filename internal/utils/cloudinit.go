@@ -56,9 +56,9 @@ func RunStage(stage string) (bytes.Buffer, error) {
 	var buffer bytes.Buffer
 	log := logrus.New()
 	log.SetOutput(&buffer)
-	log.SetLevel(logrus.DebugLevel)
+	log.SetLevel(logrus.InfoLevel)
 	yip := NewYipExecutor(log)
-	c := console.NewStandardConsole(console.WithLogger(log))
+	c := ImmucoreConsole{}
 
 	stageBefore := fmt.Sprintf("%s.before", stage)
 	stageAfter := fmt.Sprintf("%s.after", stage)

@@ -330,8 +330,9 @@ func (s *State) WriteFstabDagStep(g *herd.Graph) error {
 
 // WriteSentinelDagStep sets the sentinel file to identify the boot mode.
 // This is used by several things to know in which state they are, for example cloud configs.
-func (s *State) WriteSentinelDagStep(g *herd.Graph) error {
+func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 	return g.Add(cnst.OpSentinel,
+		herd.WithDeps(deps...),
 		herd.WithCallback(func(ctx context.Context) error {
 			var sentinel string
 
@@ -376,13 +377,75 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph) error {
 		}))
 }
 
+func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
+	type mount struct {
+		where string
+		what  string
+		fs    string
+		flags uintptr
+		data  string
+	}
+
+	return g.Add(
+		cnst.OpUkiBaseMounts,
+		herd.WithCallback(
+			func(ctx context.Context) error {
+				var err error
+				mounts := []mount{
+					{
+						"/run",
+						"tmpfs",
+						"tmpfs",
+						syscall.MS_NOSUID | syscall.MS_NODEV | syscall.MS_NOEXEC | syscall.MS_RELATIME,
+						"mode=755",
+					},
+					{
+						"/sys",
+						"sysfs",
+						"sysfs",
+						syscall.MS_NOSUID | syscall.MS_NODEV | syscall.MS_NOEXEC | syscall.MS_RELATIME,
+						"",
+					},
+					{
+						"/dev",
+						"devtmpfs",
+						"devtmpfs",
+						syscall.MS_NOSUID,
+						"mode=755",
+					},
+					{
+						"/tmp",
+						"tmpfs",
+						"tmpfs",
+						syscall.MS_NOSUID | syscall.MS_NODEV,
+						"",
+					},
+				}
+				for _, m := range mounts {
+					e := os.MkdirAll(m.where, 0755)
+					if e != nil {
+						err = multierror.Append(err, e)
+						internalUtils.Log.Err(e).Msg("Creating dir")
+					}
+					e = syscall.Mount(m.what, m.where, m.fs, m.flags, m.data)
+					if e != nil {
+						err = multierror.Append(err, e)
+						internalUtils.Log.Err(e).Str("what", m.what).Str("where", m.where).Str("type", m.fs).Msg("Mounting")
+					}
+				}
+				return err
+			},
+		),
+	)
+}
+
 // UKIBootInitDagStep tries to launch /sbin/init in root and pass over the system
 // booting to the real init process
 // Drops to emergency if not able to. Panic if it cant even launch emergency.
-func (s *State) UKIBootInitDagStep(g *herd.Graph, deps ...string) error {
+func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpUkiInit,
-		herd.WithDeps(deps...),
-		herd.WeakDeps,
+		herd.WithDeps(),
+		herd.WithWeakDeps(cnst.OpRemountRootRO, cnst.OpRootfsHook, cnst.OpInitramfsHook, cnst.OpWriteFstab),
 		herd.WithCallback(func(ctx context.Context) error {
 			// Print dag before exit, otherwise its never printed as we never exit the program
 			internalUtils.Log.Info().Msg(s.WriteDAG(g))
@@ -400,11 +463,20 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph, deps ...string) error {
 }
 
 // UKIRemountRootRODagStep remount root read only.
-func (s *State) UKIRemountRootRODagStep(g *herd.Graph, deps ...string) error {
+func (s *State) UKIRemountRootRODagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpRemountRootRO,
-		herd.WithDeps(deps...),
+		herd.WithDeps(cnst.OpRootfsHook),
 		herd.WithCallback(func(ctx context.Context) error {
-			return syscall.Mount("/", "/", "rootfs", syscall.MS_REMOUNT|syscall.MS_RDONLY, "")
+			var err error
+			for i := 1; i < 5; i++ {
+				time.Sleep(1 * time.Second)
+				// Should we try to stop udev here?
+				err = syscall.Mount("", "/", "", syscall.MS_REMOUNT|syscall.MS_RDONLY, "")
+				if err != nil {
+					continue
+				}
+			}
+			return err
 		}),
 	)
 }
@@ -413,6 +485,7 @@ func (s *State) UKIRemountRootRODagStep(g *herd.Graph, deps ...string) error {
 // Needed if we expect to find devices by label...
 func (s *State) UKIUdevDaemon(g *herd.Graph) error {
 	return g.Add(cnst.OpUkiUdev,
+		herd.WithDeps(cnst.OpUkiBaseMounts, cnst.OpUkiKernelModules),
 		herd.WithCallback(func(ctx context.Context) error {
 			// Should probably figure out other udevd binaries....
 			var udevBin string
@@ -448,7 +521,8 @@ func (s *State) UKIUdevDaemon(g *herd.Graph) error {
 // Mainly block devices and net devices
 // probably others down the line.
 func (s *State) LoadKernelModules(g *herd.Graph) error {
-	return g.Add("kernel-modules",
+	return g.Add(cnst.OpUkiKernelModules,
+		herd.WithDeps(cnst.OpUkiBaseMounts),
 		herd.WithCallback(func(ctx context.Context) error {
 			drivers, err := kdetect.ProbeKernelModules("")
 			if err != nil {
