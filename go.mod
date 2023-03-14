@@ -18,7 +18,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jaypipes/ghw v0.10.0
 	github.com/joho/godotenv v1.5.1
-	github.com/kairos-io/kairos v1.24.3-56.0.20230309161837-a50b11904989
+	github.com/kairos-io/kairos v1.24.3-56.0.20230314145656-451c41ec1725
 	github.com/moby/sys/mountinfo v0.6.2
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
 	github.com/mudler/yip v1.0.0
@@ -115,9 +115,9 @@ require (
 	github.com/pilebones/go-udev v0.0.0-20210126000448-a3c2a7a4afb7 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/xattr v0.4.9 // indirect
-	github.com/pterm/pterm v0.12.54 // indirect
+	github.com/pterm/pterm v0.12.55 // indirect
 	github.com/qeesung/image2ascii v1.0.1 // indirect
-	github.com/rivo/uniseg v0.4.3 // indirect
+	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/samber/lo v1.37.0 // indirect
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b // indirect
