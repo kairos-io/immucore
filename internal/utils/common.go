@@ -191,6 +191,23 @@ func CommandWithPath(c string) (string, error) {
 	return string(o), err
 }
 
+// PrepareCommandWithPath prepares a cmd with the proper env
+// For running under yip.
+func PrepareCommandWithPath(c string) *exec.Cmd {
+	cmd := exec.Command("/bin/sh", "-c", c)
+	cmd.Env = os.Environ()
+	pathAppend := "/usr/bin:/usr/sbin:/bin:/sbin"
+	// try to extract any existing path from the environment
+	for _, env := range cmd.Env {
+		splitted := strings.Split(env, "=")
+		if splitted[0] == "PATH" {
+			pathAppend = fmt.Sprintf("%s:%s", pathAppend, splitted[1])
+		}
+	}
+	cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%s", pathAppend))
+	return cmd
+}
+
 // GetHostProcCmdline returns the path to /proc/cmdline
 // Mainly used to override the cmdline during testing.
 func GetHostProcCmdline() string {
@@ -211,7 +228,6 @@ func GetPartByLabel(label string, attempts int) (string, error) {
 		}
 		for _, d := range blockDevices.Disks {
 			for _, part := range d.Partitions {
-				Log.Info().Interface("part", part).Str("label", label).Msg("getpartbylabel")
 				if part.FilesystemLabel == label {
 					return filepath.Join("/dev/", part.Name), nil
 				}

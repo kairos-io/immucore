@@ -85,7 +85,12 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 			}
 
 			internalUtils.Log.Info().Msg("Running rootfs stage")
-			output, err := internalUtils.RunStage("rootfs")
+			output, _ := internalUtils.RunStage("rootfs")
+			internalUtils.Log.Debug().Msg(output.String())
+			err := internalUtils.CreateIfNotExists(constants.LogDir)
+			if err != nil {
+				return err
+			}
 			e := os.WriteFile(filepath.Join(constants.LogDir, "rootfs_stage.log"), output.Bytes(), os.ModePerm)
 			if e != nil {
 				internalUtils.Log.Err(e).Msg("Writing log for rootfs stage")
@@ -96,7 +101,12 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 			internalUtils.Log.Info().Msg("Running initramfs stage")
 			chroot := internalUtils.NewChroot(s.Rootdir)
 			return chroot.RunCallback(func() error {
-				output, err := internalUtils.RunStage("initramfs")
+				output, _ := internalUtils.RunStage("initramfs")
+				internalUtils.Log.Debug().Msg(output.String())
+				err := internalUtils.CreateIfNotExists(constants.LogDir)
+				if err != nil {
+					return err
+				}
 				e := os.WriteFile(filepath.Join(constants.LogDir, "initramfs_stage.log"), output.Bytes(), os.ModePerm)
 				if e != nil {
 					internalUtils.Log.Err(e).Msg("Writing log for initramfs stage")
