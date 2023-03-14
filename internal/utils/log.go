@@ -27,14 +27,12 @@ func SetLogger() {
 	loggers = append(loggers, zerolog.ConsoleWriter{Out: os.Stderr})
 
 	multi := zerolog.MultiLevelWriter(loggers...)
-	Log = zerolog.New(multi).With().Logger()
-	Log.WithLevel(zerolog.InfoLevel)
+	Log = zerolog.New(multi).With().Logger().Level(zerolog.InfoLevel)
 
 	// Set debug logger
 	debug := len(ReadCMDLineArg("rd.immucore.debug")) > 0
 	debugFromEnv := os.Getenv("IMMUCORE_DEBUG") != ""
 	if debug || debugFromEnv {
-		Log = zerolog.New(multi).With().Caller().Logger()
-		Log.WithLevel(zerolog.DebugLevel)
+		Log = zerolog.New(multi).With().Caller().Logger().Level(zerolog.DebugLevel)
 	}
 }
