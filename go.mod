@@ -7,11 +7,6 @@ replace github.com/rancher/elemental-cli v0.2.1 => github.com/kairos-io/elementa
 
 replace github.com/rancher/elemental-cli v0.2.0 => github.com/kairos-io/elemental-cli v0.1.0
 
-// Until yip is fixed, replace with an older known working version
-replace github.com/mudler/yip v1.0.0 => github.com/mudler/yip v0.11.5-0.20230124143654-91e88dfb6648
-
-replace github.com/mudler/yip v1.0.1 => github.com/mudler/yip v0.11.5-0.20230124143654-91e88dfb6648
-
 require (
 	github.com/containerd/containerd v1.6.19
 	github.com/deniswernert/go-fstab v0.0.0-20141204152952-eb4090f26517
@@ -21,7 +16,7 @@ require (
 	github.com/kairos-io/kairos v1.24.3-56.0.20230309161837-a50b11904989
 	github.com/moby/sys/mountinfo v0.6.2
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
-	github.com/mudler/yip v1.0.0
+	github.com/mudler/yip v1.0.2
 	github.com/onsi/ginkgo/v2 v2.9.1
 	github.com/onsi/gomega v1.27.4
 	github.com/rancher/elemental-cli v0.2.0
@@ -82,7 +77,7 @@ require (
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/ishidawataru/sctp v0.0.0-20210707070123-9a39160e9062 // indirect
-	github.com/itchyny/gojq v0.12.11 // indirect
+	github.com/itchyny/gojq v0.12.12 // indirect
 	github.com/itchyny/timefmt-go v0.1.5 // indirect
 	github.com/jaypipes/pcidb v1.0.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
@@ -117,7 +112,7 @@ require (
 	github.com/pkg/xattr v0.4.9 // indirect
 	github.com/pterm/pterm v0.12.54 // indirect
 	github.com/qeesung/image2ascii v1.0.1 // indirect
-	github.com/rivo/uniseg v0.4.3 // indirect
+	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/samber/lo v1.37.0 // indirect
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b // indirect
