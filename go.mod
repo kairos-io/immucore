@@ -7,11 +7,6 @@ replace github.com/rancher/elemental-cli v0.2.1 => github.com/kairos-io/elementa
 
 replace github.com/rancher/elemental-cli v0.2.0 => github.com/kairos-io/elemental-cli v0.1.0
 
-// Until yip is fixed, replace with an older known working version
-replace github.com/mudler/yip v1.0.0 => github.com/mudler/yip v0.11.5-0.20230124143654-91e88dfb6648
-
-replace github.com/mudler/yip v1.0.1 => github.com/mudler/yip v0.11.5-0.20230124143654-91e88dfb6648
-
 require (
 	github.com/containerd/containerd v1.6.19
 	github.com/deniswernert/go-fstab v0.0.0-20141204152952-eb4090f26517
