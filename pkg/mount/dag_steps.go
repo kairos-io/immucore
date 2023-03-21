@@ -236,6 +236,7 @@ func (s *State) MountCustomOverlayDagStep(g *herd.Graph) error {
 				var multierr *multierror.Error
 				internalUtils.Log.Debug().Strs("dirs", s.OverlayDirs).Msg("Mounting overlays")
 				for _, p := range s.OverlayDirs {
+					internalUtils.Log.Debug().Str("what", p).Msg("Overlay mount start")
 					op := mountWithBaseOverlay(p, s.Rootdir, "/run/overlay")
 					err := op.run()
 					// Append to errors only if it's not an already mounted error
@@ -245,6 +246,7 @@ func (s *State) MountCustomOverlayDagStep(g *herd.Graph) error {
 						continue
 					}
 					s.fstabs = append(s.fstabs, &op.FstabEntry)
+					internalUtils.Log.Debug().Str("what", p).Msg("Overlay mount done")
 				}
 				return multierr.ErrorOrNil()
 			},
@@ -261,6 +263,7 @@ func (s *State) MountCustomMountsDagStep(g *herd.Graph) error {
 			internalUtils.Log.Debug().Interface("mounts", s.CustomMounts).Msg("Mounting custom mounts")
 
 			for what, where := range s.CustomMounts {
+				internalUtils.Log.Debug().Str("what", what).Str("where", where).Msg("Custom mount start")
 				// TODO: scan for the custom mount disk to know the underlying fs and set it proper
 				fstype := "ext4"
 				mountOptions := []string{"ro"}
@@ -281,6 +284,7 @@ func (s *State) MountCustomMountsDagStep(g *herd.Graph) error {
 				if err2 != nil && !strings.Contains(what, "COS_OEM") {
 					err = multierror.Append(err, err2)
 				}
+				internalUtils.Log.Debug().Str("what", what).Str("where", where).Msg("Custom mount done")
 			}
 			internalUtils.Log.Err(err.ErrorOrNil()).Send()
 
@@ -293,13 +297,14 @@ func (s *State) MountCustomMountsDagStep(g *herd.Graph) error {
 // mount state is defined over a custom mount (/usr/local/.state for instance, needs to be mounted over a device).
 func (s *State) MountCustomBindsDagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpMountBind,
-		herd.WithDeps(cnst.OpCustomMounts, cnst.OpLoadConfig),
+		herd.WithDeps(cnst.OpOverlayMount, cnst.OpCustomMounts, cnst.OpLoadConfig),
 		herd.WithCallback(
 			func(ctx context.Context) error {
 				var err *multierror.Error
 				internalUtils.Log.Debug().Strs("mounts", s.BindMounts).Msg("Mounting binds")
 
 				for _, p := range s.BindMounts {
+					internalUtils.Log.Debug().Str("what", p).Msg("Bind mount start")
 					op := mountBind(p, s.Rootdir, s.StateDir)
 					err2 := op.run()
 					if err2 == nil {
@@ -311,6 +316,7 @@ func (s *State) MountCustomBindsDagStep(g *herd.Graph) error {
 						internalUtils.Log.Err(err2).Send()
 						err = multierror.Append(err, err2)
 					}
+					internalUtils.Log.Debug().Str("what", p).Msg("Bind mount end")
 				}
 				internalUtils.Log.Err(err.ErrorOrNil()).Send()
 				return err.ErrorOrNil()

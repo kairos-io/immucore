@@ -82,7 +82,7 @@ func checkLiveCDDag(dag [][]herd.GraphEntry, actualDag string) {
 
 }
 func checkDag(dag [][]herd.GraphEntry, actualDag string) {
-	Expect(len(dag)).To(Equal(11), actualDag)
+	Expect(len(dag)).To(Equal(12), actualDag)
 	Expect(len(dag[0])).To(Equal(1), actualDag)
 	Expect(len(dag[1])).To(Equal(3), actualDag)
 	Expect(len(dag[2])).To(Equal(1), actualDag)
@@ -91,9 +91,10 @@ func checkDag(dag [][]herd.GraphEntry, actualDag string) {
 	Expect(len(dag[5])).To(Equal(1), actualDag)
 	Expect(len(dag[6])).To(Equal(1), actualDag)
 	Expect(len(dag[7])).To(Equal(2), actualDag)
-	Expect(len(dag[8])).To(Equal(2), actualDag)
+	Expect(len(dag[8])).To(Equal(1), actualDag)
 	Expect(len(dag[9])).To(Equal(1), actualDag)
 	Expect(len(dag[10])).To(Equal(1), actualDag)
+	Expect(len(dag[11])).To(Equal(1), actualDag)
 
 	Expect(dag[0][0].Name).To(Equal("init"))
 	Expect(dag[1][0].Name).To(Or(
@@ -118,8 +119,8 @@ func checkDag(dag [][]herd.GraphEntry, actualDag string) {
 	Expect(dag[6][0].Name).To(Equal(cnst.OpLoadConfig), actualDag)
 	Expect(dag[7][0].Name).To(Or(Equal(cnst.OpMountBaseOverlay), Equal(cnst.OpCustomMounts)), actualDag)
 	Expect(dag[7][1].Name).To(Or(Equal(cnst.OpMountBaseOverlay), Equal(cnst.OpCustomMounts)), actualDag)
-	Expect(dag[8][0].Name).To(Or(Equal(cnst.OpMountBind), Equal(cnst.OpOverlayMount)), actualDag)
-	Expect(dag[8][1].Name).To(Or(Equal(cnst.OpMountBind), Equal(cnst.OpOverlayMount)), actualDag)
-	Expect(dag[9][0].Name).To(Equal(cnst.OpWriteFstab), actualDag)
-	Expect(dag[10][0].Name).To(Equal(cnst.OpInitramfsHook), actualDag)
+	Expect(dag[8][0].Name).To(Equal(cnst.OpOverlayMount), actualDag)
+	Expect(dag[9][0].Name).To(Equal(cnst.OpMountBind), actualDag)
+	Expect(dag[10][0].Name).To(Equal(cnst.OpWriteFstab), actualDag)
+	Expect(dag[11][0].Name).To(Equal(cnst.OpInitramfsHook), actualDag)
 }
