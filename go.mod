@@ -1,6 +1,6 @@
 module github.com/kairos-io/immucore
 
-go 1.19
+go 1.20
 
 // replace any upstream elemental dep with our own
 replace github.com/rancher/elemental-cli v0.2.1 => github.com/kairos-io/elemental-cli v0.1.0
