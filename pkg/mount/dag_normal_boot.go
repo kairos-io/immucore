@@ -27,7 +27,7 @@ func (s *State) RegisterNormalBoot(g *herd.Graph) error {
 	s.LogIfError(s.MountOemDagStep(g, cnst.OpMountRoot), "oem mount")
 
 	// Run yip stage rootfs. Requires root+oem+sentinel to be mounted
-	s.LogIfError(s.RootfsStageDagStep(g, cnst.OpMountRoot, cnst.OpMountOEM, cnst.OpSentinel), "running rootfs stage")
+	s.LogIfError(s.RootfsStageDagStep(g, herd.WithDeps(cnst.OpMountRoot, cnst.OpMountOEM, cnst.OpSentinel)), "running rootfs stage")
 
 	// Populate state bind mounts, overlay mounts, custom-mounts from /run/cos/cos-layout.env
 	// Requires stage rootfs to have run, which usually creates the cos-layout.env file

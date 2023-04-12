@@ -260,5 +260,5 @@ func GetOemLabel() string {
 		Log.Debug().Err(err).Msg("runtime")
 		return ""
 	}
-	return runtime.OEM.Label
+	return runtime.OEM.FilesystemLabel
 }

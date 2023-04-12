@@ -102,13 +102,13 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 }
 
 // RootfsStageDagStep will add the rootfs stage.
-func (s *State) RootfsStageDagStep(g *herd.Graph, deps ...string) error {
-	return g.Add(cnst.OpRootfsHook, herd.WithDeps(deps...), herd.WithCallback(s.RunStageOp("rootfs")))
+func (s *State) RootfsStageDagStep(g *herd.Graph, opts ...herd.OpOption) error {
+	return g.Add(cnst.OpRootfsHook, append(opts, herd.WithCallback(s.RunStageOp("rootfs")))...)
 }
 
 // InitramfsStageDagStep will add the rootfs stage.
-func (s *State) InitramfsStageDagStep(g *herd.Graph, deps herd.OpOption, weakDeps herd.OpOption) error {
-	return g.Add(cnst.OpInitramfsHook, deps, weakDeps, herd.WithCallback(s.RunStageOp("initramfs")))
+func (s *State) InitramfsStageDagStep(g *herd.Graph, opts ...herd.OpOption) error {
+	return g.Add(cnst.OpInitramfsHook, append(opts, herd.WithCallback(s.RunStageOp("initramfs")))...)
 }
 
 // LoadEnvLayoutDagStep will add the stage to load from cos-layout.env and fill the proper CustomMounts, OverlayDirs and BindMounts.
@@ -177,8 +177,14 @@ func (s *State) MountOemDagStep(g *herd.Graph, deps ...string) error {
 	return g.Add(cnst.OpMountOEM,
 		herd.WithDeps(deps...),
 		herd.EnableIf(func() bool {
-			// Check if we can get the label. If we cant then we don't run this step
-			return internalUtils.GetOemLabel() != ""
+			runtime, _ := state.NewRuntime()
+			switch runtime.BootState {
+			// Don't run this on LiveCD/Netboot
+			case state.LiveCD:
+				return false
+			default:
+				return internalUtils.GetOemLabel() != ""
+			}
 		}),
 		herd.WithCallback(
 			s.MountOP(

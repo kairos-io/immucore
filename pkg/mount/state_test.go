@@ -68,17 +68,19 @@ var _ = Describe("mounting immutable setup", func() {
 })
 
 func checkLiveCDDag(dag [][]herd.GraphEntry, actualDag string) {
-	Expect(len(dag)).To(Equal(4), actualDag)
+	Expect(len(dag)).To(Equal(5), actualDag)
 	Expect(len(dag[0])).To(Equal(1), actualDag)
 	Expect(len(dag[1])).To(Equal(2), actualDag)
 	Expect(len(dag[2])).To(Equal(1), actualDag)
 	Expect(len(dag[3])).To(Equal(1), actualDag)
+	Expect(len(dag[4])).To(Equal(1), actualDag)
 
 	Expect(dag[0][0].Name).To(Equal("init"))
 	Expect(dag[1][0].Name).To(Or(Equal(cnst.OpSentinel), Equal(cnst.OpWaitForSysroot)), actualDag)
 	Expect(dag[1][1].Name).To(Or(Equal(cnst.OpSentinel), Equal(cnst.OpWaitForSysroot)), actualDag)
-	Expect(dag[2][0].Name).To(Equal(cnst.OpRootfsHook), actualDag)
-	Expect(dag[3][0].Name).To(Equal(cnst.OpInitramfsHook), actualDag)
+	Expect(dag[2][0].Name).To(Equal(cnst.OpMountOEM), actualDag)
+	Expect(dag[3][0].Name).To(Equal(cnst.OpRootfsHook), actualDag)
+	Expect(dag[4][0].Name).To(Equal(cnst.OpInitramfsHook), actualDag)
 
 }
 func checkDag(dag [][]herd.GraphEntry, actualDag string) {
