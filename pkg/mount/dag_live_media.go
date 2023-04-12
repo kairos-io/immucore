@@ -14,8 +14,13 @@ func (s *State) RegisterLiveMedia(g *herd.Graph) error {
 	// Waits for sysroot to be there, just in case
 	s.LogIfError(s.WaitForSysrootDagStep(g), "Waiting for sysroot")
 	// Run rootfs
-	s.LogIfError(s.RootfsStageDagStep(g, cnst.OpSentinel, cnst.OpWaitForSysroot), "rootfs stage")
+
+	// Try to mount oem ONLY if we are on recovery squash
+	// The check to see if its enabled its on the DAG step itself
+	s.LogIfError(s.MountOemDagStep(g, cnst.OpWaitForSysroot), "oem mount")
+
+	s.LogIfError(s.RootfsStageDagStep(g, herd.WithDeps(cnst.OpSentinel, cnst.OpWaitForSysroot), herd.WithWeakDeps(cnst.OpMountOEM)), "rootfs stage")
 	// Run initramfs inside the /sysroot chroot!
-	s.LogIfError(s.InitramfsStageDagStep(g, herd.WithDeps(cnst.OpSentinel, cnst.OpWaitForSysroot, cnst.OpRootfsHook), herd.WithWeakDeps()), "initramfs stage")
+	s.LogIfError(s.InitramfsStageDagStep(g, herd.WithDeps(cnst.OpSentinel, cnst.OpWaitForSysroot, cnst.OpRootfsHook), herd.WithWeakDeps(cnst.OpMountOEM)), "initramfs stage")
 	return err
 }

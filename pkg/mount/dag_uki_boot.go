@@ -20,7 +20,7 @@ func (s *State) RegisterUKI(g *herd.Graph) error {
 	s.LogIfError(s.UKIUdevDaemon(g), "udev")
 
 	// Run rootfs stage
-	s.LogIfError(s.RootfsStageDagStep(g, cnst.OpSentinel, cnst.OpUkiUdev), "uki rootfs")
+	s.LogIfError(s.RootfsStageDagStep(g, herd.WithDeps(cnst.OpSentinel, cnst.OpUkiUdev)), "uki rootfs")
 
 	// Remount root RO
 	s.LogIfError(s.UKIRemountRootRODagStep(g), "remount root")
@@ -43,7 +43,7 @@ func (s *State) RegisterUKI(g *herd.Graph) error {
 	s.LogIfError(s.MountCustomBindsDagStep(g), "custom binds mount")
 
 	// run initramfs stage
-	s.LogIfError(s.InitramfsStageDagStep(g, herd.WithDeps(cnst.OpMountBind), herd.WithWeakDeps()), "uki initramfs")
+	s.LogIfError(s.InitramfsStageDagStep(g, herd.WithDeps(cnst.OpMountBind)), "uki initramfs")
 
 	s.LogIfError(g.Add(cnst.OpWriteFstab,
 		herd.WithDeps(cnst.OpLoadConfig, cnst.OpCustomMounts, cnst.OpMountBind, cnst.OpOverlayMount),
