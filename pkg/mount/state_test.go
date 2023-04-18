@@ -86,7 +86,7 @@ func checkLiveCDDag(dag [][]herd.GraphEntry, actualDag string) {
 func checkDag(dag [][]herd.GraphEntry, actualDag string) {
 	Expect(len(dag)).To(Equal(12), actualDag)
 	Expect(len(dag[0])).To(Equal(1), actualDag)
-	Expect(len(dag[1])).To(Equal(3), actualDag)
+	Expect(len(dag[1])).To(Equal(4), actualDag)
 	Expect(len(dag[2])).To(Equal(1), actualDag)
 	Expect(len(dag[3])).To(Equal(1), actualDag)
 	Expect(len(dag[4])).To(Equal(1), actualDag)
@@ -103,16 +103,25 @@ func checkDag(dag [][]herd.GraphEntry, actualDag string) {
 		Equal(cnst.OpMountTmpfs),
 		Equal(cnst.OpSentinel),
 		Equal(cnst.OpMountState),
+		Equal(cnst.OpLvmActivate),
 	), actualDag)
 	Expect(dag[1][1].Name).To(Or(
 		Equal(cnst.OpMountTmpfs),
 		Equal(cnst.OpSentinel),
 		Equal(cnst.OpMountState),
+		Equal(cnst.OpLvmActivate),
 	), actualDag)
 	Expect(dag[1][2].Name).To(Or(
 		Equal(cnst.OpMountTmpfs),
 		Equal(cnst.OpSentinel),
 		Equal(cnst.OpMountState),
+		Equal(cnst.OpLvmActivate),
+	), actualDag)
+	Expect(dag[1][3].Name).To(Or(
+		Equal(cnst.OpMountTmpfs),
+		Equal(cnst.OpSentinel),
+		Equal(cnst.OpMountState),
+		Equal(cnst.OpLvmActivate),
 	), actualDag)
 	Expect(dag[2][0].Name).To(Equal(cnst.OpDiscoverState), actualDag)
 	Expect(dag[3][0].Name).To(Equal(cnst.OpMountRoot), actualDag)

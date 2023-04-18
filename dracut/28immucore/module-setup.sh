@@ -7,7 +7,7 @@ check() {
 
 # called by dracut 
 depends() {
-    echo rootfs-block dm fs-lib
+    echo rootfs-block dm fs-lib lvm
     return 0
 }
 
@@ -27,9 +27,11 @@ install() {
     inst_multiple kcrypt partprobe sync udevadm parted mkfs.ext2 mkfs.ext3 mkfs.ext4 mkfs.vfat mkfs.fat blkid e2fsck resize2fs mount umount sgdisk rsync
     # missing mkfs.xfs xfs_growfs in image?
     inst_script "${moddir}/generator.sh" "${systemdutildir}/system-generators/immucore-generator"
+    # SERVICES FOR SYSTEMD-BASED SYSTEMS
     inst_simple "${moddir}/immucore.service" "${systemdsystemunitdir}/immucore.service"
     mkdir -p "${initdir}/${systemdsystemunitdir}/initrd.target.requires"
     ln_r "../immucore.service" "${systemdsystemunitdir}/initrd.target.requires/immucore.service"
+    # END SYSTEMD SERVICES
 
     dracut_need_initqueue
 }

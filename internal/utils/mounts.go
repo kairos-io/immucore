@@ -262,3 +262,18 @@ func GetOemLabel() string {
 	}
 	return runtime.OEM.FilesystemLabel
 }
+
+func ActivateLVM() error {
+	// Remove the /etc/lvm/lvm.conf file
+	// Otherwise, it has a default locking setting which activates the volumes on readonly
+	// This would be the same as passing rd.lvm.conf=0 in cmdline but rather do it here than add an extra option to cmdline
+	_, _ = CommandWithPath("rm /etc/lvm/lvm.conf")
+	out, err := CommandWithPath("lvm vgchange --refresh --sysinit")
+	Log.Debug().Str("out", out).Msg("vgchange")
+	if err != nil {
+		Log.Err(err).Msg("vgchange")
+	}
+
+	_, _ = CommandWithPath("udevadm --trigger")
+	return err
+}

@@ -34,6 +34,7 @@ const (
 	OpUkiBaseMounts       = "uki-base-mounts"
 	OpUkiKernelModules    = "uki-kernel-modules"
 	OpWaitForSysroot      = "wait-for-sysroot"
+	OpLvmActivate         = "lvm-activation"
 	PersistentStateTarget = "/usr/local/.state"
 	LogDir                = "/run/immucore"
 	LinuxFs               = "ext4"
