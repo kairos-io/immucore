@@ -12,7 +12,7 @@ import (
 func (s *State) RegisterNormalBoot(g *herd.Graph) error {
 	var err error
 
-	s.LogIfError(s.LvmActivation(g), "lvm activation")
+	s.LogIfError(s.LVMActivation(g), "lvm activation")
 
 	// Maybe LogIfErrorAndPanic ? If no sentinel, a lot of config files are not going to run
 	if err = s.LogIfErrorAndReturn(s.WriteSentinelDagStep(g), "write sentinel"); err != nil {
