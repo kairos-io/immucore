@@ -121,6 +121,7 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 
 // MountOP creates and executes a mount operation.
 func (s *State) MountOP(what, where, t string, options []string, timeout time.Duration) func(context.Context) error {
+
 	l := internalUtils.Log.With().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Logger().Level(zerolog.InfoLevel)
 	// Not sure why this defaults to debuglevel when creating a sublogger, so make sure we set it properly
 	debug := len(internalUtils.ReadCMDLineArg("rd.immucore.debug")) > 0
@@ -133,6 +134,12 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 		for {
 			select {
 			default:
+				// check fs type just-in-time before running the OP
+				fsType := internalUtils.DiskFSType(what)
+				// If not empty and it does not match
+				if fsType != "" && t != fsType {
+					t = fsType
+				}
 				err := internalUtils.CreateIfNotExists(where)
 				if err != nil {
 					l.Err(err).Msg("Creating dir")

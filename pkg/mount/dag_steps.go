@@ -586,3 +586,10 @@ func (s *State) WaitForSysrootDagStep(g *herd.Graph) error {
 			}
 		}))
 }
+
+// LvmActivation will try to activate lvm volumes/groups on the system.
+func (s *State) LVMActivation(g *herd.Graph) error {
+	return g.Add(cnst.OpLvmActivate, herd.WithCallback(func(ctx context.Context) error {
+		return internalUtils.ActivateLVM()
+	}))
+}

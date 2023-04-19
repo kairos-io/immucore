@@ -12,7 +12,8 @@ import (
 func (s *State) RegisterNormalBoot(g *herd.Graph) error {
 	var err error
 
-	// TODO: add hooks, fstab (might have missed some), systemd compat, fsck
+	s.LogIfError(s.LVMActivation(g), "lvm activation")
+
 	// Maybe LogIfErrorAndPanic ? If no sentinel, a lot of config files are not going to run
 	if err = s.LogIfErrorAndReturn(s.WriteSentinelDagStep(g), "write sentinel"); err != nil {
 		return err
@@ -24,7 +25,7 @@ func (s *State) RegisterNormalBoot(g *herd.Graph) error {
 	s.LogIfError(s.MountRootDagStep(g), "running mount root stage")
 
 	// Mount COS_OEM (After root as it mounts under s.Rootdir/oem)
-	s.LogIfError(s.MountOemDagStep(g, cnst.OpMountRoot), "oem mount")
+	s.LogIfError(s.MountOemDagStep(g, cnst.OpMountRoot, cnst.OpLvmActivate), "oem mount")
 
 	// Run yip stage rootfs. Requires root+oem+sentinel to be mounted
 	s.LogIfError(s.RootfsStageDagStep(g, herd.WithDeps(cnst.OpMountRoot, cnst.OpMountOEM, cnst.OpSentinel)), "running rootfs stage")
