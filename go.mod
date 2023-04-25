@@ -18,7 +18,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jaypipes/ghw v0.10.0
 	github.com/joho/godotenv v1.5.1
-	github.com/kairos-io/kairos v1.24.3-56.0.20230309161837-a50b11904989
+	github.com/kairos-io/kairos/v2 v2.0.3
 	github.com/moby/sys/mountinfo v0.6.2
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
 	github.com/mudler/yip v1.0.0
