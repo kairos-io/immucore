@@ -12,8 +12,8 @@ import (
 	"github.com/jaypipes/ghw"
 	"github.com/jaypipes/ghw/pkg/block"
 	"github.com/joho/godotenv"
-	"github.com/kairos-io/kairos/pkg/utils"
-	"github.com/kairos-io/kairos/sdk/state"
+	"github.com/kairos-io/kairos-sdk/state"
+	"github.com/kairos-io/kairos-sdk/utils"
 )
 
 // BootStateToLabelDevice lets us know the device we need to mount sysroot on based on labels.
