@@ -13,6 +13,7 @@ replace github.com/mudler/yip v1.0.0 => github.com/mudler/yip v0.11.5-0.20230124
 replace github.com/mudler/yip v1.0.1 => github.com/mudler/yip v0.11.5-0.20230124143654-91e88dfb6648
 
 require (
+	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/containerd/containerd v1.6.19
 	github.com/deniswernert/go-fstab v0.0.0-20141204152952-eb4090f26517
 	github.com/hashicorp/go-multierror v1.1.1

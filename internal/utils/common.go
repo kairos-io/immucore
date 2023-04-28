@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/avast/retry-go"
 	"github.com/jaypipes/ghw"
 	"github.com/jaypipes/ghw/pkg/block"
 	"github.com/joho/godotenv"
@@ -155,18 +156,37 @@ func RootRW() string {
 // This is only valid for either active/passive or normal recovery.
 func GetState() string {
 	var label string
-	runtime, err := state.NewRuntime()
+
+	err := retry.Do(
+		func() error {
+			r, err := state.NewRuntime()
+			if err != nil {
+				return err
+			}
+			switch r.BootState {
+			case state.Active, state.Passive:
+				label = r.State.FilesystemLabel
+			case state.Recovery:
+				label = r.Recovery.FilesystemLabel
+			}
+			if label == "" {
+				return errors.New("could not get label")
+			}
+			return nil
+		},
+		retry.Delay(1*time.Second),
+		retry.Attempts(10),
+		retry.DelayType(retry.FixedDelay),
+		retry.OnRetry(func(n uint, err error) {
+			Log.Debug().Uint("try", n).Msg("Cannot get state label, retrying")
+		}),
+	)
 	if err != nil {
-		return label
+		Log.Panic().Err(err).Msg("Could not get state label")
 	}
-	switch runtime.BootState {
-	case state.Active, state.Passive:
-		label = filepath.Join("/dev/disk/by-label/", runtime.State.FilesystemLabel)
-	case state.Recovery:
-		label = filepath.Join("/dev/disk/by-label/", runtime.Recovery.FilesystemLabel)
-	}
+
 	Log.Debug().Str("what", label).Msg("Get state label")
-	return label
+	return filepath.Join("/dev/disk/by-label/", label)
 }
 
 func IsUKI() bool {
