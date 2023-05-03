@@ -35,6 +35,7 @@ const (
 	OpUkiKernelModules    = "uki-kernel-modules"
 	OpWaitForSysroot      = "wait-for-sysroot"
 	OpLvmActivate         = "lvm-activation"
+	OpKcryptUnlock        = "unlock-all"
 	PersistentStateTarget = "/usr/local/.state"
 	LogDir                = "/run/immucore"
 	LinuxFs               = "ext4"
