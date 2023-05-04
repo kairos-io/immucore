@@ -24,8 +24,11 @@ func (s *State) RegisterNormalBoot(g *herd.Graph) error {
 	// Mount Root (COS_STATE or COS_RECOVERY and then the image active/passive/recovery under s.Rootdir)
 	s.LogIfError(s.MountRootDagStep(g), "running mount root stage")
 
+	// Run unlock. Depends on mount root because it needs the kcrypt-discovery-challenger available under /sysroot
+	s.LogIfError(s.RunKcrypt(g, herd.WithDeps(cnst.OpMountRoot)), "kcrypt unlock")
+
 	// Mount COS_OEM (After root as it mounts under s.Rootdir/oem)
-	s.LogIfError(s.MountOemDagStep(g, cnst.OpMountRoot, cnst.OpLvmActivate), "oem mount")
+	s.LogIfError(s.MountOemDagStep(g, cnst.OpMountRoot, cnst.OpLvmActivate, cnst.OpKcryptUnlock), "oem mount")
 
 	// Run yip stage rootfs. Requires root+oem+sentinel to be mounted
 	s.LogIfError(s.RootfsStageDagStep(g, herd.WithDeps(cnst.OpMountRoot, cnst.OpMountOEM, cnst.OpSentinel)), "running rootfs stage")

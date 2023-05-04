@@ -15,6 +15,7 @@ import (
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/kairos-sdk/state"
 	"github.com/kairos-io/kairos-sdk/utils"
+	kcrypt "github.com/kairos-io/kcrypt/pkg/lib"
 	"github.com/mudler/go-kdetect"
 	"github.com/spectrocloud-labs/herd"
 	"golang.org/x/sys/unix"
@@ -587,9 +588,15 @@ func (s *State) WaitForSysrootDagStep(g *herd.Graph) error {
 		}))
 }
 
-// LvmActivation will try to activate lvm volumes/groups on the system.
+// LVMActivation will try to activate lvm volumes/groups on the system.
 func (s *State) LVMActivation(g *herd.Graph) error {
 	return g.Add(cnst.OpLvmActivate, herd.WithCallback(func(ctx context.Context) error {
 		return internalUtils.ActivateLVM()
 	}))
+}
+
+// RunKcrypt will run the UnlockAll method of kcrypt to unlock the encrypted partitions
+// Requires sysroot to be mounted as the kcrypt-challenger binary is not injected in the initramfs.
+func (s *State) RunKcrypt(g *herd.Graph, opts ...herd.OpOption) error {
+	return g.Add(cnst.OpKcryptUnlock, append(opts, herd.WithCallback(func(ctx context.Context) error { return kcrypt.UnlockAll() }))...)
 }
