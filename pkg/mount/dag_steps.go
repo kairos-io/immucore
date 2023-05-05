@@ -90,8 +90,6 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 					"suid",
 					"dev",
 					"exec",
-					// "auto",
-					//"nouser",
 					"async",
 				}, 10*time.Second),
 		),

@@ -44,6 +44,7 @@ func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 		}
 		f.Close()
 		for _, fst := range s.fstabs {
+			internalUtils.Log.Debug().Str("what", fst.String()).Msg("Adding line to fstab")
 			select {
 			case <-ctx.Done():
 			default:
@@ -122,11 +123,11 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 // MountOP creates and executes a mount operation.
 func (s *State) MountOP(what, where, t string, options []string, timeout time.Duration) func(context.Context) error {
 
-	l := internalUtils.Log.With().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Logger().Level(zerolog.InfoLevel)
+	l := internalUtils.Log.With().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Logger()
 	// Not sure why this defaults to debuglevel when creating a sublogger, so make sure we set it properly
 	debug := len(internalUtils.ReadCMDLineArg("rd.immucore.debug")) > 0
 	if debug {
-		l.Level(zerolog.DebugLevel)
+		l = l.Level(zerolog.DebugLevel)
 	}
 
 	return func(c context.Context) error {
@@ -165,8 +166,12 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 
 				err = op.run()
 
-				if err == nil {
-					s.fstabs = append(s.fstabs, tmpFstab)
+				// If no error on mounting or error is already mounted, as that affects the sysroot
+				// for some reason it reports that its already mounted (systemd is mounting it behind our back!).
+				if err == nil || err != nil && errors.Is(err, constants.ErrAlreadyMounted) {
+					s.AddToFstab(tmpFstab)
+				} else {
+					l.Debug().Err(err).Msg("Mount not added to fstab")
 				}
 
 				// only continue the loop if it's an error and not an already mounted error
@@ -229,5 +234,20 @@ func (s *State) LogIfErrorAndPanic(e error, msgContext string) {
 	if e != nil {
 		internalUtils.Log.Err(e).Msg(msgContext)
 		internalUtils.Log.Fatal().Msg(e.Error())
+	}
+}
+
+// AddToFstab will try to add an entry to the fstab list
+// Will check if the entry exists before adding it to avoid duplicates.
+func (s *State) AddToFstab(tmpFstab *fstab.Mount) {
+	found := false
+	for _, f := range s.fstabs {
+		if f.Spec == tmpFstab.Spec {
+			internalUtils.Log.Debug().Interface("existing", f).Interface("duplicated", tmpFstab).Msg("Duplicated fstab entry found, not adding")
+			found = true
+		}
+	}
+	if !found {
+		s.fstabs = append(s.fstabs, tmpFstab)
 	}
 }
