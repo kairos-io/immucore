@@ -598,3 +598,12 @@ func (s *State) LVMActivation(g *herd.Graph) error {
 func (s *State) RunKcrypt(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpKcryptUnlock, append(opts, herd.WithCallback(func(ctx context.Context) error { return kcrypt.UnlockAll() }))...)
 }
+
+// RunKcryptUpgrade will upgrade encrypted partitions created with 1.x to the new 2.x format, where
+// we inspect the uuid of the partition directly to know which label to use for the key
+// As those old installs haven an old agent the only way to do it is during the first boot after the upgrade to the newest immucore.
+func (s *State) RunKcryptUpgrade(g *herd.Graph, opts ...herd.OpOption) error {
+	return g.Add(cnst.OpKcryptUpgrade, append(opts, herd.WithCallback(func(ctx context.Context) error {
+		return internalUtils.UpgradeKcryptPartitions()
+	}))...)
+}
