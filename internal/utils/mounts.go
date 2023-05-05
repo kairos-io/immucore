@@ -66,7 +66,7 @@ func IsMounted(dev string) bool {
 func DiskFSType(s string) string {
 	out, e := CommandWithPath(fmt.Sprintf("blkid %s -s TYPE -o value", s))
 	if e != nil {
-		Log.Err(e).Msg("blkid")
+		Log.Debug().Err(e).Msg("blkid")
 	}
 	out = strings.Trim(strings.Trim(out, " "), "\n")
 	Log.Debug().Str("what", s).Str("type", out).Msg("Partition FS type")
@@ -123,6 +123,7 @@ func CleanSysrootForFstab(path string) string {
 	if cleaned == "" {
 		cleaned = "/"
 	}
+	Log.Debug().Str("old", path).Str("new", cleaned).Msg("Cleaning for sysroot")
 	return cleaned
 }
 
