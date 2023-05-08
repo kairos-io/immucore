@@ -291,7 +291,7 @@ func (s *State) MountCustomMountsDagStep(g *herd.Graph) error {
 				}
 				internalUtils.Log.Debug().Str("what", what).Str("where", where).Msg("Custom mount done")
 			}
-			internalUtils.Log.Err(err.ErrorOrNil()).Send()
+			internalUtils.Log.Warn().Err(err.ErrorOrNil()).Send()
 
 			return err.ErrorOrNil()
 		}),
@@ -323,7 +323,7 @@ func (s *State) MountCustomBindsDagStep(g *herd.Graph) error {
 					}
 					internalUtils.Log.Debug().Str("what", p).Msg("Bind mount end")
 				}
-				internalUtils.Log.Err(err.ErrorOrNil()).Send()
+				internalUtils.Log.Warn().Err(err.ErrorOrNil()).Send()
 				return err.ErrorOrNil()
 			},
 		),

@@ -27,14 +27,14 @@ func (m mountOperation) run() error {
 
 	if m.PrepareCallback != nil {
 		if err := m.PrepareCallback(); err != nil {
-			l.Err(err).Msg("executing mount callback")
+			l.Warn().Err(err).Msg("executing mount callback")
 			return err
 		}
 	}
 	//TODO: not only check if mounted but also if the type,options and source are the same?
 	mounted, err := mountinfo.Mounted(m.Target)
 	if err != nil {
-		l.Err(err).Msg("checking mount status")
+		l.Warn().Err(err).Msg("checking mount status")
 		return err
 	}
 	if mounted {
