@@ -82,6 +82,7 @@ func main() {
 			Name:  "version",
 			Usage: "version",
 			Action: func(c *cli.Context) error {
+				utils.SetLogger()
 				v := version.Get()
 				utils.Log.Info().Str("commit", v.GitCommit).Str("compiled with", v.GoVersion).Str("version", v.Version).Msg("Immucore")
 				return nil

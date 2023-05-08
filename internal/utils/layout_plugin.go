@@ -15,7 +15,7 @@ import (
 
 // YipLayoutPlugin is the immucore implementation of Layout yip's plugin based
 // on partitioner package.
-func YipLayoutPlugin(l logger.Interface, s schema.Stage, fs vfs.FS, console plugins.Console) (err error) {
+func YipLayoutPlugin(l logger.Interface, s schema.Stage, _ vfs.FS, _ plugins.Console) (err error) {
 	if s.Layout.Device == nil {
 		return nil
 	}
