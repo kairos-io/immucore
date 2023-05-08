@@ -36,6 +36,7 @@ const (
 	OpWaitForSysroot      = "wait-for-sysroot"
 	OpLvmActivate         = "lvm-activation"
 	OpKcryptUnlock        = "unlock-all"
+	OpKcryptUpgrade       = "upgrade-kcrypt"
 	PersistentStateTarget = "/usr/local/.state"
 	LogDir                = "/run/immucore"
 	LinuxFs               = "ext4"

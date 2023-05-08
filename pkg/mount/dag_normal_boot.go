@@ -24,11 +24,17 @@ func (s *State) RegisterNormalBoot(g *herd.Graph) error {
 	// Mount Root (COS_STATE or COS_RECOVERY and then the image active/passive/recovery under s.Rootdir)
 	s.LogIfError(s.MountRootDagStep(g), "running mount root stage")
 
-	// Run unlock. Depends on mount root because it needs the kcrypt-discovery-challenger available under /sysroot
-	s.LogIfError(s.RunKcrypt(g, herd.WithDeps(cnst.OpMountRoot)), "kcrypt unlock")
+	// Upgrade kcrypt partitions to kcrypt 0.6.0 if any
+	// Depend on LVM in case the LVM is encrypted somehow? Not sure if possible.
+	s.LogIfError(s.RunKcryptUpgrade(g, herd.WithDeps(cnst.OpLvmActivate)), "upgrade kcrypt partitions")
+
+	// Run unlock.
+	// Depends on mount root because it needs the kcrypt-discovery-challenger available under /sysroot
+	// Depends on OpKcryptUpgrade until we don't support upgrading from 1.X to the current version
+	s.LogIfError(s.RunKcrypt(g, herd.WithDeps(cnst.OpMountRoot, cnst.OpKcryptUpgrade)), "kcrypt unlock")
 
 	// Mount COS_OEM (After root as it mounts under s.Rootdir/oem)
-	s.LogIfError(s.MountOemDagStep(g, cnst.OpMountRoot, cnst.OpLvmActivate, cnst.OpKcryptUnlock), "oem mount")
+	s.LogIfError(s.MountOemDagStep(g, cnst.OpMountRoot, cnst.OpLvmActivate), "oem mount")
 
 	// Run yip stage rootfs. Requires root+oem+sentinel to be mounted
 	s.LogIfError(s.RootfsStageDagStep(g, herd.WithDeps(cnst.OpMountRoot, cnst.OpMountOEM, cnst.OpSentinel)), "running rootfs stage")
