@@ -28,13 +28,14 @@ func (s *State) RegisterNormalBoot(g *herd.Graph) error {
 	// Depend on LVM in case the LVM is encrypted somehow? Not sure if possible.
 	s.LogIfError(s.RunKcryptUpgrade(g, herd.WithDeps(cnst.OpLvmActivate)), "upgrade kcrypt partitions")
 
+	// Mount COS_OEM (After root as it mounts under s.Rootdir/oem)
+	s.LogIfError(s.MountOemDagStep(g, cnst.OpMountRoot, cnst.OpLvmActivate), "oem mount")
+
 	// Run unlock.
 	// Depends on mount root because it needs the kcrypt-discovery-challenger available under /sysroot
 	// Depends on OpKcryptUpgrade until we don't support upgrading from 1.X to the current version
-	s.LogIfError(s.RunKcrypt(g, herd.WithDeps(cnst.OpMountRoot, cnst.OpKcryptUpgrade)), "kcrypt unlock")
-
-	// Mount COS_OEM (After root as it mounts under s.Rootdir/oem)
-	s.LogIfError(s.MountOemDagStep(g, cnst.OpMountRoot, cnst.OpLvmActivate), "oem mount")
+	// Depends on mount oem to read the server configuration
+	s.LogIfError(s.RunKcrypt(g, herd.WithDeps(cnst.OpMountRoot, cnst.OpKcryptUpgrade, cnst.OpMountOEM)), "kcrypt unlock")
 
 	// Run yip stage rootfs. Requires root+oem+sentinel to be mounted
 	s.LogIfError(s.RootfsStageDagStep(g, herd.WithDeps(cnst.OpMountRoot, cnst.OpMountOEM, cnst.OpSentinel)), "running rootfs stage")
