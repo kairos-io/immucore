@@ -4,11 +4,15 @@ VERSION 0.6
 # Framework images should use our initrd
 ARG FLAVOR=core-opensuse-leap
 ARG BASE_IMAGE=quay.io/kairos/$FLAVOR
-ARG OSBUILDER_IMAGE=quay.io/kairos/osbuilder-tools
+# renovate: datasource=docker depName=quay.io/kairos/osbuilder-tools versioning=semver-coerced
+ARG OSBUILDER_VERSION=v0.6.4
+ARG OSBUILDER_IMAGE=quay.io/kairos/osbuilder-tools:$OSBUILDER_VERSION
 ARG ISO_NAME=$FLAVOR-immucore
 
-ARG GO_VERSION=1.18
-ARG GOLINT_VERSION=v1.47.3
+# renovate: datasource=docker depName=golang
+ARG GO_VERSION=1.20
+# renovate: datasource=docker depName=golangci/golangci-lint
+ARG GOLINT_VERSION=v1.52.2
 
 version:
     FROM alpine
