@@ -23,6 +23,7 @@ install() {
     declare systemdsystemunitdir=${systemdsystemunitdir}
 
     inst_multiple immucore
+    inst_multiple kairos-agent
     # add utils used by yip stages
     inst_multiple partprobe sync udevadm parted mkfs.ext2 mkfs.ext3 mkfs.ext4 mkfs.vfat mkfs.fat blkid e2fsck resize2fs mount umount sgdisk rsync cryptsetup
     # missing mkfs.xfs xfs_growfs in image?
