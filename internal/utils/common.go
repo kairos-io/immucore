@@ -165,11 +165,10 @@ func GetState() string {
 			}
 			switch r.BootState {
 			case state.Active, state.Passive:
-				label = r.State.FilesystemLabel
+				label = "COS_STATE"
 			case state.Recovery:
-				label = r.Recovery.FilesystemLabel
-			}
-			if label == "" {
+				label = "COS_RECOVERY"
+			default:
 				return errors.New("could not get label")
 			}
 			return nil
