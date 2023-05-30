@@ -136,11 +136,14 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 			select {
 			default:
 				// check fs type just-in-time before running the OP
-				fsType := internalUtils.DiskFSType(what)
-				// If not empty and it does not match
-				if fsType != "" && t != fsType {
-					t = fsType
+				if t != "tmpfs" {
+					fsType := internalUtils.DiskFSType(what)
+					// If not empty and it does not match
+					if fsType != "" && t != fsType {
+						t = fsType
+					}
 				}
+
 				err := internalUtils.CreateIfNotExists(where)
 				if err != nil {
 					l.Err(err).Msg("Creating dir")

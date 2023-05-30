@@ -60,7 +60,7 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 					return nil
 				}
 				_ = internalUtils.Fsck(s.path("/run/initramfs/cos-state", s.TargetImage))
-				cmd := fmt.Sprintf("losetup --show -f %s", s.path("/run/initramfs/cos-state", s.TargetImage))
+				cmd := fmt.Sprintf("losetup -f %s", s.path("/run/initramfs/cos-state", s.TargetImage))
 				_, err := utils.SH(cmd)
 				s.LogIfError(err, "losetup")
 				// Trigger udevadm

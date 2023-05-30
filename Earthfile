@@ -73,6 +73,11 @@ build-immucore:
     RUN CGO_ENABLED=0 go build -o immucore -ldflags "${LDFLAGS}"
     SAVE ARTIFACT /work/immucore immucore AS LOCAL build/immucore-$VERSION
 
+build-immucore-image:
+    FROM +build-immucore
+    COPY +build-immucore/immucore /usr/bin/immucore
+    SAVE IMAGE immucore:latest
+
 dracut-artifacts:
     FROM $BASE_IMAGE
     WORKDIR /build

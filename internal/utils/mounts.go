@@ -64,11 +64,29 @@ func IsMounted(dev string) bool {
 // Does NOT need to be mounted
 // Needs full path so either /dev/sda1 or /dev/disk/by-{label,uuid}/{label,uuid} .
 func DiskFSType(s string) string {
+	Log.Debug().Str("device", s).Msg("Getting disk type for device")
 	out, e := CommandWithPath(fmt.Sprintf("blkid %s -s TYPE -o value", s))
 	if e != nil {
 		Log.Debug().Err(e).Msg("blkid")
 	}
 	out = strings.Trim(strings.Trim(out, " "), "\n")
+	blkidVersion, _ := CommandWithPath("blkid --help")
+	if strings.Contains(blkidVersion, "BusyBox") {
+		// BusyBox blkid returns the whole thing ¬_¬
+		splitted := strings.Fields(out)
+		if len(splitted) == 0 {
+			Log.Debug().Str("what", out).Msg("blkid output")
+			return "ext4"
+		}
+		typeFs := splitted[len(splitted)-1]
+		typeFsSplitted := strings.Split(typeFs, "=")
+		if len(typeFsSplitted) < 1 {
+			Log.Debug().Str("what", typeFs).Msg("typeFs split")
+			return "ext4"
+		}
+		finalFS := typeFsSplitted[1]
+		out = strings.TrimSpace(strings.Trim(finalFS, "\""))
+	}
 	Log.Debug().Str("what", s).Str("type", out).Msg("Partition FS type")
 	return out
 }
