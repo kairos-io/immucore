@@ -3,9 +3,9 @@ module github.com/kairos-io/immucore
 go 1.20
 
 // replace any upstream elemental dep with our own
-replace github.com/rancher/elemental-cli v0.2.1 => github.com/kairos-io/elemental-cli v0.1.0
+replace github.com/rancher/elemental-cli v0.2.1 => github.com/jimmykarily/elemental-cli v1.0.4
 
-replace github.com/rancher/elemental-cli v0.2.0 => github.com/kairos-io/elemental-cli v0.1.0
+replace github.com/rancher/elemental-cli v0.2.0 => github.com/jimmykarily/elemental-cli v1.0.4
 
 // Until yip is fixed, replace with an older known working version
 replace github.com/mudler/yip v1.0.0 => github.com/mudler/yip v0.11.5-0.20230124143654-91e88dfb6648
@@ -111,7 +111,7 @@ require (
 	github.com/moby/sys/mount v0.3.0 // indirect
 	github.com/mudler/entities v0.0.0-20220905203055-68348bae0f49 // indirect
 	github.com/mudler/go-pluggable v0.0.0-20230126220627-7710299a0ae5 // indirect
-	github.com/mudler/luet v0.0.0-20230117111542-5d3751888844 // indirect
+	github.com/mudler/luet v0.0.0-20230312151051-5190a5126dd5 // indirect
 	github.com/mudler/topsort v0.0.0-20201103161459-db5c7901c290 // indirect
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
@@ -135,7 +135,6 @@ require (
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/tredoe/osutil/v2 v2.0.0-rc.16 // indirect
 	github.com/ulikunitz/xz v0.5.11 // indirect
-	github.com/urfave/cli v1.22.12 // indirect
 	github.com/vishvananda/netlink v1.2.1-beta.2 // indirect
 	github.com/vishvananda/netns v0.0.4 // indirect
 	github.com/wayneashleyberry/terminal-dimensions v1.1.0 // indirect
@@ -145,7 +144,7 @@ require (
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/zcalusic/sysinfo v0.9.5 // indirect
 	github.com/zloylos/grsync v1.6.1 // indirect
-	go.opencensus.io v0.23.0 // indirect
+	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/crypto v0.7.0 // indirect
 	golang.org/x/exp v0.0.0-20220916125017-b168a2c6b86b // indirect
 	golang.org/x/mod v0.10.0 // indirect
@@ -159,9 +158,9 @@ require (
 	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	howett.net/plist v1.0.0 // indirect
-	k8s.io/klog/v2 v2.30.0 // indirect
-	k8s.io/mount-utils v0.23.0 // indirect
-	k8s.io/utils v0.0.0-20211116205334-6203023598ed // indirect
+	k8s.io/klog/v2 v2.80.1 // indirect
+	k8s.io/mount-utils v0.26.3 // indirect
+	k8s.io/utils v0.0.0-20221107191617-1a15be271d1d // indirect
 	pault.ag/go/modprobe v0.1.2 // indirect
 	pault.ag/go/topsort v0.1.1 // indirect
 )
