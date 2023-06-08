@@ -308,7 +308,7 @@ func (s *State) MountCustomBindsDagStep(g *herd.Graph) error {
 				var err *multierror.Error
 				internalUtils.Log.Debug().Strs("mounts", s.BindMounts).Msg("Mounting binds")
 
-				for _, p := range s.BindMounts {
+				for _, p := range s.SortedBindMounts() {
 					internalUtils.Log.Debug().Str("what", p).Msg("Bind mount start")
 					op := mountBind(p, s.Rootdir, s.StateDir)
 					err2 := op.run()

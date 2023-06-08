@@ -19,6 +19,27 @@ var _ = Describe("mounting immutable setup", func() {
 		Expect(g).ToNot(BeNil())
 	})
 
+	Context("SortedBindMounts()", func() {
+		It("returns the nodes with less depth first and in alfabetical order", func() {
+			s := &mount.State{
+				BindMounts: []string{
+					"/etc/nginx/config.d/",
+					"/etc/nginx",
+					"/etc/kubernetes/child",
+					"/etc/kubernetes",
+					"/etc/kubernetes/child/grand-child",
+				},
+			}
+			Expect(s.SortedBindMounts()).To(Equal([]string{
+				"/etc/kubernetes",
+				"/etc/nginx",
+				"/etc/kubernetes/child",
+				"/etc/nginx/config.d/",
+				"/etc/kubernetes/child/grand-child",
+			}))
+		})
+	})
+
 	Context("simple invocation", func() {
 		It("generates normal dag", func() {
 			Skip("Cant override bootstate yet")

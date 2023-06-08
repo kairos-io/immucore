@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/containerd/containerd/mount"
@@ -29,6 +31,21 @@ type State struct {
 	OverlayBase  string            // Overlay config, defaults to tmpfs:20%
 	StateDir     string            // e.g. "/usr/local/.state"
 	fstabs       []*fstab.Mount
+}
+
+func (s *State) SortedBindMounts() []string {
+	bindMountsCopy := s.BindMounts
+	sort.Slice(bindMountsCopy, func(i, j int) bool {
+		iAry := strings.Split(bindMountsCopy[i], "/")
+		jAry := strings.Split(bindMountsCopy[j], "/")
+		iSize := len(iAry)
+		jSize := len(jAry)
+		if iSize == jSize {
+			return strings.Compare(iAry[len(iAry)-1], jAry[len(jAry)-1]) == -1
+		}
+		return iSize < jSize
+	})
+	return bindMountsCopy
 }
 
 func (s *State) path(p ...string) string {
