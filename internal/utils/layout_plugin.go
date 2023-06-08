@@ -22,17 +22,14 @@ func YipLayoutPlugin(l logger.Interface, s schema.Stage, _ vfs.FS, _ plugins.Con
 
 	var dev *partitioner.Disk
 
-	fmt.Printf("s.Layout = %+v\n", s.Layout)
-	fmt.Printf("s.Layout.Device.Label = %+v\n", s.Layout.Device.Label)
 	if len(strings.TrimSpace(s.Layout.Device.Label)) > 0 {
-		partDevice, err := GetPartByLabel(s.Layout.Device.Label, 5)
-		fmt.Printf("partDevice = %+v\n", partDevice)
+		partDevice, err := GetDiskByPartLabel(s.Layout.Device.Label, 5)
 		if err != nil {
 			l.Errorf("Exiting, disk not found:\n %s", err.Error())
 			return err
 		}
 		dev = partitioner.NewDisk(
-			partDevice.Disk,
+			partDevice,
 		)
 	} else if len(strings.TrimSpace(s.Layout.Device.Path)) > 0 {
 		dev = partitioner.NewDisk(

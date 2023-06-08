@@ -237,22 +237,40 @@ func GetHostProcCmdline() string {
 	return proc
 }
 
+func GetDiskByPartLabel(label string, attempts int) (string, error) {
+	p, err := getPartByLabel(label, attempts)
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join("/dev/", p.Disk.Name), nil
+}
+
 // GetPartByLabel will identify the device by a given label.
 func GetPartByLabel(label string, attempts int) (string, error) {
+	p, err := getPartByLabel(label, attempts)
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join("/dev/", p.Name), nil
+}
+
+func getPartByLabel(label string, attempts int) (*block.Partition, error) {
 	for tries := 0; tries < attempts; tries++ {
 		_, _ = utils.SH("udevadm settle")
 		blockDevices, err := block.New(ghw.WithDisableTools(), ghw.WithDisableWarnings())
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		for _, d := range blockDevices.Disks {
 			for _, part := range d.Partitions {
 				if part.FilesystemLabel == label {
-					return filepath.Join("/dev/", part.Name), nil
+					return part, nil
 				}
 			}
 		}
 		time.Sleep(1 * time.Second)
 	}
-	return "", errors.New("no device found")
+	return nil, errors.New("no device found")
 }
