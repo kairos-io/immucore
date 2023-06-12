@@ -33,6 +33,7 @@ type State struct {
 	fstabs       []*fstab.Mount
 }
 
+// SortedBindMounts returns the nodes with less depth first and in alphabetical order.
 func (s *State) SortedBindMounts() []string {
 	bindMountsCopy := s.BindMounts
 	sort.Slice(bindMountsCopy, func(i, j int) bool {
