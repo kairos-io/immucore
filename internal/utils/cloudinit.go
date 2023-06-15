@@ -44,7 +44,7 @@ func NewYipExecutor(l logger.Interface) executor.Executor {
 			plugins.Environment,
 			plugins.SystemdFirstboot,
 			plugins.DataSources,
-			YipLayoutPlugin,
+			plugins.Layout,
 		),
 	)
 	return exec
