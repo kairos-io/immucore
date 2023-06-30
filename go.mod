@@ -3,14 +3,10 @@ module github.com/kairos-io/immucore
 go 1.20
 
 // replace any upstream elemental dep with our own
-replace github.com/rancher/elemental-cli v0.2.1 => github.com/jimmykarily/elemental-cli v1.0.4
-
-replace github.com/rancher/elemental-cli v0.2.0 => github.com/jimmykarily/elemental-cli v1.0.4
-
-// Until yip is fixed, replace with an older known working version
-replace github.com/mudler/yip v1.0.0 => github.com/mudler/yip v0.11.5-0.20230124143654-91e88dfb6648
-
-replace github.com/mudler/yip v1.0.1 => github.com/mudler/yip v0.11.5-0.20230124143654-91e88dfb6648
+replace (
+	github.com/rancher/elemental-cli v0.2.0 => github.com/kairos-io/elemental-cli v0.1.0
+	github.com/rancher/elemental-cli v0.2.1 => github.com/kairos-io/elemental-cli v0.1.0
+)
 
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
@@ -24,7 +20,7 @@ require (
 	github.com/kairos-io/kcrypt v0.6.0
 	github.com/moby/sys/mountinfo v0.6.2
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
-	github.com/mudler/yip v1.0.0
+	github.com/mudler/yip v1.3.0
 	github.com/onsi/ginkgo/v2 v2.9.4
 	github.com/onsi/gomega v1.27.6
 	github.com/rancher/elemental-cli v0.2.0
@@ -33,7 +29,7 @@ require (
 	github.com/spectrocloud-labs/herd v0.4.2
 	github.com/twpayne/go-vfs v1.7.2
 	github.com/urfave/cli/v2 v2.25.1
-	golang.org/x/sys v0.7.0
+	golang.org/x/sys v0.8.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -62,7 +58,7 @@ require (
 	github.com/davidcassany/linuxkit/pkg/metadata v0.0.0-20230124104020-93ac9dd5b8e1 // indirect
 	github.com/denisbrodbeck/machineid v1.0.1 // indirect
 	github.com/dgryski/go-camellia v0.0.0-20191119043421-69a8a13fb23d // indirect
-	github.com/diskfs/go-diskfs v1.2.1-0.20230123115902-fce1828bbbfa // indirect
+	github.com/diskfs/go-diskfs v1.3.0 // indirect
 	github.com/distribution/distribution v2.8.1+incompatible // indirect
 	github.com/docker/distribution v2.8.0+incompatible // indirect
 	github.com/docker/docker v20.10.23+incompatible // indirect
@@ -88,6 +84,7 @@ require (
 	github.com/hashicorp/go-version v1.3.0 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/imdario/mergo v0.3.15 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/ishidawataru/sctp v0.0.0-20210707070123-9a39160e9062 // indirect
 	github.com/itchyny/gojq v0.12.12 // indirect
 	github.com/itchyny/timefmt-go v0.1.5 // indirect
@@ -107,7 +104,7 @@ require (
 	github.com/mitchellh/hashstructure/v2 v2.0.2 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/moby/libnetwork v0.8.0-dev.2.0.20200612180813-9e99af28df21 // indirect
-	github.com/moby/moby v20.10.9+incompatible // indirect
+	github.com/moby/moby v23.0.2+incompatible // indirect
 	github.com/moby/sys/mount v0.3.0 // indirect
 	github.com/mudler/entities v0.0.0-20220905203055-68348bae0f49 // indirect
 	github.com/mudler/go-pluggable v0.0.0-20230126220627-7710299a0ae5 // indirect
@@ -126,6 +123,7 @@ require (
 	github.com/pkg/xattr v0.4.9 // indirect
 	github.com/pterm/pterm v0.12.59 // indirect
 	github.com/qeesung/image2ascii v1.0.1 // indirect
+	github.com/rancher-sandbox/linuxkit v1.0.1-0.20230517173613-432a87ba3e09 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/samber/lo v1.37.0 // indirect
@@ -133,10 +131,13 @@ require (
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
+	github.com/spf13/cobra v1.7.0 // indirect
+	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/tredoe/osutil/v2 v2.0.0-rc.16 // indirect
 	github.com/ulikunitz/xz v0.5.11 // indirect
 	github.com/vishvananda/netlink v1.2.1-beta.2 // indirect
 	github.com/vishvananda/netns v0.0.4 // indirect
+	github.com/vmware/vmw-guestinfo v0.0.0-20220317130741-510905f0efa3 // indirect
 	github.com/wayneashleyberry/terminal-dimensions v1.1.0 // indirect
 	github.com/willdonnelly/passwd v0.0.0-20141013001024-7935dab3074c // indirect
 	github.com/xanzy/ssh-agent v0.3.1 // indirect
