@@ -10,11 +10,8 @@ import (
 	"time"
 
 	"github.com/avast/retry-go"
-	"github.com/jaypipes/ghw"
-	"github.com/jaypipes/ghw/pkg/block"
 	"github.com/joho/godotenv"
 	"github.com/kairos-io/kairos-sdk/state"
-	"github.com/kairos-io/kairos-sdk/utils"
 )
 
 // BootStateToLabelDevice lets us know the device we need to mount sysroot on based on labels.
@@ -235,24 +232,4 @@ func GetHostProcCmdline() string {
 		return "/proc/cmdline"
 	}
 	return proc
-}
-
-// GetPartByLabel will identify the device by a given label.
-func GetPartByLabel(label string, attempts int) (string, error) {
-	for tries := 0; tries < attempts; tries++ {
-		_, _ = utils.SH("udevadm settle")
-		blockDevices, err := block.New(ghw.WithDisableTools(), ghw.WithDisableWarnings())
-		if err != nil {
-			return "", err
-		}
-		for _, d := range blockDevices.Disks {
-			for _, part := range d.Partitions {
-				if part.FilesystemLabel == label {
-					return filepath.Join("/dev/", part.Name), nil
-				}
-			}
-		}
-		time.Sleep(1 * time.Second)
-	}
-	return "", errors.New("no device found")
 }
