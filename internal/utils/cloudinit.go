@@ -56,7 +56,12 @@ func RunStage(stage string) (bytes.Buffer, error) {
 	var buffer bytes.Buffer
 	log := logrus.New()
 	log.SetOutput(&buffer)
-	log.SetLevel(logrus.InfoLevel)
+	// Set debug logger
+	debug := len(ReadCMDLineArg("rd.immucore.debug")) > 0
+	debugFromEnv := os.Getenv("IMMUCORE_DEBUG") != ""
+	if debug || debugFromEnv {
+		log.SetLevel(logrus.DebugLevel)
+	}
 	yip := NewYipExecutor(log)
 	c := ImmucoreConsole{}
 
