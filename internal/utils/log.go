@@ -37,7 +37,7 @@ func SetLogger() {
 	}
 }
 
-// MiddleLog implements the bridge between zerolog and the logger.Interface that yip needs
+// MiddleLog implements the bridge between zerolog and the logger.Interface that yip needs.
 type MiddleLog struct {
 	zerolog.Logger
 }
