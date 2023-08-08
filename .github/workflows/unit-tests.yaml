@@ -5,6 +5,10 @@ on:
       - master
   pull_request:
 
+concurrency:
+  group: ci-unit-${{ github.head_ref || github.ref }}-${{ github.repository }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     runs-on: ubuntu-latest
