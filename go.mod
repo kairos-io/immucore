@@ -11,7 +11,7 @@ require (
 	github.com/jaypipes/ghw v0.10.0
 	github.com/joho/godotenv v1.5.1
 	github.com/kairos-io/kairos-sdk v0.0.12
-	github.com/kairos-io/kcrypt v0.6.0
+	github.com/kairos-io/kcrypt v0.7.0
 	github.com/moby/sys/mountinfo v0.6.2
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
 	github.com/mudler/yip v1.3.1-0.20230704124832-e5812d0f5890
