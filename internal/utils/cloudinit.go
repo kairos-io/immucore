@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"os"
@@ -12,7 +13,7 @@ import (
 	"github.com/mudler/yip/pkg/logger"
 	"github.com/mudler/yip/pkg/plugins"
 	"github.com/mudler/yip/pkg/schema"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 	"github.com/twpayne/go-vfs"
 	"gopkg.in/yaml.v3"
 )
@@ -54,14 +55,9 @@ func RunStage(stage string) (bytes.Buffer, error) {
 	var allErrors, err error
 	var cmdLineYipURI string
 	var buffer bytes.Buffer
-	log := logrus.New()
-	log.SetOutput(&buffer)
+	// Specific log here so it writes to a buffer and we can return that as output
+	log := MiddleLog{zerolog.New(bufio.NewWriter(&buffer)).With().Logger().Level(zerolog.InfoLevel)}
 	// Set debug logger
-	debug := len(ReadCMDLineArg("rd.immucore.debug")) > 0
-	debugFromEnv := os.Getenv("IMMUCORE_DEBUG") != ""
-	if debug || debugFromEnv {
-		log.SetLevel(logrus.DebugLevel)
-	}
 	yip := NewYipExecutor(log)
 	c := ImmucoreConsole{}
 
