@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-var Log MiddleLog
+var Log zerolog.Logger
 var logFile *os.File
 
 func CloseLogFiles() {
@@ -28,12 +28,12 @@ func SetLogger() {
 	loggers = append(loggers, zerolog.ConsoleWriter{Out: os.Stderr})
 
 	multi := zerolog.MultiLevelWriter(loggers...)
-	Log = MiddleLog{zerolog.New(multi).With().Logger().Level(zerolog.InfoLevel)}
+	Log = zerolog.New(multi).With().Logger().Level(zerolog.InfoLevel)
 	// Set debug logger
 	debug := len(ReadCMDLineArg("rd.immucore.debug")) > 0
 	debugFromEnv := os.Getenv("IMMUCORE_DEBUG") != ""
 	if debug || debugFromEnv {
-		Log = MiddleLog{zerolog.New(multi).With().Logger().Level(zerolog.InfoLevel)}
+		Log = zerolog.New(multi).With().Logger().Level(zerolog.InfoLevel)
 	}
 }
 
