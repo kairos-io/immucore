@@ -19,6 +19,7 @@ func CloseLogFiles() {
 
 func SetLogger() {
 	var loggers []io.Writer
+	var level zerolog.Level
 	_ = os.MkdirAll(constants.LogDir, os.ModeDir|os.ModePerm)
 	logFile, err := os.Create(filepath.Join(constants.LogDir, "immucore.log"))
 	if err == nil {
@@ -28,13 +29,14 @@ func SetLogger() {
 	loggers = append(loggers, zerolog.ConsoleWriter{Out: os.Stderr})
 
 	multi := zerolog.MultiLevelWriter(loggers...)
-	Log = zerolog.New(multi).With().Logger().Level(zerolog.InfoLevel)
-	// Set debug logger
+	level = zerolog.InfoLevel
+	// Set debug level
 	debug := len(ReadCMDLineArg("rd.immucore.debug")) > 0
 	debugFromEnv := os.Getenv("IMMUCORE_DEBUG") != ""
 	if debug || debugFromEnv {
-		Log = zerolog.New(multi).With().Logger().Level(zerolog.InfoLevel)
+		level = zerolog.DebugLevel
 	}
+	Log = zerolog.New(multi).With().Logger().Level(level)
 }
 
 // MiddleLog implements the bridge between zerolog and the logger.Interface that yip needs.

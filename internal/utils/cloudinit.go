@@ -55,8 +55,17 @@ func RunStage(stage string) (bytes.Buffer, error) {
 	var allErrors, err error
 	var cmdLineYipURI string
 	var buffer bytes.Buffer
+	var level zerolog.Level
+
 	// Specific log here so it writes to a buffer and we can return that as output
-	log := MiddleLog{zerolog.New(bufio.NewWriter(&buffer)).With().Logger().Level(zerolog.InfoLevel)}
+	level = zerolog.InfoLevel
+	// Set debug level
+	debug := len(ReadCMDLineArg("rd.immucore.debug")) > 0
+	debugFromEnv := os.Getenv("IMMUCORE_DEBUG") != ""
+	if debug || debugFromEnv {
+		level = zerolog.DebugLevel
+	}
+	log := MiddleLog{zerolog.New(bufio.NewWriter(&buffer)).With().Logger().Level(level)}
 	// Set debug logger
 	yip := NewYipExecutor(log)
 	c := ImmucoreConsole{}
