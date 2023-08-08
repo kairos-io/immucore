@@ -17,7 +17,7 @@ require (
 	github.com/mudler/yip v1.3.1-0.20230704124832-e5812d0f5890
 	github.com/onsi/ginkgo/v2 v2.11.0
 	github.com/onsi/gomega v1.27.10
-	github.com/rs/zerolog v1.29.1
+	github.com/rs/zerolog v1.30.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spectrocloud-labs/herd v0.4.2
 	github.com/twpayne/go-vfs v1.7.2
