@@ -56,7 +56,7 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 			func(ctx context.Context) error {
 				// Check if loop device is mounted already
 				if internalUtils.IsMounted(s.TargetDevice) {
-					internalUtils.Log.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetDevice", s.TargetDevice).Msg("Not mounting loop, already mounted")
+					internalUtils.Log.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetDevice", s.TargetDevice).Msg("Not mounting loop, already mounted")
 					return nil
 				}
 				_ = internalUtils.Fsck(s.path("/run/initramfs/cos-state", s.TargetImage))
@@ -68,8 +68,8 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 				// But on other it seems like it won't trigger which causes the sysroot to not be mounted as we cant find
 				// the block device by the target label. Make sure we run this after mounting so we refresh the devices.
 				sh, _ := utils.SH("udevadm trigger")
-				internalUtils.Log.Debug().Str("output", sh).Msg("udevadm trigger")
-				internalUtils.Log.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetDevice", s.TargetDevice).Msg("mount done")
+				internalUtils.Log.Logger.Debug().Str("output", sh).Msg("udevadm trigger")
+				internalUtils.Log.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetDevice", s.TargetDevice).Msg("mount done")
 				return err
 			},
 		))
@@ -239,9 +239,9 @@ func (s *State) MountCustomOverlayDagStep(g *herd.Graph) error {
 		herd.WithCallback(
 			func(ctx context.Context) error {
 				var multierr *multierror.Error
-				internalUtils.Log.Debug().Strs("dirs", s.OverlayDirs).Msg("Mounting overlays")
+				internalUtils.Log.Logger.Debug().Strs("dirs", s.OverlayDirs).Msg("Mounting overlays")
 				for _, p := range s.OverlayDirs {
-					internalUtils.Log.Debug().Str("what", p).Msg("Overlay mount start")
+					internalUtils.Log.Logger.Debug().Str("what", p).Msg("Overlay mount start")
 					op := mountWithBaseOverlay(p, s.Rootdir, "/run/overlay")
 					err := op.run()
 					// Append to errors only if it's not an already mounted error
@@ -251,7 +251,7 @@ func (s *State) MountCustomOverlayDagStep(g *herd.Graph) error {
 						continue
 					}
 					s.fstabs = append(s.fstabs, &op.FstabEntry)
-					internalUtils.Log.Debug().Str("what", p).Msg("Overlay mount done")
+					internalUtils.Log.Logger.Debug().Str("what", p).Msg("Overlay mount done")
 				}
 				return multierr.ErrorOrNil()
 			},
@@ -265,10 +265,10 @@ func (s *State) MountCustomMountsDagStep(g *herd.Graph) error {
 		herd.WithDeps(cnst.OpLoadConfig),
 		herd.WithCallback(func(ctx context.Context) error {
 			var err *multierror.Error
-			internalUtils.Log.Debug().Interface("mounts", s.CustomMounts).Msg("Mounting custom mounts")
+			internalUtils.Log.Logger.Debug().Interface("mounts", s.CustomMounts).Msg("Mounting custom mounts")
 
 			for what, where := range s.CustomMounts {
-				internalUtils.Log.Debug().Str("what", what).Str("where", where).Msg("Custom mount start")
+				internalUtils.Log.Logger.Debug().Str("what", what).Str("where", where).Msg("Custom mount start")
 				// TODO: scan for the custom mount disk to know the underlying fs and set it proper
 				fstype := "ext4"
 				mountOptions := []string{"ro"}
@@ -289,9 +289,9 @@ func (s *State) MountCustomMountsDagStep(g *herd.Graph) error {
 				if err2 != nil && !strings.Contains(what, "COS_OEM") {
 					err = multierror.Append(err, err2)
 				}
-				internalUtils.Log.Debug().Str("what", what).Str("where", where).Msg("Custom mount done")
+				internalUtils.Log.Logger.Debug().Str("what", what).Str("where", where).Msg("Custom mount done")
 			}
-			internalUtils.Log.Warn().Err(err.ErrorOrNil()).Send()
+			internalUtils.Log.Logger.Warn().Err(err.ErrorOrNil()).Send()
 
 			return err.ErrorOrNil()
 		}),
@@ -306,10 +306,10 @@ func (s *State) MountCustomBindsDagStep(g *herd.Graph) error {
 		herd.WithCallback(
 			func(ctx context.Context) error {
 				var err *multierror.Error
-				internalUtils.Log.Debug().Strs("mounts", s.BindMounts).Msg("Mounting binds")
+				internalUtils.Log.Logger.Debug().Strs("mounts", s.BindMounts).Msg("Mounting binds")
 
 				for _, p := range s.SortedBindMounts() {
-					internalUtils.Log.Debug().Str("what", p).Msg("Bind mount start")
+					internalUtils.Log.Logger.Debug().Str("what", p).Msg("Bind mount start")
 					op := mountBind(p, s.Rootdir, s.StateDir)
 					err2 := op.run()
 					if err2 == nil {
@@ -321,9 +321,9 @@ func (s *State) MountCustomBindsDagStep(g *herd.Graph) error {
 						internalUtils.Log.Err(err2).Send()
 						err = multierror.Append(err, err2)
 					}
-					internalUtils.Log.Debug().Str("what", p).Msg("Bind mount end")
+					internalUtils.Log.Logger.Debug().Str("what", p).Msg("Bind mount end")
 				}
-				internalUtils.Log.Warn().Err(err.ErrorOrNil()).Send()
+				internalUtils.Log.Logger.Warn().Err(err.ErrorOrNil()).Send()
 				return err.ErrorOrNil()
 			},
 		),
@@ -369,7 +369,7 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 				sentinel = string(state.Unknown)
 			}
 
-			internalUtils.Log.Info().Str("to", sentinel).Msg("Setting sentinel file")
+			internalUtils.Log.Logger.Info().Str("to", sentinel).Msg("Setting sentinel file")
 			err = os.WriteFile(filepath.Join("/run/cos/", sentinel), []byte("1"), os.ModePerm)
 			if err != nil {
 				return err
@@ -459,14 +459,14 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 		herd.WithWeakDeps(cnst.OpRemountRootRO, cnst.OpRootfsHook, cnst.OpInitramfsHook, cnst.OpWriteFstab),
 		herd.WithCallback(func(ctx context.Context) error {
 			// Print dag before exit, otherwise its never printed as we never exit the program
-			internalUtils.Log.Info().Msg(s.WriteDAG(g))
-			internalUtils.Log.Debug().Msg("Executing init callback!")
+			internalUtils.Log.Logger.Info().Msg(s.WriteDAG(g))
+			internalUtils.Log.Logger.Debug().Msg("Executing init callback!")
 			internalUtils.CloseLogFiles()
 			if err := unix.Exec("/sbin/init", []string{"/sbin/init", "--system"}, os.Environ()); err != nil {
 				internalUtils.Log.Err(err).Msg("running init")
 				// drop to emergency shell
 				if err := unix.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ()); err != nil {
-					internalUtils.Log.Fatal().Msg("Could not drop to emergency shell")
+					internalUtils.Log.Logger.Fatal().Msg("Could not drop to emergency shell")
 				}
 			}
 			return nil
@@ -505,20 +505,20 @@ func (s *State) UKIUdevDaemon(g *herd.Graph) error {
 			}
 			cmd := fmt.Sprintf("%s --daemon", udevBin)
 			out, err := internalUtils.CommandWithPath(cmd)
-			internalUtils.Log.Debug().Str("out", out).Str("cmd", cmd).Msg("Udev daemon")
+			internalUtils.Log.Logger.Debug().Str("out", out).Str("cmd", cmd).Msg("Udev daemon")
 			if err != nil {
 				internalUtils.Log.Err(err).Msg("Udev daemon")
 				return err
 			}
 			out, err = internalUtils.CommandWithPath("udevadm trigger")
-			internalUtils.Log.Debug().Str("out", out).Msg("Udev trigger")
+			internalUtils.Log.Logger.Debug().Str("out", out).Msg("Udev trigger")
 			if err != nil {
 				internalUtils.Log.Err(err).Msg("Udev trigger")
 				return err
 			}
 
 			out, err = internalUtils.CommandWithPath("udevadm settle")
-			internalUtils.Log.Debug().Str("out", out).Msg("Udev settle")
+			internalUtils.Log.Logger.Debug().Str("out", out).Msg("Udev settle")
 			if err != nil {
 				internalUtils.Log.Err(err).Msg("Udev settle")
 				return err
@@ -539,12 +539,12 @@ func (s *State) LoadKernelModules(g *herd.Graph) error {
 			if err != nil {
 				internalUtils.Log.Err(err).Msg("Detecting needed modules")
 			}
-			internalUtils.Log.Debug().Strs("drivers", drivers).Msg("Detecting needed modules")
+			internalUtils.Log.Logger.Debug().Strs("drivers", drivers).Msg("Detecting needed modules")
 			for _, driver := range drivers {
 				cmd := fmt.Sprintf("modprobe %s", driver)
 				out, err := internalUtils.CommandWithPath(cmd)
 				if err != nil {
-					internalUtils.Log.Err(err).Str("out", out).Msg("modprobe")
+					internalUtils.Log.Logger.Err(err).Str("out", out).Msg("modprobe")
 				}
 			}
 			return nil
@@ -564,12 +564,12 @@ func (s *State) WaitForSysrootDagStep(g *herd.Graph) error {
 					time.Sleep(2 * time.Second)
 					_, err := os.Stat(s.Rootdir)
 					if err != nil {
-						internalUtils.Log.Debug().Str("what", s.Rootdir).Msg("Checking path existence")
+						internalUtils.Log.Logger.Debug().Str("what", s.Rootdir).Msg("Checking path existence")
 						continue
 					}
 					_, err = os.Stat(filepath.Join(s.Rootdir, "system"))
 					if err != nil {
-						internalUtils.Log.Debug().Str("what", filepath.Join(s.Rootdir, "system")).Msg("Checking path existence")
+						internalUtils.Log.Logger.Debug().Str("what", filepath.Join(s.Rootdir, "system")).Msg("Checking path existence")
 						continue
 					}
 					return nil

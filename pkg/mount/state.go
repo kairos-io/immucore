@@ -62,7 +62,7 @@ func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 		}
 		f.Close()
 		for _, fst := range s.fstabs {
-			internalUtils.Log.Debug().Str("what", fst.String()).Msg("Adding line to fstab")
+			internalUtils.Log.Logger.Debug().Str("what", fst.String()).Msg("Adding line to fstab")
 			select {
 			case <-ctx.Done():
 			default:
@@ -103,9 +103,9 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 				}
 			}
 
-			internalUtils.Log.Info().Msg("Running rootfs stage")
+			internalUtils.Log.Logger.Info().Msg("Running rootfs stage")
 			output, _ := internalUtils.RunStage("rootfs")
-			internalUtils.Log.Debug().Msg(output.String())
+			internalUtils.Log.Logger.Debug().Msg(output.String())
 			err := internalUtils.CreateIfNotExists(constants.LogDir)
 			if err != nil {
 				return err
@@ -117,11 +117,11 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 			return err
 		case "initramfs":
 			// Not sure if it will work under UKI where the s.Rootdir is the current root already
-			internalUtils.Log.Info().Msg("Running initramfs stage")
+			internalUtils.Log.Logger.Info().Msg("Running initramfs stage")
 			chroot := internalUtils.NewChroot(s.Rootdir)
 			return chroot.RunCallback(func() error {
 				output, _ := internalUtils.RunStage("initramfs")
-				internalUtils.Log.Debug().Msg(output.String())
+				internalUtils.Log.Logger.Debug().Msg(output.String())
 				err := internalUtils.CreateIfNotExists(constants.LogDir)
 				if err != nil {
 					return err
@@ -254,7 +254,7 @@ func (s *State) LogIfErrorAndReturn(e error, msgContext string) error {
 func (s *State) LogIfErrorAndPanic(e error, msgContext string) {
 	if e != nil {
 		internalUtils.Log.Err(e).Msg(msgContext)
-		internalUtils.Log.Fatal().Msg(e.Error())
+		internalUtils.Log.Logger.Fatal().Msg(e.Error())
 	}
 }
 
@@ -264,7 +264,7 @@ func (s *State) AddToFstab(tmpFstab *fstab.Mount) {
 	found := false
 	for _, f := range s.fstabs {
 		if f.Spec == tmpFstab.Spec {
-			internalUtils.Log.Debug().Interface("existing", f).Interface("duplicated", tmpFstab).Msg("Duplicated fstab entry found, not adding")
+			internalUtils.Log.Logger.Debug().Interface("existing", f).Interface("duplicated", tmpFstab).Msg("Duplicated fstab entry found, not adding")
 			found = true
 		}
 	}

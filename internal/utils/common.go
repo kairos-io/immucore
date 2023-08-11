@@ -119,13 +119,13 @@ func GetTarget(dryRun bool) (string, string, error) {
 			imgs = []string{""}
 		} else {
 			msg := "could not get the image name from cmdline (i.e. cos-img/filename=/cOS/active.img)"
-			Log.Error().Msg(msg)
+			Log.Logger.Error().Msg(msg)
 			return "", "", errors.New(msg)
 		}
 	}
 
-	Log.Debug().Str("what", imgs[0]).Msg("Target device")
-	Log.Debug().Str("what", label).Msg("Target label")
+	Log.Logger.Debug().Str("what", imgs[0]).Msg("Target device")
+	Log.Logger.Debug().Str("what", label).Msg("Target label")
 	return imgs[0], label, nil
 }
 
@@ -143,7 +143,7 @@ func DisableImmucore() bool {
 // RootRW tells us if the mode to mount root.
 func RootRW() string {
 	if len(ReadCMDLineArg("rd.cos.debugrw")) > 0 || len(ReadCMDLineArg("rd.immucore.debugrw")) > 0 {
-		Log.Warn().Msg("Mounting root as RW")
+		Log.Logger.Warn().Msg("Mounting root as RW")
 		return "rw"
 	}
 	return "ro"
@@ -174,14 +174,14 @@ func GetState() string {
 		retry.Attempts(10),
 		retry.DelayType(retry.FixedDelay),
 		retry.OnRetry(func(n uint, err error) {
-			Log.Debug().Uint("try", n).Msg("Cannot get state label, retrying")
+			Log.Logger.Debug().Uint("try", n).Msg("Cannot get state label, retrying")
 		}),
 	)
 	if err != nil {
-		Log.Panic().Err(err).Msg("Could not get state label")
+		Log.Logger.Panic().Err(err).Msg("Could not get state label")
 	}
 
-	Log.Debug().Str("what", label).Msg("Get state label")
+	Log.Logger.Debug().Str("what", label).Msg("Get state label")
 	return filepath.Join("/dev/disk/by-label/", label)
 }
 
@@ -232,4 +232,11 @@ func GetHostProcCmdline() string {
 		return "/proc/cmdline"
 	}
 	return proc
+}
+
+// DebugFunctionForLog returns true if we should enable debug
+func DebugFunctionForLog() bool {
+	debug := len(ReadCMDLineArg("rd.immucore.debug")) > 0
+	debugFromEnv := os.Getenv("IMMUCORE_DEBUG") != ""
+	return debug || debugFromEnv
 }

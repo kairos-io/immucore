@@ -80,7 +80,7 @@ func mountBind(mountpoint, root, stateTarget string) mountOperation {
 			"bind",
 		},
 	}
-	internalUtils.Log.Debug().Str("where", rootMount).Str("what", stateDir).Msg("Bind mount")
+	internalUtils.Log.Logger.Debug().Str("where", rootMount).Str("what", stateDir).Msg("Bind mount")
 	tmpFstab := internalUtils.MountToFstab(tmpMount)
 	tmpFstab.File = internalUtils.CleanSysrootForFstab(fmt.Sprintf("/%s", mountpoint))
 	tmpFstab.Spec = internalUtils.CleanSysrootForFstab(tmpFstab.Spec)

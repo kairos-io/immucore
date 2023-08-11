@@ -2,6 +2,8 @@ module github.com/kairos-io/immucore
 
 go 1.20
 
+replace github.com/kairos-io/kairos-sdk v0.0.12 => github.com/kairos-io/kairos-sdk v0.0.13-0.20230811103354-2a7fb1d4154b
+
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/containerd/containerd v1.7.3
@@ -127,7 +129,7 @@ require (
 	github.com/xanzy/ssh-agent v0.3.1 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	github.com/zcalusic/sysinfo v0.9.5 // indirect
+	github.com/zcalusic/sysinfo v1.0.1 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	golang.org/x/crypto v0.11.0 // indirect
 	golang.org/x/exp v0.0.0-20220916125017-b168a2c6b86b // indirect

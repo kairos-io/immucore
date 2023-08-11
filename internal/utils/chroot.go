@@ -56,7 +56,7 @@ func (c *Chroot) Prepare() error {
 		mountPoint := filepath.Join(c.path, mnt)
 		if _, err := os.Stat(mnt); os.IsNotExist(err) {
 			// Source doesnt exist, skip it
-			Log.Debug().Str("what", mnt).Msg("Source does not exists, not mounting in chroot")
+			Log.Logger.Debug().Str("what", mnt).Msg("Source does not exists, not mounting in chroot")
 			continue
 		}
 
@@ -94,12 +94,12 @@ func (c *Chroot) Prepare() error {
 // Close will unmount all active mounts created in Prepare on reverse order.
 func (c *Chroot) Close() error {
 	failures := []string{}
-	Log.Debug().Strs("activeMounts", c.activeMounts).Msg("Closing chroot")
+	Log.Logger.Debug().Strs("activeMounts", c.activeMounts).Msg("Closing chroot")
 	// Something mounts this due to selinux, so we need to try to manually unmount and ignore any errors
 	_ = syscall.Unmount(filepath.Join(c.path, "/sys/fs/selinux"), 0)
 	for len(c.activeMounts) > 0 {
 		curr := c.activeMounts[len(c.activeMounts)-1]
-		Log.Debug().Str("what", curr).Msg("Unmounting from chroot")
+		Log.Logger.Debug().Str("what", curr).Msg("Unmounting from chroot")
 		c.activeMounts = c.activeMounts[:len(c.activeMounts)-1]
 		err := syscall.Unmount(curr, 0)
 		if err != nil {

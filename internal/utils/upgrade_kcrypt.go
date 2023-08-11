@@ -24,7 +24,7 @@ func UpgradeKcryptPartitions() error {
 		for _, p := range disk.Partitions {
 			if p.Type == "crypto_LUKS" {
 				// Check against known partition label on persistent
-				Log.Debug().Str("label", p.Label).Str("dev", p.Name).Msg("found luks partition")
+				Log.Logger.Debug().Str("label", p.Label).Str("dev", p.Name).Msg("found luks partition")
 				if p.Label == "persistent" {
 					// Get current UUID
 					volumeUUID, err := utils.SH(fmt.Sprintf("cryptsetup luksUUID %s", filepath.Join("/dev", p.Name)))
@@ -34,8 +34,8 @@ func UpgradeKcryptPartitions() error {
 					}
 					volumeUUID = strings.TrimSpace(volumeUUID)
 					volumeUUIDParsed, err := uuid.FromString(volumeUUID)
-					Log.Debug().Interface("volumeUUID", volumeUUIDParsed).Send()
-					Log.Debug().Interface("persistentUUID", persistentUUID).Send()
+					Log.Logger.Debug().Interface("volumeUUID", volumeUUIDParsed).Send()
+					Log.Logger.Debug().Interface("persistentUUID", persistentUUID).Send()
 					if err != nil {
 						Log.Err(err).Send()
 						return err
@@ -43,14 +43,14 @@ func UpgradeKcryptPartitions() error {
 
 					// Check to see if it's the same already to not do anything
 					if volumeUUIDParsed.String() != persistentUUID.String() {
-						Log.Debug().Str("old", volumeUUIDParsed.String()).Str("new", persistentUUID.String()).Msg("Uuid is different, updating")
+						Log.Logger.Debug().Str("old", volumeUUIDParsed.String()).Str("new", persistentUUID.String()).Msg("Uuid is different, updating")
 						out, err := utils.SH(fmt.Sprintf("cryptsetup luksUUID -q --uuid %s %s", persistentUUID, filepath.Join("/dev", p.Name)))
 						if err != nil {
 							Log.Err(err).Str("out", out).Msg("Updating uuid failed")
 							return err
 						}
 					} else {
-						Log.Debug().Msg("UUIDs are the same, not updating")
+						Log.Logger.Debug().Msg("UUIDs are the same, not updating")
 					}
 				}
 			}
