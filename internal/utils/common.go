@@ -234,7 +234,7 @@ func GetHostProcCmdline() string {
 	return proc
 }
 
-// DebugFunctionForLog returns true if we should enable debug
+// DebugFunctionForLog returns true if we should enable debug.
 func DebugFunctionForLog() bool {
 	debug := len(ReadCMDLineArg("rd.immucore.debug")) > 0
 	debugFromEnv := os.Getenv("IMMUCORE_DEBUG") != ""

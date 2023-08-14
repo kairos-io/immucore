@@ -1,10 +1,11 @@
 package utils
 
 import (
-	"github.com/kairos-io/immucore/internal/constants"
-	"github.com/kairos-io/kairos-sdk/logger"
 	"os"
 	"path/filepath"
+
+	"github.com/kairos-io/immucore/internal/constants"
+	"github.com/kairos-io/kairos-sdk/logger"
 )
 
 var Log *logger.KairosLog
