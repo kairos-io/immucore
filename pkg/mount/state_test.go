@@ -2,6 +2,7 @@ package mount_test
 
 import (
 	"context"
+	"github.com/kairos-io/immucore/internal/utils"
 	"time"
 
 	cnst "github.com/kairos-io/immucore/internal/constants"
@@ -17,6 +18,8 @@ var _ = Describe("mounting immutable setup", func() {
 	BeforeEach(func() {
 		g = herd.DAG(herd.EnableInit)
 		Expect(g).ToNot(BeNil())
+		cnst.LogDir = "/tmp/immucore"
+		Expect(utils.SetLogger()).ToNot(HaveOccurred())
 	})
 
 	Context("SortedBindMounts()", func() {

@@ -38,6 +38,8 @@ const (
 	OpKcryptUnlock        = "unlock-all"
 	OpKcryptUpgrade       = "upgrade-kcrypt"
 	PersistentStateTarget = "/usr/local/.state"
-	LogDir                = "/run/immucore"
 	LinuxFs               = "ext4"
 )
+
+// Not a constant so it can be overriden by anything
+var LogDir = "/run/immucore"

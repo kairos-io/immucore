@@ -3,6 +3,7 @@ package utils_test
 import (
 	"github.com/containerd/containerd/mount"
 	"github.com/jaypipes/ghw/pkg/block"
+	"github.com/kairos-io/immucore/internal/constants"
 	"github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/immucore/tests/mocks"
 	. "github.com/onsi/ginkgo/v2"
@@ -26,6 +27,13 @@ var _ = Describe("mount utils", func() {
 		fakeCmdline, _ := fs.RawPath("/proc/cmdline")
 		err = os.Setenv("HOST_PROC_CMDLINE", fakeCmdline)
 		Expect(err).ToNot(HaveOccurred())
+		// Override default log dir in case we run the tests under non-root
+		constants.LogDir = "/tmp/"
+		if utils.Log == nil {
+			err := utils.SetLogger()
+			Expect(err).ToNot(HaveOccurred())
+		}
+
 	})
 	AfterEach(func() {
 		cleanup()

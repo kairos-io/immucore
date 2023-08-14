@@ -2,7 +2,7 @@ module github.com/kairos-io/immucore
 
 go 1.20
 
-replace github.com/kairos-io/kairos-sdk v0.0.12 => github.com/kairos-io/kairos-sdk v0.0.13-0.20230811103354-2a7fb1d4154b
+replace github.com/kairos-io/kairos-sdk v0.0.12 => github.com/kairos-io/kairos-sdk v0.0.13-0.20230814143017-624241aa412f
 
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
