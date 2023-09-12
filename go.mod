@@ -14,7 +14,7 @@ require (
 	github.com/kairos-io/kcrypt v0.7.0
 	github.com/moby/sys/mountinfo v0.6.2
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
-	github.com/mudler/yip v1.3.1
+	github.com/mudler/yip v1.4.2
 	github.com/onsi/ginkgo/v2 v2.12.0
 	github.com/onsi/gomega v1.27.10
 	github.com/rs/zerolog v1.30.0
@@ -107,7 +107,7 @@ require (
 	github.com/pkg/xattr v0.4.9 // indirect
 	github.com/pterm/pterm v0.12.63 // indirect
 	github.com/qeesung/image2ascii v1.0.1 // indirect
-	github.com/rancher-sandbox/linuxkit v1.0.1-0.20230517173613-432a87ba3e09 // indirect
+	github.com/rancher-sandbox/linuxkit v1.0.1 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/samber/lo v1.37.0 // indirect
