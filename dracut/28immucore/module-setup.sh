@@ -25,7 +25,7 @@ install() {
     inst_multiple immucore
     inst_multiple kairos-agent
     # add utils used by yip stages
-    inst_multiple partprobe sync udevadm parted mkfs.ext2 mkfs.ext3 mkfs.ext4 mkfs.vfat mkfs.fat blkid lsblk e2fsck resize2fs mount umount sgdisk rsync cryptsetup
+    inst_multiple partprobe sync udevadm parted mkfs.ext2 mkfs.ext3 mkfs.ext4 mkfs.vfat mkfs.fat blkid lsblk e2fsck resize2fs mount umount sgdisk rsync cryptsetup growpart
     # missing mkfs.xfs xfs_growfs in image?
     inst_script "${moddir}/generator.sh" "${systemdutildir}/system-generators/immucore-generator"
     # SERVICES FOR SYSTEMD-BASED SYSTEMS
