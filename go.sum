@@ -31,6 +31,8 @@ github.com/Microsoft/go-winio v0.6.1 h1:9/kr64B9VUZrLm5YYwbGtUJnMgqWVOdUAXu6Migc
 github.com/Microsoft/go-winio v0.6.1/go.mod h1:LRdKpFKfdobln8UmuiYcKPot9D2v6svN5+sAH+4kjUM=
 github.com/Microsoft/hcsshim v0.10.0-rc.8 h1:YSZVvlIIDD1UxQpJp0h+dnpLUw+TrY0cx8obKsp3bek=
 github.com/Microsoft/hcsshim v0.10.0-rc.8/go.mod h1:OEthFdQv/AD2RAdzR6Mm1N1KPCztGKDurW1Z8b8VGMM=
+github.com/Microsoft/hcsshim v0.11.0 h1:7EFNIY4igHEXUdj1zXgAyU3fLc7QfOKHbkldRVTBdiM=
+github.com/Microsoft/hcsshim v0.11.0/go.mod h1:OEthFdQv/AD2RAdzR6Mm1N1KPCztGKDurW1Z8b8VGMM=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/ProtonMail/go-crypto v0.0.0-20210428141323-04723f9f07d7/go.mod h1:z4/9nQmJSSwwds7ejkxaJwO37dru3geImFUdJlaLzQo=
 github.com/ProtonMail/go-crypto v0.0.0-20230117203413-a47887b8f098 h1:gQT1cLGP56jqbm0ioh/80TgknBT2EyZ5XwnnJsiQQKo=
@@ -79,6 +81,8 @@ github.com/containerd/containerd v1.7.3 h1:cKwYKkP1eTj54bP3wCdXXBymmKRQMrWjkLSWZ
 github.com/containerd/containerd v1.7.3/go.mod h1:32FOM4/O0RkNg7AjQj3hDzN9cUGtu+HMvaKUNiqCZB8=
 github.com/containerd/containerd v1.7.5 h1:i9T9XpAWMe11BHMN7pu1BZqOGjXaKTPyz2v+KYOZgkY=
 github.com/containerd/containerd v1.7.5/go.mod h1:ieJNCSzASw2shSGYLHx8NAE7WsZ/gEigo5fQ78W5Zvw=
+github.com/containerd/containerd v1.7.6 h1:oNAVsnhPoy4BTPQivLgTzI9Oleml9l/+eYIDYXRCYo8=
+github.com/containerd/containerd v1.7.6/go.mod h1:SY6lrkkuJT40BVNO37tlYTSnKJnP5AXBc0fhx0q+TJ4=
 github.com/containerd/continuity v0.4.1 h1:wQnVrjIyQ8vhU2sgOiL5T07jo+ouqc2bnKsv5/EqGhU=
 github.com/containerd/continuity v0.4.1/go.mod h1:F6PTNCKepoxEaXLQp3wDAjygEnImnZ/7o4JzpodfroQ=
 github.com/containerd/continuity v0.4.2 h1:v3y/4Yz5jwnvqPKJJ+7Wf93fyWoCB3F5EclWG023MDM=
@@ -323,12 +327,12 @@ github.com/mudler/go-pluggable v0.0.0-20230126220627-7710299a0ae5 h1:FaZD86+A9mV
 github.com/mudler/go-pluggable v0.0.0-20230126220627-7710299a0ae5/go.mod h1:WmKcT8ONmhDQIqQ+HxU+tkGWjzBEyY/KFO8LTGCu4AI=
 github.com/mudler/yip v1.3.1-0.20230704124832-e5812d0f5890 h1:lNOwUTOH+WW8c2t1aQniYRiF8qFwRjB6XO6Nu+d9vlo=
 github.com/mudler/yip v1.3.1-0.20230704124832-e5812d0f5890/go.mod h1:3WeDh6tGX1yYPJom05E7xEjw8dNVlkH2WFxLi7Gflzk=
+github.com/mudler/yip v1.3.1 h1:zkkgloHJAJShELt4Zha7is2iU5WdBWz2+6f55nTK/Ms=
+github.com/mudler/yip v1.3.1/go.mod h1:3WeDh6tGX1yYPJom05E7xEjw8dNVlkH2WFxLi7Gflzk=
 github.com/mudler/yip v1.4.2 h1:HaX1xdz/KHAKbLCESDFoo0zAq/QR3N16gxQwe3iGf6s=
 github.com/mudler/yip v1.4.2/go.mod h1:LfUDdI6xtPbnVsxfXapP2mrZKZXoxca1v70zxXG3epA=
 github.com/munnerz/goautoneg v0.0.0-20120707110453-a547fc61f48d/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
-github.com/mudler/yip v1.3.1 h1:zkkgloHJAJShELt4Zha7is2iU5WdBWz2+6f55nTK/Ms=
-github.com/mudler/yip v1.3.1/go.mod h1:3WeDh6tGX1yYPJom05E7xEjw8dNVlkH2WFxLi7Gflzk=
 github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
 github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 h1:zYyBkD/k9seD2A7fsi6Oo2LfFZAehjjQMERAvZLEDnQ=
 github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646/go.mod h1:jpp1/29i3P1S/RLdc7JQKbRpFeM1dOBd8T9ki5s+AY8=
