@@ -194,15 +194,19 @@ func Fsck(device string) error {
 	return e
 }
 
-// MountProc will mount /proc
+// MountBasic will mount /proc and /run
 // For now proc is needed to read the cmdline fully in uki mode
 // in normal modes this should already be done by the initramfs process, so we can skip this.
-func MountProc() {
+// /run is needed to start logging from the start
+func MountBasic() {
 	_ = os.MkdirAll("/proc", 0755)
 	if !IsMounted("/proc") {
 		_ = syscall.Mount("proc", "/proc", "proc", syscall.MS_NOSUID|syscall.MS_NODEV|syscall.MS_NOEXEC|syscall.MS_RELATIME, "")
 	}
-
+	_ = os.MkdirAll("/run", 0755)
+	if !IsMounted("/run") {
+		_ = syscall.Mount("tmpfs", "/run", "tmpfs", syscall.MS_NOSUID|syscall.MS_NODEV|syscall.MS_NOEXEC|syscall.MS_RELATIME, "mode=755")
+	}
 }
 
 // GetOemTimeout parses the cmdline to get the oem timeout to use. Defaults to 5 (converted into seconds afterwards).

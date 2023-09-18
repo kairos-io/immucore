@@ -111,158 +111,155 @@ func (s *State) InitramfsStageDagStep(g *herd.Graph, opts ...herd.OpOption) erro
 }
 
 // LoadEnvLayoutDagStep will add the stage to load from cos-layout.env and fill the proper CustomMounts, OverlayDirs and BindMounts.
-func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, deps ...string) error {
+func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpLoadConfig,
-		herd.WithDeps(deps...),
-		herd.WithCallback(func(ctx context.Context) error {
-			if s.CustomMounts == nil {
-				s.CustomMounts = map[string]string{}
-			}
-
-			env, err := internalUtils.ReadEnv("/run/cos/cos-layout.env")
-			if err != nil {
-				internalUtils.Log.Err(err).Msg("Reading env")
-				return err
-			}
-			// populate from env here
-			s.OverlayDirs = internalUtils.CleanupSlice(strings.Split(env["RW_PATHS"], " "))
-			// Append default RW_Paths if list is empty, otherwise we won't boot properly
-			if len(s.OverlayDirs) == 0 {
-				s.OverlayDirs = cnst.DefaultRWPaths()
-			}
-
-			// Remove any duplicates
-			s.OverlayDirs = internalUtils.UniqueSlice(internalUtils.CleanupSlice(s.OverlayDirs))
-
-			s.BindMounts = strings.Split(env["PERSISTENT_STATE_PATHS"], " ")
-			// Add custom bind mounts
-			s.BindMounts = append(s.BindMounts, strings.Split(env["CUSTOM_BIND_MOUNTS"], " ")...)
-			// Remove any duplicates
-			s.BindMounts = internalUtils.UniqueSlice(internalUtils.CleanupSlice(s.BindMounts))
-
-			// Load Overlay config
-			overlayConfig := env["OVERLAY"]
-			if overlayConfig != "" {
-				s.OverlayBase = overlayConfig
-			}
-
-			s.StateDir = env["PERSISTENT_STATE_TARGET"]
-			if s.StateDir == "" {
-				s.StateDir = cnst.PersistentStateTarget
-			}
-
-			addLine := func(d string) {
-				dat := strings.Split(d, ":")
-				if len(dat) == 2 {
-					disk := dat[0]
-					path := dat[1]
-					s.CustomMounts[disk] = path
+		append(opts, herd.WithDeps(cnst.OpRootfsHook),
+			herd.WithCallback(func(ctx context.Context) error {
+				if s.CustomMounts == nil {
+					s.CustomMounts = map[string]string{}
 				}
-			}
-			// Parse custom mounts also from cmdline (rd.cos.mount=)
-			// Parse custom mounts also from cmdline (rd.immucore.mount=)
-			// Parse custom mounts also from env file (VOLUMES)
 
-			for _, v := range append(append(internalUtils.ReadCMDLineArg("rd.cos.mount="), internalUtils.ReadCMDLineArg("rd.immucore.mount=")...), strings.Split(env["VOLUMES"], " ")...) {
-				addLine(internalUtils.ParseMount(v))
-			}
+				env, err := internalUtils.ReadEnv("/run/cos/cos-layout.env")
+				if err != nil {
+					internalUtils.Log.Err(err).Msg("Reading env")
+					return err
+				}
+				// populate from env here
+				s.OverlayDirs = internalUtils.CleanupSlice(strings.Split(env["RW_PATHS"], " "))
+				// Append default RW_Paths if list is empty, otherwise we won't boot properly
+				if len(s.OverlayDirs) == 0 {
+					s.OverlayDirs = cnst.DefaultRWPaths()
+				}
 
-			return nil
-		}))
+				// Remove any duplicates
+				s.OverlayDirs = internalUtils.UniqueSlice(internalUtils.CleanupSlice(s.OverlayDirs))
+
+				s.BindMounts = strings.Split(env["PERSISTENT_STATE_PATHS"], " ")
+				// Add custom bind mounts
+				s.BindMounts = append(s.BindMounts, strings.Split(env["CUSTOM_BIND_MOUNTS"], " ")...)
+				// Remove any duplicates
+				s.BindMounts = internalUtils.UniqueSlice(internalUtils.CleanupSlice(s.BindMounts))
+
+				// Load Overlay config
+				overlayConfig := env["OVERLAY"]
+				if overlayConfig != "" {
+					s.OverlayBase = overlayConfig
+				}
+
+				s.StateDir = env["PERSISTENT_STATE_TARGET"]
+				if s.StateDir == "" {
+					s.StateDir = cnst.PersistentStateTarget
+				}
+
+				addLine := func(d string) {
+					dat := strings.Split(d, ":")
+					if len(dat) == 2 {
+						disk := dat[0]
+						path := dat[1]
+						s.CustomMounts[disk] = path
+					}
+				}
+				// Parse custom mounts also from cmdline (rd.cos.mount=)
+				// Parse custom mounts also from cmdline (rd.immucore.mount=)
+				// Parse custom mounts also from env file (VOLUMES)
+
+				for _, v := range append(append(internalUtils.ReadCMDLineArg("rd.cos.mount="), internalUtils.ReadCMDLineArg("rd.immucore.mount=")...), strings.Split(env["VOLUMES"], " ")...) {
+					addLine(internalUtils.ParseMount(v))
+				}
+
+				return nil
+			}))...)
 }
 
 // MountOemDagStep will add mounting COS_OEM partition under s.Rootdir + /oem .
-func (s *State) MountOemDagStep(g *herd.Graph, deps ...string) error {
+func (s *State) MountOemDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpMountOEM,
-		herd.WithDeps(deps...),
-		herd.EnableIf(func() bool {
-			runtime, _ := state.NewRuntime()
-			switch runtime.BootState {
-			// Don't run this on LiveCD/Netboot
-			case state.LiveCD:
-				return false
-			default:
-				return internalUtils.GetOemLabel() != ""
-			}
-		}),
-		herd.WithCallback(
-			s.MountOP(
-				fmt.Sprintf("/dev/disk/by-label/%s", internalUtils.GetOemLabel()),
-				s.path("/oem"),
-				internalUtils.DiskFSType(fmt.Sprintf("/dev/disk/by-label/%s", internalUtils.GetOemLabel())),
-				[]string{
-					"rw",
-					"suid",
-					"dev",
-					"exec",
-					"async",
-				}, time.Duration(internalUtils.GetOemTimeout())*time.Second),
-		),
-	)
+		append(opts,
+			herd.EnableIf(func() bool {
+				runtime, _ := state.NewRuntime()
+				switch runtime.BootState {
+				// Don't run this on LiveCD/Netboot
+				case state.LiveCD:
+					return false
+				default:
+					return internalUtils.GetOemLabel() != ""
+				}
+			}),
+			herd.WithCallback(
+				s.MountOP(
+					fmt.Sprintf("/dev/disk/by-label/%s", internalUtils.GetOemLabel()),
+					s.path("/oem"),
+					internalUtils.DiskFSType(fmt.Sprintf("/dev/disk/by-label/%s", internalUtils.GetOemLabel())),
+					[]string{
+						"rw",
+						"suid",
+						"dev",
+						"exec",
+						"async",
+					}, time.Duration(internalUtils.GetOemTimeout())*time.Second)))...)
 }
 
 // MountBaseOverlayDagStep will add mounting /run/overlay as an overlay dir
 // Requires the config-load step because some parameters can come from there.
-func (s *State) MountBaseOverlayDagStep(g *herd.Graph) error {
+func (s *State) MountBaseOverlayDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpMountBaseOverlay,
-		herd.WithDeps(cnst.OpLoadConfig),
-		herd.WithCallback(
-			func(ctx context.Context) error {
-				op, err := baseOverlay(Overlay{
-					Base:        "/run/overlay",
-					BackingBase: s.OverlayBase,
-				})
-				if err != nil {
-					return err
-				}
-				err2 := op.run()
-				// No error, add fstab
-				if err2 == nil {
-					s.fstabs = append(s.fstabs, &op.FstabEntry)
-					return nil
-				}
-				// Error but its already mounted error, dont add fstab but dont return error
-				if err2 != nil && errors.Is(err2, cnst.ErrAlreadyMounted) {
-					return nil
-				}
+		append(opts, herd.WithDeps(cnst.OpLoadConfig),
+			herd.WithCallback(
+				func(ctx context.Context) error {
+					op, err := baseOverlay(Overlay{
+						Base:        "/run/overlay",
+						BackingBase: s.OverlayBase,
+					})
+					if err != nil {
+						return err
+					}
+					err2 := op.run()
+					// No error, add fstab
+					if err2 == nil {
+						s.fstabs = append(s.fstabs, &op.FstabEntry)
+						return nil
+					}
+					// Error but its already mounted error, dont add fstab but dont return error
+					if err2 != nil && errors.Is(err2, cnst.ErrAlreadyMounted) {
+						return nil
+					}
 
-				return err2
-			},
-		),
-	)
+					return err2
+				},
+			),
+		)...)
 }
 
 // MountCustomOverlayDagStep will add mounting s.OverlayDirs under /run/overlay .
-func (s *State) MountCustomOverlayDagStep(g *herd.Graph) error {
+func (s *State) MountCustomOverlayDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpOverlayMount,
-		herd.WithDeps(cnst.OpLoadConfig, cnst.OpMountBaseOverlay),
-		herd.WithCallback(
-			func(ctx context.Context) error {
-				var multierr *multierror.Error
-				internalUtils.Log.Debug().Strs("dirs", s.OverlayDirs).Msg("Mounting overlays")
-				for _, p := range s.OverlayDirs {
-					internalUtils.Log.Debug().Str("what", p).Msg("Overlay mount start")
-					op := mountWithBaseOverlay(p, s.Rootdir, "/run/overlay")
-					err := op.run()
-					// Append to errors only if it's not an already mounted error
-					if err != nil && !errors.Is(err, cnst.ErrAlreadyMounted) {
-						internalUtils.Log.Err(err).Msg("overlay mount")
-						multierr = multierror.Append(multierr, err)
-						continue
+		append(opts, herd.WithDeps(cnst.OpLoadConfig, cnst.OpMountBaseOverlay),
+			herd.WithCallback(
+				func(ctx context.Context) error {
+					var multierr *multierror.Error
+					internalUtils.Log.Debug().Strs("dirs", s.OverlayDirs).Msg("Mounting overlays")
+					for _, p := range s.OverlayDirs {
+						internalUtils.Log.Debug().Str("what", p).Msg("Overlay mount start")
+						op := mountWithBaseOverlay(p, s.Rootdir, "/run/overlay")
+						err := op.run()
+						// Append to errors only if it's not an already mounted error
+						if err != nil && !errors.Is(err, cnst.ErrAlreadyMounted) {
+							internalUtils.Log.Err(err).Msg("overlay mount")
+							multierr = multierror.Append(multierr, err)
+							continue
+						}
+						s.fstabs = append(s.fstabs, &op.FstabEntry)
+						internalUtils.Log.Debug().Str("what", p).Msg("Overlay mount done")
 					}
-					s.fstabs = append(s.fstabs, &op.FstabEntry)
-					internalUtils.Log.Debug().Str("what", p).Msg("Overlay mount done")
-				}
-				return multierr.ErrorOrNil()
-			},
-		),
-	)
+					return multierr.ErrorOrNil()
+				},
+			),
+		)...)
 }
 
 // MountCustomMountsDagStep will add mounting s.CustomMounts .
-func (s *State) MountCustomMountsDagStep(g *herd.Graph) error {
-	return g.Add(cnst.OpCustomMounts,
-		herd.WithDeps(cnst.OpLoadConfig),
+func (s *State) MountCustomMountsDagStep(g *herd.Graph, opts ...herd.OpOption) error {
+	return g.Add(cnst.OpCustomMounts, append(opts, herd.WithDeps(cnst.OpLoadConfig),
 		herd.WithCallback(func(ctx context.Context) error {
 			var err *multierror.Error
 			internalUtils.Log.Debug().Interface("mounts", s.CustomMounts).Msg("Mounting custom mounts")
@@ -295,39 +292,39 @@ func (s *State) MountCustomMountsDagStep(g *herd.Graph) error {
 
 			return err.ErrorOrNil()
 		}),
-	)
+	)...)
 }
 
 // MountCustomBindsDagStep will add mounting s.BindMounts
 // mount state is defined over a custom mount (/usr/local/.state for instance, needs to be mounted over a device).
-func (s *State) MountCustomBindsDagStep(g *herd.Graph) error {
+func (s *State) MountCustomBindsDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpMountBind,
-		herd.WithDeps(cnst.OpOverlayMount, cnst.OpCustomMounts, cnst.OpLoadConfig),
-		herd.WithCallback(
-			func(ctx context.Context) error {
-				var err *multierror.Error
-				internalUtils.Log.Debug().Strs("mounts", s.BindMounts).Msg("Mounting binds")
+		append(opts, herd.WithDeps(cnst.OpOverlayMount, cnst.OpCustomMounts, cnst.OpLoadConfig),
+			herd.WithCallback(
+				func(ctx context.Context) error {
+					var err *multierror.Error
+					internalUtils.Log.Debug().Strs("mounts", s.BindMounts).Msg("Mounting binds")
 
-				for _, p := range s.SortedBindMounts() {
-					internalUtils.Log.Debug().Str("what", p).Msg("Bind mount start")
-					op := mountBind(p, s.Rootdir, s.StateDir)
-					err2 := op.run()
-					if err2 == nil {
-						// Only append to fstabs if there was no error, otherwise we will try to mount it after switch_root
-						s.fstabs = append(s.fstabs, &op.FstabEntry)
+					for _, p := range s.SortedBindMounts() {
+						internalUtils.Log.Debug().Str("what", p).Msg("Bind mount start")
+						op := mountBind(p, s.Rootdir, s.StateDir)
+						err2 := op.run()
+						if err2 == nil {
+							// Only append to fstabs if there was no error, otherwise we will try to mount it after switch_root
+							s.fstabs = append(s.fstabs, &op.FstabEntry)
+						}
+						// Append to errors only if it's not an already mounted error
+						if err2 != nil && !errors.Is(err2, cnst.ErrAlreadyMounted) {
+							internalUtils.Log.Err(err2).Send()
+							err = multierror.Append(err, err2)
+						}
+						internalUtils.Log.Debug().Str("what", p).Msg("Bind mount end")
 					}
-					// Append to errors only if it's not an already mounted error
-					if err2 != nil && !errors.Is(err2, cnst.ErrAlreadyMounted) {
-						internalUtils.Log.Err(err2).Send()
-						err = multierror.Append(err, err2)
-					}
-					internalUtils.Log.Debug().Str("what", p).Msg("Bind mount end")
-				}
-				internalUtils.Log.Warn().Err(err.ErrorOrNil()).Send()
-				return err.ErrorOrNil()
-			},
-		),
-	)
+					internalUtils.Log.Warn().Err(err.ErrorOrNil()).Send()
+					return err.ErrorOrNil()
+				},
+			),
+		)...)
 }
 
 // WriteFstabDagStep will add writing the final fstab file with all the mounts
@@ -404,13 +401,6 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 				var err error
 				mounts := []mount{
 					{
-						"/run",
-						"tmpfs",
-						"tmpfs",
-						syscall.MS_NOSUID | syscall.MS_NODEV | syscall.MS_NOEXEC | syscall.MS_RELATIME,
-						"mode=755",
-					},
-					{
 						"/sys",
 						"sysfs",
 						"sysfs",
@@ -438,6 +428,7 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 						err = multierror.Append(err, e)
 						internalUtils.Log.Err(e).Msg("Creating dir")
 					}
+
 					e = syscall.Mount(m.what, m.where, m.fs, m.flags, m.data)
 					if e != nil {
 						err = multierror.Append(err, e)
@@ -455,7 +446,7 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 // Drops to emergency if not able to. Panic if it cant even launch emergency.
 func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpUkiInit,
-		herd.WithDeps(),
+		herd.WeakDeps,
 		herd.WithWeakDeps(cnst.OpRemountRootRO, cnst.OpRootfsHook, cnst.OpInitramfsHook, cnst.OpWriteFstab),
 		herd.WithCallback(func(ctx context.Context) error {
 			// Print dag before exit, otherwise its never printed as we never exit the program
@@ -539,6 +530,7 @@ func (s *State) LoadKernelModules(g *herd.Graph) error {
 			if err != nil {
 				internalUtils.Log.Err(err).Msg("Detecting needed modules")
 			}
+			drivers = append(drivers, cnst.GenericKernelDrivers()...)
 			internalUtils.Log.Debug().Strs("drivers", drivers).Msg("Detecting needed modules")
 			for _, driver := range drivers {
 				cmd := fmt.Sprintf("modprobe %s", driver)

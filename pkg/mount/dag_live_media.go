@@ -17,7 +17,7 @@ func (s *State) RegisterLiveMedia(g *herd.Graph) error {
 
 	// Try to mount oem ONLY if we are on recovery squash
 	// The check to see if its enabled its on the DAG step itself
-	s.LogIfError(s.MountOemDagStep(g, cnst.OpWaitForSysroot), "oem mount")
+	s.LogIfError(s.MountOemDagStep(g, herd.WithDeps(cnst.OpWaitForSysroot)), "oem mount")
 
 	s.LogIfError(s.RootfsStageDagStep(g, herd.WithDeps(cnst.OpSentinel, cnst.OpWaitForSysroot), herd.WithWeakDeps(cnst.OpMountOEM)), "rootfs stage")
 	// Run initramfs inside the /sysroot chroot!
