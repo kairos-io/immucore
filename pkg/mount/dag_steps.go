@@ -404,13 +404,6 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 				var err error
 				mounts := []mount{
 					{
-						"/run",
-						"tmpfs",
-						"tmpfs",
-						syscall.MS_NOSUID | syscall.MS_NODEV | syscall.MS_NOEXEC | syscall.MS_RELATIME,
-						"mode=755",
-					},
-					{
 						"/sys",
 						"sysfs",
 						"sysfs",
@@ -438,6 +431,7 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 						err = multierror.Append(err, e)
 						internalUtils.Log.Err(e).Msg("Creating dir")
 					}
+
 					e = syscall.Mount(m.what, m.where, m.fs, m.flags, m.data)
 					if e != nil {
 						err = multierror.Append(err, e)

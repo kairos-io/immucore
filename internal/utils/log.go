@@ -26,7 +26,7 @@ func SetLogger() {
 		loggers = append(loggers, zerolog.ConsoleWriter{Out: logFile})
 	}
 
-	loggers = append(loggers, zerolog.ConsoleWriter{Out: os.Stderr})
+	loggers = append(loggers, zerolog.NewConsoleWriter())
 
 	multi := zerolog.MultiLevelWriter(loggers...)
 	level = zerolog.InfoLevel

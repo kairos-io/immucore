@@ -22,7 +22,7 @@ func main() {
 		var targetDevice, targetImage string
 		var state *mount.State
 
-		utils.MountProc()
+		utils.MountBasic()
 		utils.SetLogger()
 
 		v := version.Get()
