@@ -652,7 +652,7 @@ type LsblkOutput struct {
 // Doesnt matter if it fails, its just for niceness
 func (s *State) MountESPPartition(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add("mount-esp", append(opts, herd.WithCallback(func(ctx context.Context) error {
-		if internalUtils.CheckEfiPartUUID() == nil {
+		if internalUtils.CheckEfiPartUUID() != nil {
 			internalUtils.Log.Debug().Msg("Not mounting Esp Partition as we think we are booting from removable media")
 			return nil
 		}
