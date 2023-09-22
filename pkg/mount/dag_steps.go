@@ -388,18 +388,22 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 				// Generic sentinel for uki mode
 				// TODO: Drop this from the layout file and use the ones below to check our uki mode
 				err = os.WriteFile("/run/cos/uki_mode", []byte("1"), os.ModePerm)
+				internalUtils.Log.Info().Str("to", "uki_mode").Msg("Setting sentinel file")
 				if err != nil {
 					return err
 				}
 				// Specific one
 				err = internalUtils.CheckEfiPartUUID()
 				if err != nil {
+					internalUtils.Log.Info().Str("to", "uki_install_mode").Msg("Setting sentinel file")
 					err2 := os.WriteFile("/run/cos/uki_install_mode", []byte("1"), os.ModePerm)
+
 					if err2 != nil {
 						return err2
 					}
 					return nil
 				} else {
+					internalUtils.Log.Info().Str("to", "uki_boot_mode").Msg("Setting sentinel file")
 					err = os.WriteFile("/run/cos/uki_boot_mode", []byte("1"), os.ModePerm)
 					if err != nil {
 						return err
@@ -648,6 +652,10 @@ type LsblkOutput struct {
 // Doesnt matter if it fails, its just for niceness
 func (s *State) MountESPPartition(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add("mount-esp", append(opts, herd.WithCallback(func(ctx context.Context) error {
+		if internalUtils.CheckEfiPartUUID() == nil {
+			internalUtils.Log.Debug().Msg("Not mounting Esp Partition as we think we are booting from removable media")
+			return nil
+		}
 		cmd := "lsblk -J -o NAME,PARTTYPE"
 		out, err := internalUtils.CommandWithPath(cmd)
 		internalUtils.Log.Debug().Str("out", out).Str("cmd", cmd).Msg("Esp Partition")

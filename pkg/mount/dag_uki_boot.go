@@ -2,7 +2,6 @@ package mount
 
 import (
 	cnst "github.com/kairos-io/immucore/internal/constants"
-	internalUtils "github.com/kairos-io/immucore/internal/utils"
 	"github.com/spectrocloud-labs/herd"
 )
 
@@ -23,9 +22,7 @@ func (s *State) RegisterUKI(g *herd.Graph) error {
 	s.LogIfError(s.UKIUdevDaemon(g), "udev")
 
 	// Mount ESP partition under efi if it exists
-	s.LogIfError(s.MountESPPartition(g, herd.EnableIf(func() bool {
-		return internalUtils.CheckEfiPartUUID() == nil
-	}), herd.WithDeps(cnst.OpSentinel, cnst.OpUkiUdev)), "mount ESP partition")
+	s.LogIfError(s.MountESPPartition(g, herd.WithDeps(cnst.OpSentinel, cnst.OpUkiUdev)), "mount ESP partition")
 
 	// Run rootfs stage
 	s.LogIfError(s.RootfsStageDagStep(g, herd.WithDeps(cnst.OpSentinel, cnst.OpUkiUdev)), "uki rootfs")
