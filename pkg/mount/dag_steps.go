@@ -185,8 +185,15 @@ func (s *State) MountOemDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 					return internalUtils.GetOemLabel() != ""
 				}
 			}),
-			herd.WithCallback(
-				s.MountOP(
+			herd.WithCallback(func(ctx context.Context) error {
+				if internalUtils.IsUKI() {
+					_, err := os.Stat("/dev/disk/by-label/UKI_ISO_INSTALL")
+					if err == nil {
+						// Do nothing during uki install
+						return nil
+					}
+				}
+				op := s.MountOP(
 					fmt.Sprintf("/dev/disk/by-label/%s", internalUtils.GetOemLabel()),
 					s.path("/oem"),
 					internalUtils.DiskFSType(fmt.Sprintf("/dev/disk/by-label/%s", internalUtils.GetOemLabel())),
@@ -196,7 +203,9 @@ func (s *State) MountOemDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 						"dev",
 						"exec",
 						"async",
-					}, time.Duration(internalUtils.GetOemTimeout())*time.Second)))...)
+					}, time.Duration(internalUtils.GetOemTimeout())*time.Second)
+				return op(ctx)
+			}))...)
 }
 
 // MountBaseOverlayDagStep will add mounting /run/overlay as an overlay dir
