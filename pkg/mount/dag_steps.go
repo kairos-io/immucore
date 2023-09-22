@@ -2,6 +2,7 @@ package mount
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -606,5 +607,54 @@ func (s *State) RunKcrypt(g *herd.Graph, opts ...herd.OpOption) error {
 func (s *State) RunKcryptUpgrade(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpKcryptUpgrade, append(opts, herd.WithCallback(func(ctx context.Context) error {
 		return internalUtils.UpgradeKcryptPartitions()
+	}))...)
+}
+
+type LsblkOutput struct {
+	Blockdevices []struct {
+		Name     string      `json:"name,omitempty"`
+		Parttype interface{} `json:"parttype,omitempty"`
+		Children []struct {
+			Name     string `json:"name,omitempty"`
+			Parttype string `json:"parttype,omitempty"`
+		} `json:"children,omitempty"`
+	} `json:"blockdevices,omitempty"`
+}
+
+// MountESPPartition tries to mount the ESP into /efi
+// Doesnt matter if it fails, its just for niceness
+func (s *State) MountESPPartition(g *herd.Graph, opts ...herd.OpOption) error {
+	return g.Add("mount-esp", append(opts, herd.WithCallback(func(ctx context.Context) error {
+		cmd := "lsblk -J -o NAME,PARTTYPE"
+		out, err := internalUtils.CommandWithPath(cmd)
+		internalUtils.Log.Debug().Str("out", out).Str("cmd", cmd).Msg("Esp Partition")
+		if err != nil {
+			internalUtils.Log.Err(err).Msg("Esp Partition")
+			return nil
+		}
+
+		lsblk := &LsblkOutput{}
+		json.Unmarshal([]byte(out), lsblk)
+
+		for _, bd := range lsblk.Blockdevices {
+			for _, cd := range bd.Children {
+				if strings.TrimSpace(cd.Parttype) == "c12a7328-f81f-11d2-ba4b-00a0c93ec93b" {
+					// This is the ESP device
+					device := filepath.Join("/dev", cd.Name)
+					if !internalUtils.IsMounted(device) {
+						op := s.MountOP(
+							device,
+							s.path("/efi"),
+							"vfat",
+							[]string{
+								"ro",
+							}, 5*time.Second)
+						return op(ctx)
+					}
+				}
+			}
+
+		}
+		return nil
 	}))...)
 }
