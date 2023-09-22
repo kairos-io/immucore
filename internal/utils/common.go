@@ -242,7 +242,7 @@ func GetHostProcCmdline() string {
 // Useful to check if we are on install phase or not
 // This efi var is VOLATILE so once we reboot is GONE. No way of keeping it across reboots, its set by the bootloader
 func CheckEfiPartUUID() error {
-	file := "/sys/firmware/efi/LoaderDevicePartUUID-4a67b082-0a4c-41cf-b6c7-440b29bb8c4f"
+	file := "/sys/firmware/efi/efivars/LoaderDevicePartUUID-4a67b082-0a4c-41cf-b6c7-440b29bb8c4f"
 	readFile, err := os.ReadFile(file)
 	if err != nil {
 		Log.Debug().Err(err).Msg("Error reading LoaderDevicePartUUID file")
