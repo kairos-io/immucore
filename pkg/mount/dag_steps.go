@@ -447,6 +447,13 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 						syscall.MS_NOSUID | syscall.MS_NODEV,
 						"",
 					},
+					{
+						"/sys/firmware/efi/efivars",
+						"efivarfs",
+						"efivarfs",
+						syscall.MS_NOSUID | syscall.MS_NODEV | syscall.MS_NOEXEC | syscall.MS_RELATIME,
+						"",
+					},
 				}
 				for _, m := range mounts {
 					e := os.MkdirAll(m.where, 0755)
