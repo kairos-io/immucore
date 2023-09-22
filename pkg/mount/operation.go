@@ -37,7 +37,10 @@ func (m mountOperation) run() error {
 		l.Warn().Err(err).Msg("checking mount status")
 		return err
 	}
-	if mounted {
+
+	// In UKI mode we need to remount things from ephemeral to persistent if persistent exists so we need to skip the check for mount
+	// only in UKI (/home basically)
+	if mounted && !internalUtils.IsUKI() {
 		l.Debug().Msg("Already mounted")
 		return constants.ErrAlreadyMounted
 	}

@@ -14,6 +14,8 @@ func (s *State) RegisterUKI(g *herd.Graph) error {
 	s.LogIfError(s.WriteSentinelDagStep(g, cnst.OpUkiBaseMounts), "sentinel")
 
 	// Load needed kernel modules
+	// TODO: This seems to be wrong as it leans on the udev to infer the modules, but at this point we dont have udev
+	// So we dont get all the proper modules needed!
 	s.LogIfError(s.LoadKernelModules(g), "kernel modules")
 
 	// Udev for devices discovery
@@ -25,25 +27,27 @@ func (s *State) RegisterUKI(g *herd.Graph) error {
 	// Remount root RO
 	s.LogIfError(s.UKIRemountRootRODagStep(g), "remount root")
 
+	s.LogIfError(s.MountOemDagStep(g, herd.WithDeps(cnst.OpRemountRootRO), herd.WeakDeps), "oem mount")
+
 	// Populate state bind mounts, overlay mounts, custom-mounts from /run/cos/cos-layout.env
 	// Requires stage rootfs to have run, which usually creates the cos-layout.env file
-	s.LogIfError(s.LoadEnvLayoutDagStep(g, cnst.OpRootfsHook), "loading cos-layout.env")
+	s.LogIfError(s.LoadEnvLayoutDagStep(g), "loading cos-layout.env")
 
 	// Mount base overlay under /run/overlay
 	s.LogIfError(s.MountBaseOverlayDagStep(g), "base overlay")
 
 	// Mount custom overlays loaded from the /run/cos/cos-layout.env file
-	s.LogIfError(s.MountCustomOverlayDagStep(g), "custom overlays mount")
+	s.LogIfError(s.MountCustomOverlayDagStep(g, herd.WeakDeps), "custom overlays mount")
 
 	// Mount custom mounts loaded from the /run/cos/cos-layout.env file
-	s.LogIfError(s.MountCustomMountsDagStep(g), "custom mounts mount")
+	s.LogIfError(s.MountCustomMountsDagStep(g, herd.WeakDeps), "custom mounts mount")
 
 	// Mount custom binds loaded from the /run/cos/cos-layout.env file
 	// Depends on mount binds as that usually mounts COS_PERSISTENT
-	s.LogIfError(s.MountCustomBindsDagStep(g), "custom binds mount")
+	s.LogIfError(s.MountCustomBindsDagStep(g, herd.WeakDeps), "custom binds mount")
 
 	// run initramfs stage
-	s.LogIfError(s.InitramfsStageDagStep(g, herd.WithDeps(cnst.OpMountBind)), "uki initramfs")
+	s.LogIfError(s.InitramfsStageDagStep(g, herd.WeakDeps, herd.WithDeps(cnst.OpMountBind)), "uki initramfs")
 
 	s.LogIfError(g.Add(cnst.OpWriteFstab,
 		herd.WithDeps(cnst.OpLoadConfig, cnst.OpCustomMounts, cnst.OpMountBind, cnst.OpOverlayMount),
