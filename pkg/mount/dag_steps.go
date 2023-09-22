@@ -573,7 +573,7 @@ func (s *State) LoadKernelModules(g *herd.Graph) error {
 				cmd := fmt.Sprintf("modprobe %s", driver)
 				out, err := internalUtils.CommandWithPath(cmd)
 				if err != nil {
-					internalUtils.Log.Err(err).Str("out", out).Msg("modprobe")
+					internalUtils.Log.Debug().Err(err).Str("out", out).Msg("modprobe")
 				}
 			}
 			return nil
