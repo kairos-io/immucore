@@ -385,9 +385,25 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 			// Lets add a uki sentinel as well!
 			cmdline, _ := os.ReadFile(internalUtils.GetHostProcCmdline())
 			if strings.Contains(string(cmdline), "rd.immucore.uki") {
+				// Generic sentinel for uki mode
+				// TODO: Drop this from the layout file and use the ones below to check our uki mode
 				err = os.WriteFile("/run/cos/uki_mode", []byte("1"), os.ModePerm)
 				if err != nil {
 					return err
+				}
+				// Specific one
+				err = internalUtils.CheckEfiPartUUID()
+				if err != nil {
+					err2 := os.WriteFile("/run/cos/uki_install_mode", []byte("1"), os.ModePerm)
+					if err2 != nil {
+						return err2
+					}
+					return nil
+				} else {
+					err = os.WriteFile("/run/cos/uki_boot_mode", []byte("1"), os.ModePerm)
+					if err != nil {
+						return err
+					}
 				}
 			}
 
