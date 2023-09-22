@@ -14,7 +14,7 @@ require (
 	github.com/kairos-io/kcrypt v0.7.0
 	github.com/moby/sys/mountinfo v0.6.2
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
-	github.com/mudler/yip v1.4.2
+	github.com/mudler/yip v1.4.3-0.20230925071705-33f3678c4c77
 	github.com/onsi/ginkgo/v2 v2.12.0
 	github.com/onsi/gomega v1.27.10
 	github.com/rs/zerolog v1.30.0
