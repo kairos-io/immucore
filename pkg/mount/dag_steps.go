@@ -385,26 +385,16 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 			// Lets add a uki sentinel as well!
 			cmdline, _ := os.ReadFile(internalUtils.GetHostProcCmdline())
 			if strings.Contains(string(cmdline), "rd.immucore.uki") {
-				// Generic sentinel for uki mode
-				// TODO: Drop this from the layout file and use the ones below to check our uki mode
-				err = os.WriteFile("/run/cos/uki_mode", []byte("1"), os.ModePerm)
-				internalUtils.Log.Info().Str("to", "uki_mode").Msg("Setting sentinel file")
-				if err != nil {
-					return err
-				}
-				// Specific one
-				err = internalUtils.CheckEfiPartUUID()
-				if err != nil {
-					internalUtils.Log.Info().Str("to", "uki_install_mode").Msg("Setting sentinel file")
-					err2 := os.WriteFile("/run/cos/uki_install_mode", []byte("1"), os.ModePerm)
-
-					if err2 != nil {
-						return err2
-					}
-					return nil
-				} else {
+				// sentinel for uki mode
+				if internalUtils.EfiBootFromInstall() {
 					internalUtils.Log.Info().Str("to", "uki_boot_mode").Msg("Setting sentinel file")
 					err = os.WriteFile("/run/cos/uki_boot_mode", []byte("1"), os.ModePerm)
+					if err != nil {
+						return err
+					}
+				} else {
+					internalUtils.Log.Info().Str("to", "uki_install_mode").Msg("Setting sentinel file")
+					err := os.WriteFile("/run/cos/uki_install_mode", []byte("1"), os.ModePerm)
 					if err != nil {
 						return err
 					}
@@ -649,23 +639,26 @@ type LsblkOutput struct {
 }
 
 // MountESPPartition tries to mount the ESP into /efi
-// Doesnt matter if it fails, its just for niceness
+// Doesnt matter if it fails, its just for niceness.
 func (s *State) MountESPPartition(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add("mount-esp", append(opts, herd.WithCallback(func(ctx context.Context) error {
-		if internalUtils.CheckEfiPartUUID() != nil {
-			internalUtils.Log.Debug().Msg("Not mounting Esp Partition as we think we are booting from removable media")
+		if !internalUtils.EfiBootFromInstall() {
+			internalUtils.Log.Debug().Msg("Not mounting ESP as we think we are booting from removable media")
 			return nil
 		}
 		cmd := "lsblk -J -o NAME,PARTTYPE"
 		out, err := internalUtils.CommandWithPath(cmd)
-		internalUtils.Log.Debug().Str("out", out).Str("cmd", cmd).Msg("Esp Partition")
+		internalUtils.Log.Debug().Str("out", out).Str("cmd", cmd).Msg("ESP")
 		if err != nil {
-			internalUtils.Log.Err(err).Msg("Esp Partition")
+			internalUtils.Log.Err(err).Msg("ESP")
 			return nil
 		}
 
 		lsblk := &LsblkOutput{}
-		json.Unmarshal([]byte(out), lsblk)
+		err = json.Unmarshal([]byte(out), lsblk)
+		if err != nil {
+			return nil
+		}
 
 		for _, bd := range lsblk.Blockdevices {
 			for _, cd := range bd.Children {
