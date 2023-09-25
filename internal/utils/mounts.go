@@ -197,7 +197,7 @@ func Fsck(device string) error {
 // MountBasic will mount /proc and /run
 // For now proc is needed to read the cmdline fully in uki mode
 // in normal modes this should already be done by the initramfs process, so we can skip this.
-// /run is needed to start logging from the start
+// /run is needed to start logging from the start.
 func MountBasic() {
 	_ = os.MkdirAll("/proc", 0755)
 	if !IsMounted("/proc") {

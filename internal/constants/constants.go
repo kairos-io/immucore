@@ -12,7 +12,7 @@ func GetCloudInitPaths() []string {
 }
 
 // GenericKernelDrivers retusn a list of generic kernel drivers to insmod during uki mode
-// as they could be useful for a lot of situations
+// as they could be useful for a lot of situations.
 func GenericKernelDrivers() []string {
 	return []string{"virtio", "ata_piix", "cdrom", "ext4", "iso9660", "usb_storage", "ahci",
 		"virtio_blk", "virtio_scsi", "virtio_net", "nvme", "overlay", "libata", "sr_mod", "simpledrm"}
