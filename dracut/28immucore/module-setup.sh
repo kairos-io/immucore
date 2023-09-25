@@ -25,7 +25,13 @@ install() {
     inst_multiple immucore
     inst_multiple kairos-agent
     # add utils used by yip stages
-    inst_multiple partprobe sync udevadm parted mkfs.ext2 mkfs.ext3 mkfs.ext4 mkfs.vfat mkfs.fat blkid lsblk e2fsck resize2fs mount umount sgdisk rsync cryptsetup growpart
+
+    inst_multiple partprobe sync udevadm parted mkfs.ext2 mkfs.ext3 mkfs.ext4 mkfs.vfat mkfs.fat blkid lsblk e2fsck resize2fs mount umount sgdisk rsync cryptsetup growpart sfdisk gawk awk
+
+    # Install libraries needed by gawk
+    inst_libdir_file "libsigsegv.so*"
+    inst_libdir_file "libmpfr.so*"
+
     # missing mkfs.xfs xfs_growfs in image?
     inst_script "${moddir}/generator.sh" "${systemdutildir}/system-generators/immucore-generator"
     # SERVICES FOR SYSTEMD-BASED SYSTEMS
