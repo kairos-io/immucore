@@ -187,10 +187,10 @@ func (s *State) MountOemDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 				}
 			}),
 			herd.WithCallback(func(ctx context.Context) error {
+				// We have to run the check here because otherwise is run on start instead of when we want to mount oem
+				// And at program start we have not mounted the efivarsfs so this would always return false
 				if internalUtils.IsUKI() {
-					_, err := os.Stat("/dev/disk/by-label/UKI_ISO_INSTALL")
-					if err == nil {
-						// Do nothing during uki install
+					if internalUtils.EfiBootFromInstall() {
 						return nil
 					}
 				}
