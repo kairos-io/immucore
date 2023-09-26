@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/kairos-io/immucore/internal/constants"
 	"github.com/rs/zerolog"
@@ -20,13 +21,16 @@ func CloseLogFiles() {
 func SetLogger() {
 	var loggers []io.Writer
 	var level zerolog.Level
+
 	_ = os.MkdirAll(constants.LogDir, os.ModeDir|os.ModePerm)
 	logFile, err := os.Create(filepath.Join(constants.LogDir, "immucore.log"))
 	if err == nil {
-		loggers = append(loggers, zerolog.ConsoleWriter{Out: logFile})
+		loggers = append(loggers, zerolog.ConsoleWriter{Out: logFile, TimeFormat: time.RFC3339})
 	}
 
-	loggers = append(loggers, zerolog.NewConsoleWriter())
+	loggers = append(loggers, zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
+		w.TimeFormat = time.RFC3339
+	}))
 
 	multi := zerolog.MultiLevelWriter(loggers...)
 	level = zerolog.InfoLevel
@@ -36,7 +40,7 @@ func SetLogger() {
 	if debug || debugFromEnv {
 		level = zerolog.DebugLevel
 	}
-	Log = zerolog.New(multi).With().Logger().Level(level)
+	Log = zerolog.New(multi).With().Timestamp().Logger().Level(level)
 }
 
 // MiddleLog implements the bridge between zerolog and the logger.Interface that yip needs.
