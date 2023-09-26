@@ -12,7 +12,7 @@ ARG ISO_NAME=$FLAVOR-immucore
 # renovate: datasource=docker depName=golang
 ARG GO_VERSION=1.20
 # renovate: datasource=docker depName=golangci/golangci-lint
-ARG GOLINT_VERSION=v1.52.2
+ARG GOLINT_VERSION=v1.54.2
 
 version:
     FROM alpine
