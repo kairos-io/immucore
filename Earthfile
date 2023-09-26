@@ -1,14 +1,7 @@
 VERSION 0.6
-# Note the base image needs to have dracut.
-# TODO: This needs to come from pre-built kernels in c3os repos, immucore included.
-# Framework images should use our initrd
-ARG FLAVOR=core-opensuse-leap
-ARG BASE_IMAGE=quay.io/kairos/$FLAVOR
 # renovate: datasource=docker depName=quay.io/kairos/osbuilder-tools versioning=semver-coerced
 ARG OSBUILDER_VERSION=v0.8.6
 ARG OSBUILDER_IMAGE=quay.io/kairos/osbuilder-tools:$OSBUILDER_VERSION
-ARG ISO_NAME=$FLAVOR-immucore
-
 # renovate: datasource=docker depName=golang
 ARG GO_VERSION=1.20
 # renovate: datasource=docker depName=golangci/golangci-lint
@@ -21,7 +14,7 @@ version:
     RUN --no-cache echo $(git describe --tags | sed 's/\(.*\)-.*/\1/') > VERSION
     RUN --no-cache echo $(git describe --always --dirty) > COMMIT
     ARG VERSION=$(cat VERSION)
-    ARG COMMIT=$(cat COMMMIT)
+    ARG COMMIT=$(cat COMMIT)
     SAVE ARTIFACT COMMIT COMMIT
     SAVE ARTIFACT VERSION VERSION
 
@@ -31,16 +24,6 @@ golang-image:
     WORKDIR /build
     COPY go.mod go.sum ./
     RUN go mod download
-
-go-deps:
-    ARG GO_VERSION
-    FROM golang:$GO_VERSION
-    WORKDIR /build
-    COPY go.mod go.sum ./
-    RUN go mod download
-    RUN apt-get update
-    SAVE ARTIFACT go.mod AS LOCAL go.mod
-    SAVE ARTIFACT go.sum AS LOCAL go.sum
 
 test:
     FROM +golang-image
@@ -55,7 +38,7 @@ lint:
     FROM golangci/golangci-lint:$GOLINT_VERSION
     WORKDIR /build
     COPY . .
-    RUN golangci-lint run
+    RUN golangci-lint run -v
 
 build-immucore:
     FROM +golang-image
@@ -73,13 +56,12 @@ build-immucore:
     RUN CGO_ENABLED=0 go build -o immucore -ldflags "${LDFLAGS}"
     SAVE ARTIFACT /work/immucore immucore AS LOCAL build/immucore-$VERSION
 
-build-immucore-image:
-    FROM +build-immucore
-    COPY +build-immucore/immucore /usr/bin/immucore
-    SAVE IMAGE immucore:latest
+# Alias for ease of use
+build:
+    BUILD +build-immucore
 
 dracut-artifacts:
-    FROM $BASE_IMAGE
+    FROM scratch
     WORKDIR /build
     COPY --dir dracut/28immucore .
     COPY dracut/10-immucore.conf .
