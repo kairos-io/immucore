@@ -8,5 +8,16 @@
     "before 7am every weekday",
     "every weekend"
   ],
-  "timezone": "Europe/Brussels"
+  "timezone": "Europe/Brussels",
+  "regexManagers": [
+    {
+      "fileMatch": [
+        "^Earthfile$"
+      ],
+      "matchStrings": [
+        "#\\s*renovate:\\s*datasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?\\sARG\\s+.+_VERSION=\"?(?<currentValue>.*?)\"?\\s"
+      ],
+      "versioningTemplate": "{{#if versioning}}{{versioning}}{{else}}semver{{/if}}"
+    }
+  ]
 }
