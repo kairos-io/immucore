@@ -5,7 +5,7 @@ VERSION 0.6
 ARG FLAVOR=core-opensuse-leap
 ARG BASE_IMAGE=quay.io/kairos/$FLAVOR
 # renovate: datasource=docker depName=quay.io/kairos/osbuilder-tools versioning=semver-coerced
-ARG OSBUILDER_VERSION=v0.6.4
+ARG OSBUILDER_VERSION=v0.8.6
 ARG OSBUILDER_IMAGE=quay.io/kairos/osbuilder-tools:$OSBUILDER_VERSION
 ARG ISO_NAME=$FLAVOR-immucore
 
