@@ -16,7 +16,7 @@ require (
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
 	github.com/mudler/yip v1.4.3
 	github.com/onsi/ginkgo/v2 v2.12.1
-	github.com/onsi/gomega v1.27.10
+	github.com/onsi/gomega v1.28.0
 	github.com/rs/zerolog v1.31.0
 	github.com/spectrocloud-labs/herd v0.4.2
 	github.com/twpayne/go-vfs v1.7.2
