@@ -5,7 +5,7 @@ ARG OSBUILDER_IMAGE=quay.io/kairos/osbuilder-tools:$OSBUILDER_VERSION
 # renovate: datasource=docker depName=golang
 ARG GO_VERSION=1.20
 # renovate: datasource=docker depName=golangci/golangci-lint
-ARG GOLINT_VERSION=v1.55.1
+ARG GOLINT_VERSION=v1.55.2
 
 version:
     FROM alpine
