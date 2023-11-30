@@ -101,6 +101,7 @@ require (
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc3 // indirect
+	github.com/otiai10/copy v1.9.0 // indirect
 	github.com/packethost/packngo v0.29.0 // indirect
 	github.com/phayes/permbits v0.0.0-20190612203442-39d7c581d2ee // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
@@ -151,6 +152,7 @@ require (
 	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	howett.net/plist v1.0.0 // indirect
+	k8s.io/apimachinery v0.26.2 // indirect
 	pault.ag/go/modprobe v0.1.2 // indirect
 	pault.ag/go/topsort v0.1.1 // indirect
 )
