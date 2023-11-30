@@ -615,7 +615,7 @@ func (s *State) LVMActivation(g *herd.Graph) error {
 // RunKcrypt will run the UnlockAll method of kcrypt to unlock the encrypted partitions
 // Requires sysroot to be mounted as the kcrypt-challenger binary is not injected in the initramfs.
 func (s *State) RunKcrypt(g *herd.Graph, opts ...herd.OpOption) error {
-	return g.Add(cnst.OpKcryptUnlock, append(opts, herd.WithCallback(func(ctx context.Context) error { return kcrypt.UnlockAll() }))...)
+	return g.Add(cnst.OpKcryptUnlock, append(opts, herd.WithCallback(func(ctx context.Context) error { return kcrypt.UnlockAll(false) }))...)
 }
 
 // RunKcryptUpgrade will upgrade encrypted partitions created with 1.x to the new 2.x format, where
@@ -680,5 +680,17 @@ func (s *State) MountESPPartition(g *herd.Graph, opts ...herd.OpOption) error {
 
 		}
 		return nil
+	}))...)
+}
+
+func (s *State) UKIUnlock(g *herd.Graph, opts ...herd.OpOption) error {
+	return g.Add(cnst.OpUkiKcrypt, append(opts, herd.WithCallback(func(ctx context.Context) error {
+		// Set full path on uki to get all the binaries
+		if !internalUtils.EfiBootFromInstall() {
+			internalUtils.Log.Debug().Msg("Not unlocking disks as we think we are booting from removable media")
+			return nil
+		}
+		os.Setenv("PATH", "/usr/bin:/usr/sbin:/bin:/sbin")
+		return kcrypt.UnlockAll(true)
 	}))...)
 }

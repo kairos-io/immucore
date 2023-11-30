@@ -24,13 +24,16 @@ func (s *State) RegisterUKI(g *herd.Graph) error {
 	// Mount ESP partition under efi if it exists
 	s.LogIfError(s.MountESPPartition(g, herd.WithDeps(cnst.OpSentinel, cnst.OpUkiUdev)), "mount ESP partition")
 
-	// Run rootfs stage
+	// Run rootfs stage (doesnt this need to be run after mounting OEM???
 	s.LogIfError(s.RootfsStageDagStep(g, herd.WithDeps(cnst.OpSentinel, cnst.OpUkiUdev)), "uki rootfs")
 
 	// Remount root RO
 	s.LogIfError(s.UKIRemountRootRODagStep(g), "remount root")
 
-	s.LogIfError(s.MountOemDagStep(g, herd.WithDeps(cnst.OpRemountRootRO), herd.WeakDeps), "oem mount")
+	// Unlock partitions if needed with TPM
+	s.LogIfError(s.UKIUnlock(g, herd.WithDeps(cnst.OpSentinel, cnst.OpRemountRootRO)), "uki unlock")
+
+	s.LogIfError(s.MountOemDagStep(g, herd.WithDeps(cnst.OpRemountRootRO, cnst.OpUkiKcrypt), herd.WeakDeps), "oem mount")
 
 	// Populate state bind mounts, overlay mounts, custom-mounts from /run/cos/cos-layout.env
 	// Requires stage rootfs to have run, which usually creates the cos-layout.env file
