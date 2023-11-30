@@ -684,5 +684,9 @@ func (s *State) MountESPPartition(g *herd.Graph, opts ...herd.OpOption) error {
 }
 
 func (s *State) UKIUnlock(g *herd.Graph, opts ...herd.OpOption) error {
-	return g.Add("uki-unlock", append(opts, herd.WithCallback(func(ctx context.Context) error { return kcrypt.UnlockAll(true) }))...)
+	return g.Add("uki-unlock", append(opts, herd.WithCallback(func(ctx context.Context) error {
+		// Set full path on uki to get all the binaries
+		os.Setenv("PATH", "/usr/bin:/usr/sbin:/bin:/sbin")
+		return kcrypt.UnlockAll(true)
+	}))...)
 }
