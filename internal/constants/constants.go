@@ -44,6 +44,7 @@ const (
 	OpLvmActivate         = "lvm-activation"
 	OpKcryptUnlock        = "unlock-all"
 	OpKcryptUpgrade       = "upgrade-kcrypt"
+	OpUkiKcrypt           = "uki-unlock"
 	PersistentStateTarget = "/usr/local/.state"
 	LogDir                = "/run/immucore"
 	LinuxFs               = "ext4"

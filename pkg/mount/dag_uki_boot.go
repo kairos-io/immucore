@@ -33,7 +33,7 @@ func (s *State) RegisterUKI(g *herd.Graph) error {
 	// Unlock partitions if needed with TPM
 	s.LogIfError(s.UKIUnlock(g, herd.WithDeps(cnst.OpSentinel, cnst.OpRemountRootRO)), "uki unlock")
 
-	s.LogIfError(s.MountOemDagStep(g, herd.WithDeps(cnst.OpRemountRootRO), herd.WeakDeps), "oem mount")
+	s.LogIfError(s.MountOemDagStep(g, herd.WithDeps(cnst.OpRemountRootRO, cnst.OpUkiKcrypt), herd.WeakDeps), "oem mount")
 
 	// Populate state bind mounts, overlay mounts, custom-mounts from /run/cos/cos-layout.env
 	// Requires stage rootfs to have run, which usually creates the cos-layout.env file

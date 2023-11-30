@@ -684,7 +684,7 @@ func (s *State) MountESPPartition(g *herd.Graph, opts ...herd.OpOption) error {
 }
 
 func (s *State) UKIUnlock(g *herd.Graph, opts ...herd.OpOption) error {
-	return g.Add("uki-unlock", append(opts, herd.WithCallback(func(ctx context.Context) error {
+	return g.Add(cnst.OpUkiKcrypt, append(opts, herd.WithCallback(func(ctx context.Context) error {
 		// Set full path on uki to get all the binaries
 		if !internalUtils.EfiBootFromInstall() {
 			internalUtils.Log.Debug().Msg("Not unlocking disks as we think we are booting from removable media")
