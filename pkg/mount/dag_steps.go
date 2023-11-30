@@ -682,3 +682,7 @@ func (s *State) MountESPPartition(g *herd.Graph, opts ...herd.OpOption) error {
 		return nil
 	}))...)
 }
+
+func (s *State) UKIUnlock(g *herd.Graph, opts ...herd.OpOption) error {
+	return g.Add("uki-unlock", append(opts, herd.WithCallback(func(ctx context.Context) error { return kcrypt.UnlockAll(true) }))...)
+}

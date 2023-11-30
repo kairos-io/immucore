@@ -24,11 +24,14 @@ func (s *State) RegisterUKI(g *herd.Graph) error {
 	// Mount ESP partition under efi if it exists
 	s.LogIfError(s.MountESPPartition(g, herd.WithDeps(cnst.OpSentinel, cnst.OpUkiUdev)), "mount ESP partition")
 
-	// Run rootfs stage
+	// Run rootfs stage (doesnt this need to be run after mounting OEM???
 	s.LogIfError(s.RootfsStageDagStep(g, herd.WithDeps(cnst.OpSentinel, cnst.OpUkiUdev)), "uki rootfs")
 
 	// Remount root RO
 	s.LogIfError(s.UKIRemountRootRODagStep(g), "remount root")
+
+	// Unlock partitions if needed with TPM
+	s.LogIfError(s.UKIUnlock(g, herd.WithDeps(cnst.OpSentinel, cnst.OpRemountRootRO)), "uki unlock")
 
 	s.LogIfError(s.MountOemDagStep(g, herd.WithDeps(cnst.OpRemountRootRO), herd.WeakDeps), "oem mount")
 

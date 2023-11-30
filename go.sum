@@ -276,6 +276,7 @@ github.com/kairos-io/kairos-sdk v0.0.16 h1:Zq+ALQTpv6T8wghkNpFGWzeeGvzcAf/i5m89V
 github.com/kairos-io/kairos-sdk v0.0.16/go.mod h1:6Y9RGvKU/B99euFE32OYrabLLsSVjjemCfyRgiEHuKE=
 github.com/kairos-io/kcrypt v0.7.0 h1:ESmCBIFbBBv7mJf0/f6ugqwSvz63M5oP9sUIdHiDlLc=
 github.com/kairos-io/kcrypt v0.7.0/go.mod h1:a9eI+vPVIQHPRtqEV/O/yIfDOdMWd9epVrq1p94gccM=
+github.com/kairos-io/kcrypt v0.7.1-0.20231130134511-e86d8e559545/go.mod h1:PPZzzuBGr1g+QZ/CcInMlQIlgXELeDG1WBiC/csDEd0=
 github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 h1:Z9n2FFNUXsshfwJMBgNA0RU6/i7WVaAegv3PtuIHPMs=
 github.com/kendru/darwin/go/depgraph v0.0.0-20221105232959-877d6a81060c h1:eKb4PqwAMhlqwXw0W3atpKaYaPGlXE/Fwh+xpCEYaPk=
 github.com/kendru/darwin/go/depgraph v0.0.0-20221105232959-877d6a81060c/go.mod h1:VOfm8h1NySetVlpHDSnbpCMsvCgYaU+YDn4XezUy2+4=
