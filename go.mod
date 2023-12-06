@@ -10,7 +10,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jaypipes/ghw v0.12.0
 	github.com/joho/godotenv v1.5.1
-	github.com/kairos-io/kairos-sdk v0.0.16
+	github.com/kairos-io/kairos-sdk v0.0.18
 	github.com/kairos-io/kcrypt v0.7.1-0.20231130171015-554e350fb7c1
 	github.com/moby/sys/mountinfo v0.6.2
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
@@ -20,7 +20,7 @@ require (
 	github.com/rs/zerolog v1.31.0
 	github.com/spectrocloud-labs/herd v0.4.2
 	github.com/twpayne/go-vfs v1.7.2
-	github.com/urfave/cli/v2 v2.25.7
+	github.com/urfave/cli/v2 v2.26.0
 	golang.org/x/sys v0.14.0
 	gopkg.in/yaml.v3 v3.0.1
 )
