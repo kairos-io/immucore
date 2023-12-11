@@ -197,7 +197,7 @@ func (s *State) MountOP(what, where, t string, options []string, timeout time.Du
 
 				// only continue the loop if it's an error and not an already mounted error
 				if err != nil && !errors.Is(err, constants.ErrAlreadyMounted) {
-					l.Err(err).Send()
+					l.Warn().Err(err).Send()
 					continue
 				}
 				l.Info().Msg("mount done")
