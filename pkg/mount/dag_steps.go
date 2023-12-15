@@ -467,6 +467,17 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 					internalUtils.Log.Err(pcrErr).Msg("running systemd-pcrphase")
 					internalUtils.Log.Debug().Str("out", output).Msg("systemd-pcrphase enter-initrd")
 				}
+				pcrErr = os.MkdirAll("/run/systemd", 0755)
+				if pcrErr != nil {
+					internalUtils.Log.Err(pcrErr).Msg("Creating /run/systemd dir")
+				}
+				// This dire is created by systemd-stub and passed to the kernel as a cpio archive
+				// that gets mounted in the initial ramdisk where we run immucore from
+				// It contains the tpm public key and signatures of the current uki
+				out, pcrErr := internalUtils.CommandWithPath("cp /.extra/* /run/systemd/")
+				if pcrErr != nil {
+					internalUtils.Log.Err(pcrErr).Str("out", out).Msg("Copying extra files")
+				}
 				return err
 			},
 		),
