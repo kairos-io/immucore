@@ -462,9 +462,9 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 						internalUtils.Log.Err(e).Str("what", m.what).Str("where", m.where).Str("type", m.fs).Msg("Mounting")
 					}
 				}
-				output, err := internalUtils.CommandWithPath("/usr/lib/systemd/systemd-pcrphase --graceful enter-initrd")
-				if err != nil {
-					internalUtils.Log.Err(err).Msg("running systemd-pcrphase")
+				output, pcrErr := internalUtils.CommandWithPath("/usr/lib/systemd/systemd-pcrphase --graceful enter-initrd")
+				if pcrErr != nil {
+					internalUtils.Log.Err(pcrErr).Msg("running systemd-pcrphase")
 					internalUtils.Log.Debug().Str("out", output).Msg("systemd-pcrphase enter-initrd")
 				}
 				return err
