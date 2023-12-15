@@ -465,9 +465,8 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 				output, err := internalUtils.CommandWithPath("/usr/lib/systemd/systemd-pcrphase --graceful enter-initrd")
 				if err != nil {
 					internalUtils.Log.Err(err).Msg("running systemd-pcrphase")
-					return err
+					internalUtils.Log.Debug().Str("out", output).Msg("systemd-pcrphase enter-initrd")
 				}
-				internalUtils.Log.Debug().Str("out", output).Msg("systemd-pcrphase enter-initrd")
 				return err
 			},
 		),
@@ -485,9 +484,8 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 			output, err := internalUtils.CommandWithPath("/usr/lib/systemd/systemd-pcrphase --graceful leave-initrd")
 			if err != nil {
 				internalUtils.Log.Err(err).Msg("running systemd-pcrphase")
-				return err
+				internalUtils.Log.Debug().Str("out", output).Msg("systemd-pcrphase leave-initrd")
 			}
-			internalUtils.Log.Debug().Str("out", output).Msg("systemd-pcrphase leave-initrd")
 			// Print dag before exit, otherwise its never printed as we never exit the program
 			internalUtils.Log.Info().Msg(s.WriteDAG(g))
 			internalUtils.Log.Debug().Msg("Executing init callback!")
