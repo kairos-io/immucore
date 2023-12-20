@@ -464,7 +464,7 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 					}
 				}
 
-				if !efi.GetSecureBoot() {
+				if !efi.GetSecureBoot() && len(internalUtils.ReadCMDLineArg("rd.immucore.disablesecureboot")) == 0 {
 					internalUtils.Log.Panic().Msg("Secure boot is not enabled")
 				}
 				output, pcrErr := internalUtils.CommandWithPath("/usr/lib/systemd/systemd-pcrphase --graceful enter-initrd")
