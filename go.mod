@@ -20,7 +20,7 @@ require (
 	github.com/rs/zerolog v1.31.0
 	github.com/spectrocloud-labs/herd v0.4.2
 	github.com/twpayne/go-vfs v1.7.2
-	github.com/urfave/cli/v2 v2.26.0
+	github.com/urfave/cli/v2 v2.27.1
 	golang.org/x/sys v0.15.0
 	gopkg.in/yaml.v3 v3.0.1
 )
