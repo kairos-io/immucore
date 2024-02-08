@@ -721,36 +721,37 @@ func (s *State) UKIUnlock(g *herd.Graph, opts ...herd.OpOption) error {
 func (s *State) MountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpUkiMountLivecd, append(opts, herd.WithCallback(func(ctx context.Context) error {
 		// If we are booting from Install Media
-		if !internalUtils.EfiBootFromInstall() {
-			err := os.MkdirAll(s.path("/run/initramfs/live"), 0755)
+		if internalUtils.EfiBootFromInstall() {
+			internalUtils.Log.Debug().Msg("Not mounting livecd as we think we are booting from removable media")
+			return nil
+		} else {
+			err := os.MkdirAll(s.path(cnst.UkiLivecdMountPoint), 0755)
 			if err != nil {
-				internalUtils.Log.Err(err).Msg("Creating /run/initramfs/live")
+				internalUtils.Log.Err(err).Msg(fmt.Sprintf("Creating %s", cnst.UkiLivecdMountPoint))
 				return nil
 			}
 			// Try to find the CDROM device by label /dev/disk/by-label/UKI_ISO_INSTALL
-			_, err = os.Stat("/dev/disk/by-label/UKI_ISO_INSTALL")
+			_, err = os.Stat(cnst.UkiLivecdPath)
 			// if found, mount it
 			if err == nil {
-				err = syscall.Mount("/dev/disk/by-label/UKI_ISO_INSTALL", s.path("/run/initramfs/live"), "iso9660", syscall.MS_RDONLY, "")
+				err = syscall.Mount(cnst.UkiLivecdPath, s.path(cnst.UkiLivecdMountPoint), cnst.UkiDefaultcdromFsType, syscall.MS_RDONLY, "")
 				if err != nil {
-					internalUtils.Log.Err(err).Msg("Mounting UKI_ISO_INSTALL")
+					internalUtils.Log.Err(err).Msg(fmt.Sprintf("Mounting %s", cnst.UkiLivecdPath))
 				}
 			} else {
-				internalUtils.Log.Debug().Msg("No UKI_ISO_INSTALL found")
+				internalUtils.Log.Debug().Msg(fmt.Sprintf("No %s device found", cnst.UkiLivecdPath))
 				// Try to find if /dev/sr0 exists and mount it
-				_, err = os.Stat("/dev/sr0")
+				_, err = os.Stat(cnst.UkiDefaultcdrom)
 				if err == nil {
-					err = syscall.Mount("/dev/sr0", s.path("/run/initramfs/live"), "iso9660", syscall.MS_RDONLY, "")
+					err = syscall.Mount(cnst.UkiDefaultcdrom, s.path(cnst.UkiLivecdMountPoint), cnst.UkiDefaultcdromFsType, syscall.MS_RDONLY, "")
 					if err != nil {
-						internalUtils.Log.Err(err).Msg("Mounting /dev/sr0")
+						internalUtils.Log.Err(err).Msg(fmt.Sprintf("Mounting %s", cnst.UkiDefaultcdrom))
 					}
 				} else {
-					internalUtils.Log.Debug().Msg("No /dev/sr0 found")
+					internalUtils.Log.Debug().Msg(fmt.Sprintf("No %s found", cnst.UkiDefaultcdrom))
 				}
 			}
 			return nil
 		}
-		internalUtils.Log.Debug().Msg("Not mounting livecd as we think we are booting from persistent media")
-		return nil
 	}))...)
 }
