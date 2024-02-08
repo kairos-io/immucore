@@ -715,3 +715,44 @@ func (s *State) UKIUnlock(g *herd.Graph, opts ...herd.OpOption) error {
 		return kcrypt.UnlockAll(true)
 	}))...)
 }
+
+// MountLiveCd tries to mount the livecd if we are booting from one into /run/initramfs/live
+// to mimic the same behavior as the livecd on non-uki boot.
+func (s *State) MountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
+	return g.Add(cnst.OpUkiMountLivecd, append(opts, herd.WithCallback(func(ctx context.Context) error {
+		// If we are booting from Install Media
+		if internalUtils.EfiBootFromInstall() {
+			internalUtils.Log.Debug().Msg("Not mounting livecd as we think we are booting from removable media")
+			return nil
+		}
+
+		err := os.MkdirAll(s.path(cnst.UkiLivecdMountPoint), 0755)
+		if err != nil {
+			internalUtils.Log.Err(err).Msg(fmt.Sprintf("Creating %s", cnst.UkiLivecdMountPoint))
+			return nil
+		}
+		// Try to find the CDROM device by label /dev/disk/by-label/UKI_ISO_INSTALL
+		_, err = os.Stat(cnst.UkiLivecdPath)
+		// if found, mount it
+		if err == nil {
+			err = syscall.Mount(cnst.UkiLivecdPath, s.path(cnst.UkiLivecdMountPoint), cnst.UkiDefaultcdromFsType, syscall.MS_RDONLY, "")
+			if err != nil {
+				internalUtils.Log.Err(err).Msg(fmt.Sprintf("Mounting %s", cnst.UkiLivecdPath))
+			}
+		} else {
+			internalUtils.Log.Debug().Msg(fmt.Sprintf("No %s device found", cnst.UkiLivecdPath))
+			// Try to find if /dev/sr0 exists and mount it
+			_, err = os.Stat(cnst.UkiDefaultcdrom)
+			if err == nil {
+				err = syscall.Mount(cnst.UkiDefaultcdrom, s.path(cnst.UkiLivecdMountPoint), cnst.UkiDefaultcdromFsType, syscall.MS_RDONLY, "")
+				if err != nil {
+					internalUtils.Log.Err(err).Msg(fmt.Sprintf("Mounting %s", cnst.UkiDefaultcdrom))
+				}
+			} else {
+				internalUtils.Log.Debug().Msg(fmt.Sprintf("No %s found", cnst.UkiDefaultcdrom))
+			}
+		}
+
+		return nil
+	}))...)
+}
