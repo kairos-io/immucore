@@ -24,6 +24,9 @@ func (s *State) RegisterUKI(g *herd.Graph) error {
 	// Mount ESP partition under efi if it exists
 	s.LogIfError(s.MountESPPartition(g, herd.WithDeps(cnst.OpSentinel, cnst.OpUkiUdev)), "mount ESP partition")
 
+	// Mount cdrom under /run/initramfs/livecd if it exists
+	s.LogIfError(s.MountLiveCd(g, herd.WithDeps(cnst.OpSentinel, cnst.OpUkiUdev)), "Mount LiveCD")
+
 	// Run rootfs stage (doesnt this need to be run after mounting OEM???
 	s.LogIfError(s.RootfsStageDagStep(g, herd.WithDeps(cnst.OpSentinel, cnst.OpUkiUdev)), "uki rootfs")
 

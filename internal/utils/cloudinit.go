@@ -65,7 +65,7 @@ func RunStage(stage string) (bytes.Buffer, error) {
 	if debug || debugFromEnv {
 		level = zerolog.DebugLevel
 	}
-	log := MiddleLog{zerolog.New(zerolog.ConsoleWriter{Out: &buffer, TimeFormat: time.RFC3339}).With().Timestamp().Logger().Level(level)}
+	log := MiddleLog{zerolog.New(zerolog.ConsoleWriter{Out: &buffer, TimeFormat: time.RFC3339, NoColor: true}).With().Timestamp().Logger().Level(level)}
 	// Set debug logger
 	yip := NewYipExecutor(log)
 	c := ImmucoreConsole{}

@@ -715,3 +715,42 @@ func (s *State) UKIUnlock(g *herd.Graph, opts ...herd.OpOption) error {
 		return kcrypt.UnlockAll(true)
 	}))...)
 }
+
+// MountLiveCd tries to mount the livecd if we are booting from one into /run/initramfs/live
+// to mimic the same behavior as the livecd on non-uki boot.
+func (s *State) MountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
+	return g.Add(cnst.OpUkiMountLivecd, append(opts, herd.WithCallback(func(ctx context.Context) error {
+		// If we are booting from Install Media
+		if !internalUtils.EfiBootFromInstall() {
+			err := os.MkdirAll(s.path("/run/initramfs/live"), 0755)
+			if err != nil {
+				internalUtils.Log.Err(err).Msg("Creating /run/initramfs/live")
+				return nil
+			}
+			// Try to find the CDROM device by label /dev/disk/by-label/UKI_ISO_INSTALL
+			_, err = os.Stat("/dev/disk/by-label/UKI_ISO_INSTALL")
+			// if found, mount it
+			if err == nil {
+				err = syscall.Mount("/dev/disk/by-label/UKI_ISO_INSTALL", s.path("/run/initramfs/live"), "iso9660", syscall.MS_RDONLY, "")
+				if err != nil {
+					internalUtils.Log.Err(err).Msg("Mounting UKI_ISO_INSTALL")
+				}
+			} else {
+				internalUtils.Log.Debug().Msg("No UKI_ISO_INSTALL found")
+				// Try to find if /dev/sr0 exists and mount it
+				_, err = os.Stat("/dev/sr0")
+				if err == nil {
+					err = syscall.Mount("/dev/sr0", s.path("/run/initramfs/live"), "iso9660", syscall.MS_RDONLY, "")
+					if err != nil {
+						internalUtils.Log.Err(err).Msg("Mounting /dev/sr0")
+					}
+				} else {
+					internalUtils.Log.Debug().Msg("No /dev/sr0 found")
+				}
+			}
+			return nil
+		}
+		internalUtils.Log.Debug().Msg("Not mounting livecd as we think we are booting from persistent media")
+		return nil
+	}))...)
+}

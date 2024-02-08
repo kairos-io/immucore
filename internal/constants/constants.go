@@ -45,6 +45,7 @@ const (
 	OpKcryptUnlock        = "unlock-all"
 	OpKcryptUpgrade       = "upgrade-kcrypt"
 	OpUkiKcrypt           = "uki-unlock"
+	OpUkiMountLivecd      = "mount-livecd"
 	PersistentStateTarget = "/usr/local/.state"
 	LogDir                = "/run/immucore"
 	LinuxFs               = "ext4"
