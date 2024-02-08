@@ -723,7 +723,6 @@ func (s *State) MountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
 		// If we are booting from Install Media
 		if internalUtils.EfiBootFromInstall() {
 			internalUtils.Log.Debug().Msg("Not mounting livecd as we think we are booting from removable media")
-			return nil
 		} else {
 			err := os.MkdirAll(s.path(cnst.UkiLivecdMountPoint), 0755)
 			if err != nil {
@@ -751,7 +750,7 @@ func (s *State) MountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
 					internalUtils.Log.Debug().Msg(fmt.Sprintf("No %s found", cnst.UkiDefaultcdrom))
 				}
 			}
-			return nil
 		}
+		return nil
 	}))...)
 }
