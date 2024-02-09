@@ -720,6 +720,8 @@ func (s *State) UKIUnlock(g *herd.Graph, opts ...herd.OpOption) error {
 // to mimic the same behavior as the livecd on non-uki boot.
 func (s *State) MountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpUkiMountLivecd, append(opts, herd.WithCallback(func(ctx context.Context) error {
+		internalUtils.CloseLogFiles()
+
 		// If we are booting from Install Media
 		if internalUtils.EfiBootFromInstall() {
 			internalUtils.Log.Debug().Msg("Not mounting livecd as we think we are booting from removable media")
@@ -729,28 +731,56 @@ func (s *State) MountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
 		err := os.MkdirAll(s.path(cnst.UkiLivecdMountPoint), 0755)
 		if err != nil {
 			internalUtils.Log.Err(err).Msg(fmt.Sprintf("Creating %s", cnst.UkiLivecdMountPoint))
+			return err
+		}
+		err = os.MkdirAll(s.path(cnst.UkiIsoBaseTree), 0755)
+		if err != nil {
+			internalUtils.Log.Err(err).Msg(fmt.Sprintf("Creating %s", cnst.UkiIsoBaseTree))
 			return nil
 		}
+
+		// Select the correct device to mount
 		// Try to find the CDROM device by label /dev/disk/by-label/UKI_ISO_INSTALL
 		_, err = os.Stat(cnst.UkiLivecdPath)
+		var cdrom string
 		// if found, mount it
 		if err == nil {
-			err = syscall.Mount(cnst.UkiLivecdPath, s.path(cnst.UkiLivecdMountPoint), cnst.UkiDefaultcdromFsType, syscall.MS_RDONLY, "")
-			if err != nil {
-				internalUtils.Log.Err(err).Msg(fmt.Sprintf("Mounting %s", cnst.UkiLivecdPath))
-			}
+			cdrom = cnst.UkiLivecdPath
 		} else {
-			internalUtils.Log.Debug().Msg(fmt.Sprintf("No %s device found", cnst.UkiLivecdPath))
 			// Try to find if /dev/sr0 exists and mount it
 			_, err = os.Stat(cnst.UkiDefaultcdrom)
 			if err == nil {
-				err = syscall.Mount(cnst.UkiDefaultcdrom, s.path(cnst.UkiLivecdMountPoint), cnst.UkiDefaultcdromFsType, syscall.MS_RDONLY, "")
-				if err != nil {
-					internalUtils.Log.Err(err).Msg(fmt.Sprintf("Mounting %s", cnst.UkiDefaultcdrom))
-				}
-			} else {
-				internalUtils.Log.Debug().Msg(fmt.Sprintf("No %s found", cnst.UkiDefaultcdrom))
+				cdrom = cnst.UkiDefaultcdrom
 			}
+		}
+
+		// Mount it
+		if cdrom != "" {
+			err = syscall.Mount(cdrom, s.path(cnst.UkiLivecdMountPoint), cnst.UkiDefaultcdromFsType, syscall.MS_RDONLY, "")
+			if err != nil {
+				internalUtils.Log.Err(err).Msg(fmt.Sprintf("Mounting %s", cdrom))
+				return err
+			}
+			internalUtils.Log.Debug().Msg(fmt.Sprintf("Mounted %s", cdrom))
+			syscall.Sync()
+
+			// This needs the loop module to be inserted in the kernel!
+			cmd := fmt.Sprintf("losetup --show -f %s", s.path(filepath.Join(cnst.UkiLivecdMountPoint, cnst.UkiIsoBootImage)))
+			out, err := internalUtils.CommandWithPath(cmd)
+			loop := strings.TrimSpace(out)
+
+			if err != nil || loop == "" {
+				internalUtils.Log.Err(err).Str("out", out).Msg(cmd)
+				return err
+			}
+			syscall.Sync()
+			err = syscall.Mount(loop, s.path(cnst.UkiIsoBaseTree), cnst.UkiDefaultEfiimgFsType, syscall.MS_RDONLY, "")
+			if err != nil {
+				internalUtils.Log.Err(err).Msg(fmt.Sprintf("Mounting %s into %s", loop, s.path(cnst.UkiIsoBaseTree)))
+				return err
+			}
+			syscall.Sync()
+			return nil
 		}
 
 		return nil
