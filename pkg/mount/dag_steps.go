@@ -190,7 +190,7 @@ func (s *State) MountOemDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 				// We have to run the check here because otherwise is run on start instead of when we want to mount oem
 				// And at program start we have not mounted the efivarsfs so this would always return false
 				if internalUtils.IsUKI() {
-					if !state.EfiBootFromInstall(internalUtils.Log) {
+					if !state.EfiBootFromInstall() {
 						return nil
 					}
 				}
@@ -385,8 +385,9 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 			// Lets add a uki sentinel as well!
 			cmdline, _ := os.ReadFile(internalUtils.GetHostProcCmdline())
 			if strings.Contains(string(cmdline), "rd.immucore.uki") {
+				state.DetectUKIboot(string(cmdline))
 				// sentinel for uki mode
-				if state.EfiBootFromInstall(internalUtils.Log) {
+				if state.EfiBootFromInstall() {
 					internalUtils.Log.Info().Str("to", "uki_boot_mode").Msg("Setting sentinel file")
 					err = os.WriteFile("/run/cos/uki_boot_mode", []byte("1"), os.ModePerm)
 					if err != nil {
@@ -663,7 +664,7 @@ type LsblkOutput struct {
 // Doesnt matter if it fails, its just for niceness.
 func (s *State) MountESPPartition(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add("mount-esp", append(opts, herd.WithCallback(func(ctx context.Context) error {
-		if !state.EfiBootFromInstall(internalUtils.Log) {
+		if !state.EfiBootFromInstall() {
 			internalUtils.Log.Debug().Msg("Not mounting ESP as we think we are booting from removable media")
 			return nil
 		}
@@ -707,7 +708,7 @@ func (s *State) MountESPPartition(g *herd.Graph, opts ...herd.OpOption) error {
 func (s *State) UKIUnlock(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpUkiKcrypt, append(opts, herd.WithCallback(func(ctx context.Context) error {
 		// Set full path on uki to get all the binaries
-		if !state.EfiBootFromInstall(internalUtils.Log) {
+		if !state.EfiBootFromInstall() {
 			internalUtils.Log.Debug().Msg("Not unlocking disks as we think we are booting from removable media")
 			return nil
 		}
@@ -723,7 +724,7 @@ func (s *State) MountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
 		internalUtils.CloseLogFiles()
 
 		// If we are booting from Install Media
-		if internalUtils.EfiBootFromInstall() {
+		if state.EfiBootFromInstall() {
 			internalUtils.Log.Debug().Msg("Not mounting livecd as we think we are booting from removable media")
 			return nil
 		}

@@ -37,7 +37,7 @@ func BootStateToLabelDevice() string {
 func GetRootDir() string {
 	cmdline, _ := os.ReadFile(GetHostProcCmdline())
 	switch {
-	case state.detectUKIboot(cmdline):
+	case state.DetectUKIboot(string(cmdline)):
 		return "/"
 	default:
 		// Default is sysroot for normal no-pivot boot
