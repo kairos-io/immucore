@@ -4,6 +4,8 @@ go 1.20
 
 replace github.com/kairos-io/kairos-sdk => /home/dimitris/workspace/kairos/kairos-sdk
 
+replace github.com/kairos-io/kcrypt v0.9.1 => /home/dimitris/workspace/kairos/kcrypt
+
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/containerd/containerd v1.7.13

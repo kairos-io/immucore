@@ -177,20 +177,24 @@ func (s *State) MountOemDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpMountOEM,
 		append(opts,
 			herd.EnableIf(func() bool {
-				runtime, _ := state.NewRuntime()
+				runtime, _ := state.NewRuntime(internalUtils.Log)
 				switch runtime.BootState {
 				// Don't run this on LiveCD/Netboot
 				case state.LiveCD:
+					internalUtils.Log.Debug().Msg("****** It's livecd !")
 					return false
 				default:
+					internalUtils.Log.Debug().Msgf("******  Trying GetOemLabel: %s", internalUtils.GetOemLabel())
 					return internalUtils.GetOemLabel() != ""
 				}
 			}),
 			herd.WithCallback(func(ctx context.Context) error {
 				// We have to run the check here because otherwise is run on start instead of when we want to mount oem
 				// And at program start we have not mounted the efivarsfs so this would always return false
+
+				internalUtils.Log.Debug().Msgf("IsUKI: %t", internalUtils.IsUKI())
 				if internalUtils.IsUKI() {
-					if !state.EfiBootFromInstall() {
+					if !state.EfiBootFromInstall(internalUtils.Log) {
 						return nil
 					}
 				}
@@ -354,14 +358,19 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 		herd.WithCallback(func(ctx context.Context) error {
 			var sentinel string
 
+			internalUtils.Log.Info().Msg("Will now create /run/cos is not exists")
 			err := internalUtils.CreateIfNotExists("/run/cos/")
 			if err != nil {
+				internalUtils.Log.Err(err).Msg("failed to create /run/cos")
 				return err
 			}
-			runtime, err := state.NewRuntime()
+
+			internalUtils.Log.Info().Msg("Will now create the runtime object")
+			runtime, err := state.NewRuntime(internalUtils.Log)
 			if err != nil {
 				return err
 			}
+			internalUtils.Log.Info().Msg("Bootstate: " + string(runtime.BootState))
 
 			switch runtime.BootState {
 			case state.Active:
@@ -376,6 +385,8 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 				sentinel = string(state.Unknown)
 			}
 
+			internalUtils.Log.Info().Str("BootState", string(runtime.BootState)).Msg("The BootState was")
+
 			internalUtils.Log.Info().Str("to", sentinel).Msg("Setting sentinel file")
 			err = os.WriteFile(filepath.Join("/run/cos/", sentinel), []byte("1"), os.ModePerm)
 			if err != nil {
@@ -387,7 +398,7 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 			if strings.Contains(string(cmdline), "rd.immucore.uki") {
 				state.DetectUKIboot(string(cmdline))
 				// sentinel for uki mode
-				if state.EfiBootFromInstall() {
+				if state.EfiBootFromInstall(internalUtils.Log) {
 					internalUtils.Log.Info().Str("to", "uki_boot_mode").Msg("Setting sentinel file")
 					err = os.WriteFile("/run/cos/uki_boot_mode", []byte("1"), os.ModePerm)
 					if err != nil {
@@ -637,7 +648,10 @@ func (s *State) LVMActivation(g *herd.Graph) error {
 // RunKcrypt will run the UnlockAll method of kcrypt to unlock the encrypted partitions
 // Requires sysroot to be mounted as the kcrypt-challenger binary is not injected in the initramfs.
 func (s *State) RunKcrypt(g *herd.Graph, opts ...herd.OpOption) error {
-	return g.Add(cnst.OpKcryptUnlock, append(opts, herd.WithCallback(func(ctx context.Context) error { return kcrypt.UnlockAll(false) }))...)
+	return g.Add(cnst.OpKcryptUnlock, append(opts, herd.WithCallback(func(ctx context.Context) error {
+		internalUtils.Log.Debug().Msg("Unlocking with kcrypt")
+		return kcrypt.UnlockAll(false, internalUtils.Log)
+	}))...)
 }
 
 // RunKcryptUpgrade will upgrade encrypted partitions created with 1.x to the new 2.x format, where
@@ -664,7 +678,7 @@ type LsblkOutput struct {
 // Doesnt matter if it fails, its just for niceness.
 func (s *State) MountESPPartition(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add("mount-esp", append(opts, herd.WithCallback(func(ctx context.Context) error {
-		if !state.EfiBootFromInstall() {
+		if !state.EfiBootFromInstall(internalUtils.Log) {
 			internalUtils.Log.Debug().Msg("Not mounting ESP as we think we are booting from removable media")
 			return nil
 		}
@@ -708,12 +722,13 @@ func (s *State) MountESPPartition(g *herd.Graph, opts ...herd.OpOption) error {
 func (s *State) UKIUnlock(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpUkiKcrypt, append(opts, herd.WithCallback(func(ctx context.Context) error {
 		// Set full path on uki to get all the binaries
-		if !state.EfiBootFromInstall() {
+		if !state.EfiBootFromInstall(internalUtils.Log) {
 			internalUtils.Log.Debug().Msg("Not unlocking disks as we think we are booting from removable media")
 			return nil
 		}
 		os.Setenv("PATH", "/usr/bin:/usr/sbin:/bin:/sbin")
-		return kcrypt.UnlockAll(true)
+		internalUtils.Log.Info().Msg("Will now try to unlock partitions")
+		return kcrypt.UnlockAll(true, internalUtils.Log)
 	}))...)
 }
 
@@ -724,7 +739,7 @@ func (s *State) MountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
 		internalUtils.CloseLogFiles()
 
 		// If we are booting from Install Media
-		if state.EfiBootFromInstall() {
+		if state.EfiBootFromInstall(internalUtils.Log) {
 			internalUtils.Log.Debug().Msg("Not mounting livecd as we think we are booting from removable media")
 			return nil
 		}
