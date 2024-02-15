@@ -16,7 +16,7 @@ import (
 
 // BootStateToLabelDevice lets us know the device we need to mount sysroot on based on labels.
 func BootStateToLabelDevice() string {
-	runtime, err := state.NewRuntime(Log)
+	runtime, err := state.NewRuntimeWithLogger(Log)
 	if err != nil {
 		return ""
 	}
@@ -156,7 +156,7 @@ func GetState() string {
 
 	err := retry.Do(
 		func() error {
-			r, err := state.NewRuntime(Log)
+			r, err := state.NewRuntimeWithLogger(Log)
 			if err != nil {
 				return err
 			}

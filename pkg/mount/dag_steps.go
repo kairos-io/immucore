@@ -177,13 +177,13 @@ func (s *State) MountOemDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpMountOEM,
 		append(opts,
 			herd.WithCallback(func(ctx context.Context) error {
-				// We have to run the check here because otherwise is run on start instead of when we want to mount oem
-				// And at program start we have not mounted the efivarsfs so this would always return false
-
-				runtime, _ := state.NewRuntime(internalUtils.Log)
-				// Don't run this on LiveCD/Netboot
-				if runtime.BootState == state.LiveCD || internalUtils.GetOemLabel() == "" {
-					internalUtils.Log.Debug().Msg("****** Won't mount OEM because things")
+				runtime, _ := state.NewRuntimeWithLogger(internalUtils.Log)
+				if runtime.BootState == state.LiveCD {
+					internalUtils.Log.Debug().Msg("Livecd mode detected, won't mount OEM")
+					return nil
+				}
+				if internalUtils.GetOemLabel() == "" {
+					internalUtils.Log.Debug().Msg("OEM label from cmdline empty, won't mount OEM")
 					return nil
 				}
 
@@ -361,7 +361,7 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 			}
 
 			internalUtils.Log.Info().Msg("Will now create the runtime object")
-			runtime, err := state.NewRuntime(internalUtils.Log)
+			runtime, err := state.NewRuntimeWithLogger(internalUtils.Log)
 			if err != nil {
 				return err
 			}
