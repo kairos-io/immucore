@@ -185,6 +185,7 @@ func GetState() string {
 	return filepath.Join("/dev/disk/by-label/", label)
 }
 
+// TODO: This is doing the same thing as DetectUKIboot in kairos-sdk. Keep both?
 func IsUKI() bool {
 	return len(ReadCMDLineArg("rd.immucore.uki")) > 0
 }
