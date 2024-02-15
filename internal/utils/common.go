@@ -104,6 +104,10 @@ func CleanupSlice(slice []string) []string {
 
 // GetTarget gets the target image and device to mount in /sysroot.
 func GetTarget(dryRun bool) (string, string, error) {
+	if IsUKI() {
+		return "", "", nil
+	}
+
 	label := BootStateToLabelDevice()
 
 	// If dry run, or we are disabled return whatever values, we won't go much further
@@ -115,13 +119,9 @@ func GetTarget(dryRun bool) (string, string, error) {
 
 	// If no image just panic here, we cannot longer continue
 	if len(imgs) == 0 {
-		if IsUKI() {
-			imgs = []string{""}
-		} else {
-			msg := "could not get the image name from cmdline (i.e. cos-img/filename=/cOS/active.img)"
-			Log.Error().Msg(msg)
-			return "", "", errors.New(msg)
-		}
+		msg := "could not get the image name from cmdline (i.e. cos-img/filename=/cOS/active.img)"
+		Log.Error().Msg(msg)
+		return "", "", errors.New(msg)
 	}
 
 	Log.Debug().Str("what", imgs[0]).Msg("Target device")

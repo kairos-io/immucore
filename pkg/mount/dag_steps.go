@@ -176,21 +176,16 @@ func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, opts ...herd.OpOption) error
 func (s *State) MountOemDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpMountOEM,
 		append(opts,
-			herd.EnableIf(func() bool {
-				runtime, _ := state.NewRuntime(internalUtils.Log)
-				switch runtime.BootState {
-				// Don't run this on LiveCD/Netboot
-				case state.LiveCD:
-					internalUtils.Log.Debug().Msg("****** It's livecd !")
-					return false
-				default:
-					internalUtils.Log.Debug().Msgf("******  Trying GetOemLabel: %s", internalUtils.GetOemLabel())
-					return internalUtils.GetOemLabel() != ""
-				}
-			}),
 			herd.WithCallback(func(ctx context.Context) error {
 				// We have to run the check here because otherwise is run on start instead of when we want to mount oem
 				// And at program start we have not mounted the efivarsfs so this would always return false
+
+				runtime, _ := state.NewRuntime(internalUtils.Log)
+				// Don't run this on LiveCD/Netboot
+				if runtime.BootState == state.LiveCD || internalUtils.GetOemLabel() == "" {
+					internalUtils.Log.Debug().Msg("****** Won't mount OEM because things")
+					return nil
+				}
 
 				internalUtils.Log.Debug().Msgf("IsUKI: %t", internalUtils.IsUKI())
 				if internalUtils.IsUKI() {
