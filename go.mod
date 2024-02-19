@@ -2,8 +2,6 @@ module github.com/kairos-io/immucore
 
 go 1.20
 
-replace github.com/kairos-io/kairos-sdk => /home/dimitris/workspace/kairos/kairos-sdk
-
 replace github.com/kairos-io/kcrypt v0.9.1 => /home/dimitris/workspace/kairos/kcrypt
 
 require (
@@ -14,7 +12,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jaypipes/ghw v0.12.0
 	github.com/joho/godotenv v1.5.1
-	github.com/kairos-io/kairos-sdk v0.0.24
+	github.com/kairos-io/kairos-sdk v0.0.25
 	github.com/kairos-io/kcrypt v0.9.1
 	github.com/moby/sys/mountinfo v0.7.1
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
