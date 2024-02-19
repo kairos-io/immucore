@@ -182,7 +182,6 @@ func (s *State) MountOemDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 					internalUtils.Log.Debug().Msg("Livecd mode detected, won't mount OEM")
 					return nil
 				}
-				// TODO: when does this happen?
 				if internalUtils.GetOemLabel() == "" {
 					internalUtils.Log.Debug().Msg("OEM label from cmdline empty, won't mount OEM")
 					return nil
