@@ -16,7 +16,7 @@ import (
 
 // BootStateToLabelDevice lets us know the device we need to mount sysroot on based on labels.
 func BootStateToLabelDevice() string {
-	runtime, err := state.NewRuntime()
+	runtime, err := state.NewRuntimeWithLogger(Log)
 	if err != nil {
 		return ""
 	}
@@ -37,7 +37,7 @@ func BootStateToLabelDevice() string {
 func GetRootDir() string {
 	cmdline, _ := os.ReadFile(GetHostProcCmdline())
 	switch {
-	case strings.Contains(string(cmdline), "rd.immucore.uki"):
+	case state.DetectUKIboot(string(cmdline)):
 		return "/"
 	default:
 		// Default is sysroot for normal no-pivot boot
@@ -104,6 +104,10 @@ func CleanupSlice(slice []string) []string {
 
 // GetTarget gets the target image and device to mount in /sysroot.
 func GetTarget(dryRun bool) (string, string, error) {
+	if IsUKI() {
+		return "", "", nil
+	}
+
 	label := BootStateToLabelDevice()
 
 	// If dry run, or we are disabled return whatever values, we won't go much further
@@ -115,13 +119,9 @@ func GetTarget(dryRun bool) (string, string, error) {
 
 	// If no image just panic here, we cannot longer continue
 	if len(imgs) == 0 {
-		if IsUKI() {
-			imgs = []string{""}
-		} else {
-			msg := "could not get the image name from cmdline (i.e. cos-img/filename=/cOS/active.img)"
-			Log.Error().Msg(msg)
-			return "", "", errors.New(msg)
-		}
+		msg := "could not get the image name from cmdline (i.e. cos-img/filename=/cOS/active.img)"
+		Log.Error().Msg(msg)
+		return "", "", errors.New(msg)
 	}
 
 	Log.Debug().Str("what", imgs[0]).Msg("Target device")
@@ -156,7 +156,7 @@ func GetState() string {
 
 	err := retry.Do(
 		func() error {
-			r, err := state.NewRuntime()
+			r, err := state.NewRuntimeWithLogger(Log)
 			if err != nil {
 				return err
 			}
@@ -186,7 +186,13 @@ func GetState() string {
 }
 
 func IsUKI() bool {
-	return len(ReadCMDLineArg("rd.immucore.uki")) > 0
+	cmdline, err := os.ReadFile(GetHostProcCmdline())
+	if err != nil {
+		Log.Warn().Err(err).Msg("Error reading /proc/cmdline file " + err.Error())
+		return false
+	}
+
+	return state.DetectUKIboot(string(cmdline))
 }
 
 // CommandWithPath runs a command adding the usual PATH to environment
@@ -232,25 +238,4 @@ func GetHostProcCmdline() string {
 		return "/proc/cmdline"
 	}
 	return proc
-}
-
-// EfiBootFromInstall will try to check the /sys/firmware/efi/LoaderDevicePartUUID-4a67b082-0a4c-41cf-b6c7-440b29bb8c4f
-// systemd vendor Id is 4a67b082-0a4c-41cf-b6c7-440b29bb8c4f and will never change
-// LoaderDevicePartUUID contains the partition UUID of the EFI System Partition the boot loader was run from. Set by the boot loader.
-// This will return true if we are running from a DISK device, which sets the efivar
-// This wil return false when running from a volatile media, like CD or netboot as it cannot infer where it was booted from
-// Useful to check if we are on install phase or not
-// This efi var is VOLATILE so once we reboot is GONE. No way of keeping it across reboots, its set by the bootloader.
-func EfiBootFromInstall() bool {
-	file := "/sys/firmware/efi/efivars/LoaderDevicePartUUID-4a67b082-0a4c-41cf-b6c7-440b29bb8c4f"
-	readFile, err := os.ReadFile(file)
-	if err != nil {
-		Log.Debug().Err(err).Msg("Error reading LoaderDevicePartUUID file")
-		return false
-	}
-	if len(readFile) == 0 || string(readFile) == "" {
-		Log.Debug().Str("file", string(readFile)).Msg("Error reading LoaderDevicePartUUID file")
-		return false
-	}
-	return true
 }
