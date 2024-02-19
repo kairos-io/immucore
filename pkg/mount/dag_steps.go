@@ -347,19 +347,19 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 		herd.WithCallback(func(ctx context.Context) error {
 			var sentinel string
 
-			internalUtils.Log.Info().Msg("Will now create /run/cos is not exists")
+			internalUtils.Log.Debug().Msg("Will now create /run/cos is not exists")
 			err := internalUtils.CreateIfNotExists("/run/cos/")
 			if err != nil {
 				internalUtils.Log.Err(err).Msg("failed to create /run/cos")
 				return err
 			}
 
-			internalUtils.Log.Info().Msg("Will now create the runtime object")
+			internalUtils.Log.Debug().Msg("Will now create the runtime object")
 			runtime, err := state.NewRuntimeWithLogger(internalUtils.Log)
 			if err != nil {
 				return err
 			}
-			internalUtils.Log.Info().Msg("Bootstate: " + string(runtime.BootState))
+			internalUtils.Log.Debug().Msg("Bootstate: " + string(runtime.BootState))
 
 			switch runtime.BootState {
 			case state.Active:
@@ -374,7 +374,7 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 				sentinel = string(state.Unknown)
 			}
 
-			internalUtils.Log.Info().Str("BootState", string(runtime.BootState)).Msg("The BootState was")
+			internalUtils.Log.Debug().Str("BootState", string(runtime.BootState)).Msg("The BootState was")
 
 			internalUtils.Log.Info().Str("to", sentinel).Msg("Setting sentinel file")
 			err = os.WriteFile(filepath.Join("/run/cos/", sentinel), []byte("1"), os.ModePerm)
@@ -716,7 +716,7 @@ func (s *State) UKIUnlock(g *herd.Graph, opts ...herd.OpOption) error {
 			return nil
 		}
 		os.Setenv("PATH", "/usr/bin:/usr/sbin:/bin:/sbin")
-		internalUtils.Log.Info().Msg("Will now try to unlock partitions")
+		internalUtils.Log.Debug().Msg("Will now try to unlock partitions")
 		return kcrypt.UnlockAllWithLogger(true, internalUtils.Log)
 	}))...)
 }
