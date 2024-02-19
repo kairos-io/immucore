@@ -2,8 +2,6 @@ module github.com/kairos-io/immucore
 
 go 1.20
 
-replace github.com/kairos-io/kcrypt v0.9.1 => /home/dimitris/workspace/kairos/kcrypt
-
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/containerd/containerd v1.7.13
@@ -13,7 +11,7 @@ require (
 	github.com/jaypipes/ghw v0.12.0
 	github.com/joho/godotenv v1.5.1
 	github.com/kairos-io/kairos-sdk v0.0.25
-	github.com/kairos-io/kcrypt v0.9.1
+	github.com/kairos-io/kcrypt v0.9.2-0.20240219105755-7fe64d4fce3d
 	github.com/moby/sys/mountinfo v0.7.1
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
 	github.com/mudler/yip v1.4.6

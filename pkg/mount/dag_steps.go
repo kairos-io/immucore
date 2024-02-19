@@ -640,7 +640,7 @@ func (s *State) LVMActivation(g *herd.Graph) error {
 func (s *State) RunKcrypt(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpKcryptUnlock, append(opts, herd.WithCallback(func(ctx context.Context) error {
 		internalUtils.Log.Debug().Msg("Unlocking with kcrypt")
-		return kcrypt.UnlockAll(false, internalUtils.Log)
+		return kcrypt.UnlockAllWithLogger(false, internalUtils.Log)
 	}))...)
 }
 
@@ -718,7 +718,7 @@ func (s *State) UKIUnlock(g *herd.Graph, opts ...herd.OpOption) error {
 		}
 		os.Setenv("PATH", "/usr/bin:/usr/sbin:/bin:/sbin")
 		internalUtils.Log.Info().Msg("Will now try to unlock partitions")
-		return kcrypt.UnlockAll(true, internalUtils.Log)
+		return kcrypt.UnlockAllWithLogger(true, internalUtils.Log)
 	}))...)
 }
 
