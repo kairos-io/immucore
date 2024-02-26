@@ -278,7 +278,7 @@ func GetOemLabel() string {
 		return oemLabel
 	}
 	// We could not get it from the cmdline so get it from the runtime
-	runtime, err := state.NewRuntime()
+	runtime, err := state.NewRuntimeWithLogger(Log)
 	if err != nil {
 		Log.Debug().Err(err).Msg("runtime")
 		return ""

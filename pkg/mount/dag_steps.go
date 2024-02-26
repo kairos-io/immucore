@@ -177,24 +177,17 @@ func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, opts ...herd.OpOption) error
 func (s *State) MountOemDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpMountOEM,
 		append(opts,
-			herd.EnableIf(func() bool {
-				runtime, _ := state.NewRuntime()
-				switch runtime.BootState {
-				// Don't run this on LiveCD/Netboot
-				case state.LiveCD:
-					return false
-				default:
-					return internalUtils.GetOemLabel() != ""
-				}
-			}),
 			herd.WithCallback(func(ctx context.Context) error {
-				// We have to run the check here because otherwise is run on start instead of when we want to mount oem
-				// And at program start we have not mounted the efivarsfs so this would always return false
-				if internalUtils.IsUKI() {
-					if !internalUtils.EfiBootFromInstall() {
-						return nil
-					}
+				runtime, _ := state.NewRuntimeWithLogger(internalUtils.Log)
+				if runtime.BootState == state.LiveCD {
+					internalUtils.Log.Debug().Msg("Livecd mode detected, won't mount OEM")
+					return nil
 				}
+				if internalUtils.GetOemLabel() == "" {
+					internalUtils.Log.Debug().Msg("OEM label from cmdline empty, won't mount OEM")
+					return nil
+				}
+
 				op := s.MountOP(
 					fmt.Sprintf("/dev/disk/by-label/%s", internalUtils.GetOemLabel()),
 					s.path("/oem"),
@@ -355,14 +348,19 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 		herd.WithCallback(func(ctx context.Context) error {
 			var sentinel string
 
+			internalUtils.Log.Debug().Msg("Will now create /run/cos is not exists")
 			err := internalUtils.CreateIfNotExists("/run/cos/")
 			if err != nil {
+				internalUtils.Log.Err(err).Msg("failed to create /run/cos")
 				return err
 			}
-			runtime, err := state.NewRuntime()
+
+			internalUtils.Log.Debug().Msg("Will now create the runtime object")
+			runtime, err := state.NewRuntimeWithLogger(internalUtils.Log)
 			if err != nil {
 				return err
 			}
+			internalUtils.Log.Debug().Msg("Bootstate: " + string(runtime.BootState))
 
 			switch runtime.BootState {
 			case state.Active:
@@ -377,6 +375,8 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 				sentinel = string(state.Unknown)
 			}
 
+			internalUtils.Log.Debug().Str("BootState", string(runtime.BootState)).Msg("The BootState was")
+
 			internalUtils.Log.Info().Str("to", sentinel).Msg("Setting sentinel file")
 			err = os.WriteFile(filepath.Join("/run/cos/", sentinel), []byte("1"), os.ModePerm)
 			if err != nil {
@@ -386,8 +386,9 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 			// Lets add a uki sentinel as well!
 			cmdline, _ := os.ReadFile(internalUtils.GetHostProcCmdline())
 			if strings.Contains(string(cmdline), "rd.immucore.uki") {
+				state.DetectUKIboot(string(cmdline))
 				// sentinel for uki mode
-				if internalUtils.EfiBootFromInstall() {
+				if state.EfiBootFromInstall(internalUtils.Log) {
 					internalUtils.Log.Info().Str("to", "uki_boot_mode").Msg("Setting sentinel file")
 					err = os.WriteFile("/run/cos/uki_boot_mode", []byte("1"), os.ModePerm)
 					if err != nil {
@@ -641,7 +642,10 @@ func (s *State) LVMActivation(g *herd.Graph) error {
 // RunKcrypt will run the UnlockAll method of kcrypt to unlock the encrypted partitions
 // Requires sysroot to be mounted as the kcrypt-challenger binary is not injected in the initramfs.
 func (s *State) RunKcrypt(g *herd.Graph, opts ...herd.OpOption) error {
-	return g.Add(cnst.OpKcryptUnlock, append(opts, herd.WithCallback(func(ctx context.Context) error { return kcrypt.UnlockAll(false) }))...)
+	return g.Add(cnst.OpKcryptUnlock, append(opts, herd.WithCallback(func(ctx context.Context) error {
+		internalUtils.Log.Debug().Msg("Unlocking with kcrypt")
+		return kcrypt.UnlockAllWithLogger(false, internalUtils.Log)
+	}))...)
 }
 
 // RunKcryptUpgrade will upgrade encrypted partitions created with 1.x to the new 2.x format, where
@@ -668,7 +672,7 @@ type LsblkOutput struct {
 // Doesnt matter if it fails, its just for niceness.
 func (s *State) MountESPPartition(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add("mount-esp", append(opts, herd.WithCallback(func(ctx context.Context) error {
-		if !internalUtils.EfiBootFromInstall() {
+		if !state.EfiBootFromInstall(internalUtils.Log) {
 			internalUtils.Log.Debug().Msg("Not mounting ESP as we think we are booting from removable media")
 			return nil
 		}
@@ -712,11 +716,83 @@ func (s *State) MountESPPartition(g *herd.Graph, opts ...herd.OpOption) error {
 func (s *State) UKIUnlock(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpUkiKcrypt, append(opts, herd.WithCallback(func(ctx context.Context) error {
 		// Set full path on uki to get all the binaries
-		if !internalUtils.EfiBootFromInstall() {
+		if !state.EfiBootFromInstall(internalUtils.Log) {
 			internalUtils.Log.Debug().Msg("Not unlocking disks as we think we are booting from removable media")
 			return nil
 		}
 		os.Setenv("PATH", "/usr/bin:/usr/sbin:/bin:/sbin")
-		return kcrypt.UnlockAll(true)
+		internalUtils.Log.Debug().Msg("Will now try to unlock partitions")
+		return kcrypt.UnlockAllWithLogger(true, internalUtils.Log)
+	}))...)
+}
+
+// MountLiveCd tries to mount the livecd if we are booting from one into /run/initramfs/live
+// to mimic the same behavior as the livecd on non-uki boot.
+func (s *State) MountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
+	return g.Add(cnst.OpUkiMountLivecd, append(opts, herd.WithCallback(func(ctx context.Context) error {
+		internalUtils.CloseLogFiles()
+
+		// If we are booting from Install Media
+		if state.EfiBootFromInstall(internalUtils.Log) {
+			internalUtils.Log.Debug().Msg("Not mounting livecd as we think we are booting from removable media")
+			return nil
+		}
+
+		err := os.MkdirAll(s.path(cnst.UkiLivecdMountPoint), 0755)
+		if err != nil {
+			internalUtils.Log.Err(err).Msg(fmt.Sprintf("Creating %s", cnst.UkiLivecdMountPoint))
+			return err
+		}
+		err = os.MkdirAll(s.path(cnst.UkiIsoBaseTree), 0755)
+		if err != nil {
+			internalUtils.Log.Err(err).Msg(fmt.Sprintf("Creating %s", cnst.UkiIsoBaseTree))
+			return nil
+		}
+
+		// Select the correct device to mount
+		// Try to find the CDROM device by label /dev/disk/by-label/UKI_ISO_INSTALL
+		_, err = os.Stat(cnst.UkiLivecdPath)
+		var cdrom string
+		// if found, mount it
+		if err == nil {
+			cdrom = cnst.UkiLivecdPath
+		} else {
+			// Try to find if /dev/sr0 exists and mount it
+			_, err = os.Stat(cnst.UkiDefaultcdrom)
+			if err == nil {
+				cdrom = cnst.UkiDefaultcdrom
+			}
+		}
+
+		// Mount it
+		if cdrom != "" {
+			err = syscall.Mount(cdrom, s.path(cnst.UkiLivecdMountPoint), cnst.UkiDefaultcdromFsType, syscall.MS_RDONLY, "")
+			if err != nil {
+				internalUtils.Log.Err(err).Msg(fmt.Sprintf("Mounting %s", cdrom))
+				return err
+			}
+			internalUtils.Log.Debug().Msg(fmt.Sprintf("Mounted %s", cdrom))
+			syscall.Sync()
+
+			// This needs the loop module to be inserted in the kernel!
+			cmd := fmt.Sprintf("losetup --show -f %s", s.path(filepath.Join(cnst.UkiLivecdMountPoint, cnst.UkiIsoBootImage)))
+			out, err := internalUtils.CommandWithPath(cmd)
+			loop := strings.TrimSpace(out)
+
+			if err != nil || loop == "" {
+				internalUtils.Log.Err(err).Str("out", out).Msg(cmd)
+				return err
+			}
+			syscall.Sync()
+			err = syscall.Mount(loop, s.path(cnst.UkiIsoBaseTree), cnst.UkiDefaultEfiimgFsType, syscall.MS_RDONLY, "")
+			if err != nil {
+				internalUtils.Log.Err(err).Msg(fmt.Sprintf("Mounting %s into %s", loop, s.path(cnst.UkiIsoBaseTree)))
+				return err
+			}
+			syscall.Sync()
+			return nil
+		}
+
+		return nil
 	}))...)
 }

@@ -25,7 +25,7 @@ func SetLogger() {
 	_ = os.MkdirAll(constants.LogDir, os.ModeDir|os.ModePerm)
 	logFile, err := os.Create(filepath.Join(constants.LogDir, "immucore.log"))
 	if err == nil {
-		loggers = append(loggers, zerolog.ConsoleWriter{Out: logFile, TimeFormat: time.RFC3339})
+		loggers = append(loggers, zerolog.ConsoleWriter{Out: logFile, TimeFormat: time.RFC3339, NoColor: true})
 	}
 
 	loggers = append(loggers, zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
