@@ -725,8 +725,6 @@ func (s *State) UKIUnlock(g *herd.Graph, opts ...herd.OpOption) error {
 // to mimic the same behavior as the livecd on non-uki boot.
 func (s *State) MountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpUkiMountLivecd, append(opts, herd.WithCallback(func(ctx context.Context) error {
-		internalUtils.CloseLogFiles()
-
 		// If we are booting from Install Media
 		if state.EfiBootFromInstall(internalUtils.Log) {
 			internalUtils.Log.Debug().Msg("Not mounting livecd as we think we are booting from removable media")
@@ -746,16 +744,30 @@ func (s *State) MountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
 
 		// Select the correct device to mount
 		// Try to find the CDROM device by label /dev/disk/by-label/UKI_ISO_INSTALL
-		_, err = os.Stat(cnst.UkiLivecdPath)
+		// try a couple of times as the udev daemon can take a bit of time to populate the devices
 		var cdrom string
-		// if found, mount it
-		if err == nil {
-			cdrom = cnst.UkiLivecdPath
-		} else {
-			// Try to find if /dev/sr0 exists and mount it
+
+		for i := 0; i < 5; i++ {
+			_, err = os.Stat(cnst.UkiLivecdPath)
+			// if found, set it
+			if err == nil {
+				cdrom = cnst.UkiLivecdPath
+				break
+			}
+
+			internalUtils.Log.Debug().Msg(fmt.Sprintf("No media with label found at %s", cnst.UkiLivecdPath))
+			out, _ := internalUtils.CommandWithPath("ls -ltra /dev/disk/by-label/")
+			internalUtils.Log.Debug().Str("out", out).Msg("contents of /dev/disk/by-label/")
+			time.Sleep(time.Duration(i) * time.Second)
+		}
+
+		// Fallback to try to get the /dev/sr0 device directly, no retry as that wont take time to appear
+		if cdrom == "" {
 			_, err = os.Stat(cnst.UkiDefaultcdrom)
 			if err == nil {
 				cdrom = cnst.UkiDefaultcdrom
+			} else {
+				internalUtils.Log.Debug().Msg(fmt.Sprintf("No media found at %s", cnst.UkiDefaultcdrom))
 			}
 		}
 
@@ -787,7 +799,7 @@ func (s *State) MountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
 			syscall.Sync()
 			return nil
 		}
-
+		internalUtils.Log.Debug().Msg("No livecd/install media found")
 		return nil
 	}))...)
 }
