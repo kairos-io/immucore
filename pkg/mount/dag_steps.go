@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/foxboron/go-uefi/efi"
 	"github.com/hashicorp/go-multierror"
 	cnst "github.com/kairos-io/immucore/internal/constants"
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
@@ -463,6 +464,10 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 						internalUtils.Log.Err(e).Str("what", m.what).Str("where", m.where).Str("type", m.fs).Msg("Mounting")
 					}
 				}
+
+				if !efi.GetSecureBoot() && len(internalUtils.ReadCMDLineArg("rd.immucore.disablesecureboot")) == 0 {
+					internalUtils.Log.Panic().Msg("Secure boot is not enabled")
+				}
 				output, pcrErr := internalUtils.CommandWithPath("/usr/lib/systemd/systemd-pcrphase --graceful enter-initrd")
 				if pcrErr != nil {
 					internalUtils.Log.Err(pcrErr).Msg("running systemd-pcrphase")
@@ -472,7 +477,7 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 				if pcrErr != nil {
 					internalUtils.Log.Err(pcrErr).Msg("Creating /run/systemd dir")
 				}
-				// This dire is created by systemd-stub and passed to the kernel as a cpio archive
+				// This dir is created by systemd-stub and passed to the kernel as a cpio archive
 				// that gets mounted in the initial ramdisk where we run immucore from
 				// It contains the tpm public key and signatures of the current uki
 				out, pcrErr := internalUtils.CommandWithPath("cp /.extra/* /run/systemd/")
