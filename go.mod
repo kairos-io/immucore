@@ -15,15 +15,15 @@ require (
 	github.com/kairos-io/kcrypt v0.9.2-0.20240301001623-4715d081ec03
 	github.com/moby/sys/mountinfo v0.7.1
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
-	github.com/mudler/yip v1.4.6
 	github.com/onsi/ginkgo/v2 v2.16.0
+	github.com/mudler/yip v1.4.7-0.20240124080254-7c7dea167622
 	github.com/onsi/gomega v1.31.1
 	github.com/rs/zerolog v1.32.0
-	github.com/sanity-io/litter v1.5.5
 	github.com/spectrocloud-labs/herd v0.4.2
-	github.com/twpayne/go-vfs v1.7.2
+	github.com/twpayne/go-vfs/v5 v5.0.1 // 5.0.2 requires a bump to go1.21
 	github.com/urfave/cli/v2 v2.27.1
 	golang.org/x/sys v0.18.0
+	github.com/foxboron/go-uefi v0.0.0-20231219171607-b6c4a7448183
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -122,6 +122,7 @@ require (
 	github.com/spf13/afero v1.9.3 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/tredoe/osutil/v2 v2.0.0-rc.16 // indirect
+	github.com/twpayne/go-vfs/v4 v4.3.0 // indirect
 	github.com/ulikunitz/xz v0.5.11 // indirect
 	github.com/vbatts/tar-split v0.11.3 // indirect
 	github.com/vishvananda/netlink v1.2.1-beta.2 // indirect
