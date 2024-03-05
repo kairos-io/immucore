@@ -503,11 +503,15 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 				internalUtils.Log.Err(err).Msg("running systemd-pcrphase")
 				internalUtils.Log.Debug().Str("out", output).Msg("systemd-pcrphase leave-initrd")
 			}
+			err = syscall.Mount("rootfs", "/", "tmpfs", syscall.MS_RDONLY, "")
+			if err != nil {
+				internalUtils.Log.Err(err).Msg("Remounting root")
+			}
 			// Print dag before exit, otherwise its never printed as we never exit the program
 			internalUtils.Log.Info().Msg(s.WriteDAG(g))
 			internalUtils.Log.Debug().Msg("Executing init callback!")
 			internalUtils.CloseLogFiles()
-			if err := unix.Exec("/sbin/init", []string{"/sbin/init", "--system"}, os.Environ()); err != nil {
+			if err := unix.Exec("/sbin/init", []string{"/sbin/init"}, os.Environ()); err != nil {
 				internalUtils.Log.Err(err).Msg("running init")
 				// drop to emergency shell
 				if err := unix.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ()); err != nil {
@@ -524,10 +528,6 @@ func (s *State) UKIRemountRootRODagStep(g *herd.Graph) error {
 		herd.WithDeps(cnst.OpRootfsHook),
 		herd.WithCallback(func(ctx context.Context) error {
 			var err error
-			err = syscall.Mount("rootfs", "/", "tmpfs", syscall.MS_RDONLY, "")
-			if err != nil {
-				internalUtils.Log.Err(err).Msg("Remounting root")
-			}
 			for i := 1; i < 5; i++ {
 				time.Sleep(1 * time.Second)
 				// Should we try to stop udev here?
