@@ -524,6 +524,10 @@ func (s *State) UKIRemountRootRODagStep(g *herd.Graph) error {
 		herd.WithDeps(cnst.OpRootfsHook),
 		herd.WithCallback(func(ctx context.Context) error {
 			var err error
+			err = syscall.Mount("rootfs", "/", "tmpfs", syscall.MS_RDONLY, "")
+			if err != nil {
+				internalUtils.Log.Err(err).Msg("Remounting root")
+			}
 			for i := 1; i < 5; i++ {
 				time.Sleep(1 * time.Second)
 				// Should we try to stop udev here?
