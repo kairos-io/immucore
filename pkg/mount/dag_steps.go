@@ -840,35 +840,37 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 							return err
 						}
 						internalUtils.Log.Info().Msg(fmt.Sprintf("Bind mounted %s to %s", s.path(path), filepath.Join(s.path(cnst.UkiSysrootDir), path)))
-						continue
-					} else {
-						internalUtils.Log.Info().Msg(fmt.Sprintf("%s is a mount point, skipping", s.path(path)))
-						mountPoints = append(mountPoints, s.path(path))
-						continue
-					}
-				} else {
-					info, _ := file.Info()
-					fileInfo, _ := os.Lstat(file.Name())
 
-					// Symlink
-					if fileInfo.Mode()&os.ModeSymlink != 0 {
-						target, err := os.Readlink(file.Name())
-						if err != nil {
-							return fmt.Errorf("failed to read symlink: %w", err)
-						}
-						symlinkPath := s.path(filepath.Join(cnst.UkiSysrootDir, file.Name()))
-						err = os.Symlink(target, symlinkPath)
-						if err != nil {
-							return fmt.Errorf("failed to create symlink: %w", err)
-						}
-						internalUtils.Log.Info().Str("from", target).Str("to", symlinkPath).Msg("Symlinked file")
-					} else {
-						// If its a file in the root dir just copy it over
-						content, _ := os.ReadFile(s.path(file.Name()))
-						newFilePath := s.path(filepath.Join(cnst.UkiSysrootDir, file.Name()))
-						_ = os.WriteFile(newFilePath, content, info.Mode())
-						internalUtils.Log.Info().Msg(fmt.Sprintf("Copied %s to %s", s.path(file.Name()), newFilePath))
+						continue
 					}
+
+					internalUtils.Log.Info().Msg(fmt.Sprintf("%s is a mount point, skipping", s.path(path)))
+					mountPoints = append(mountPoints, s.path(path))
+
+					continue
+				}
+
+				info, _ := file.Info()
+				fileInfo, _ := os.Lstat(file.Name())
+
+				// Symlink
+				if fileInfo.Mode()&os.ModeSymlink != 0 {
+					target, err := os.Readlink(file.Name())
+					if err != nil {
+						return fmt.Errorf("failed to read symlink: %w", err)
+					}
+					symlinkPath := s.path(filepath.Join(cnst.UkiSysrootDir, file.Name()))
+					err = os.Symlink(target, symlinkPath)
+					if err != nil {
+						return fmt.Errorf("failed to create symlink: %w", err)
+					}
+					internalUtils.Log.Info().Str("from", target).Str("to", symlinkPath).Msg("Symlinked file")
+				} else {
+					// If its a file in the root dir just copy it over
+					content, _ := os.ReadFile(s.path(file.Name()))
+					newFilePath := s.path(filepath.Join(cnst.UkiSysrootDir, file.Name()))
+					_ = os.WriteFile(newFilePath, content, info.Mode())
+					internalUtils.Log.Info().Msg(fmt.Sprintf("Copied %s to %s", s.path(file.Name()), newFilePath))
 				}
 			}
 			// Now move the system mounts into the new dir
