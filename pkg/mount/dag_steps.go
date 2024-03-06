@@ -511,7 +511,7 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 			internalUtils.Log.Info().Msg(s.WriteDAG(g))
 			internalUtils.Log.Debug().Msg("Executing init callback!")
 			internalUtils.CloseLogFiles()
-			if err := unix.Exec("/sbin/init", []string{"/sbin/init"}, os.Environ()); err != nil {
+			if err := unix.Exec("/sbin/init", []string{"/sbin/init", "--system"}, os.Environ()); err != nil {
 				internalUtils.Log.Err(err).Msg("running init")
 				// drop to emergency shell
 				if err := unix.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ()); err != nil {
