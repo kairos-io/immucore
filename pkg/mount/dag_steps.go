@@ -504,15 +504,7 @@ func (s *State) UKIRemountRootRODagStep(g *herd.Graph) error {
 				internalUtils.Log.Err(err).Str("path", s.path("sysroot")).Msg("Creating sysroot")
 				return err
 			}
-			for i := 1; i < 5; i++ {
-				time.Sleep(1 * time.Second)
-				// Should we try to stop udev here?
-				err = syscall.Mount("", "/", "", syscall.MS_REMOUNT|syscall.MS_RDONLY, "")
-				if err != nil {
-					continue
-				}
-			}
-			return err
+			return nil
 		}),
 	)
 }
@@ -884,6 +876,9 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 				}
 				internalUtils.Log.Info().Str("from", filepath.Join(s.path(), d)).Str("to", filepath.Join(s.path("sysroot"), d)).Msg(fmt.Sprintf("Mount moved"))
 			}
+
+			// remount sysroot as readonly before chrooting
+			err = syscall.Mount("", s.path("sysroot"), "", syscall.MS_REMOUNT|syscall.MS_RDONLY, "")
 
 			// Now chdir+chroot into the new dir
 			if err := unix.Chdir(s.path("sysroot")); err != nil {
