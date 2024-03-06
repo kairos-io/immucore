@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"golang.org/x/sys/unix"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -20,7 +22,6 @@ import (
 	kcrypt "github.com/kairos-io/kcrypt/pkg/lib"
 	"github.com/mudler/go-kdetect"
 	"github.com/spectrocloud-labs/herd"
-	"golang.org/x/sys/unix"
 )
 
 // MountTmpfsDagStep adds the step to mount /tmp .
@@ -490,40 +491,19 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 	)
 }
 
-// UKIBootInitDagStep tries to launch /sbin/init in root and pass over the system
-// booting to the real init process
-// Drops to emergency if not able to. Panic if it cant even launch emergency.
-func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
-	return g.Add(cnst.OpUkiInit,
-		herd.WeakDeps,
-		herd.WithWeakDeps(cnst.OpRemountRootRO, cnst.OpRootfsHook, cnst.OpInitramfsHook, cnst.OpWriteFstab),
-		herd.WithCallback(func(ctx context.Context) error {
-			output, err := internalUtils.CommandWithPath("/usr/lib/systemd/systemd-pcrphase --graceful leave-initrd")
-			if err != nil {
-				internalUtils.Log.Err(err).Msg("running systemd-pcrphase")
-				internalUtils.Log.Debug().Str("out", output).Msg("systemd-pcrphase leave-initrd")
-			}
-			// Print dag before exit, otherwise its never printed as we never exit the program
-			internalUtils.Log.Info().Msg(s.WriteDAG(g))
-			internalUtils.Log.Debug().Msg("Executing init callback!")
-			internalUtils.CloseLogFiles()
-			if err := unix.Exec("/sbin/init", []string{"/sbin/init", "--system"}, os.Environ()); err != nil {
-				internalUtils.Log.Err(err).Msg("running init")
-				// drop to emergency shell
-				if err := unix.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ()); err != nil {
-					internalUtils.Log.Fatal().Msg("Could not drop to emergency shell")
-				}
-			}
-			return nil
-		}))
-}
-
 // UKIRemountRootRODagStep remount root read only.
 func (s *State) UKIRemountRootRODagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpRemountRootRO,
 		herd.WithDeps(cnst.OpRootfsHook),
 		herd.WithCallback(func(ctx context.Context) error {
 			var err error
+
+			// Create the /sysroot dir before remounting as RO
+			err = os.MkdirAll(s.path("sysroot"), 0755)
+			if err != nil {
+				internalUtils.Log.Err(err).Str("path", s.path("sysroot")).Msg("Creating sysroot")
+				return err
+			}
 			for i := 1; i < 5; i++ {
 				time.Sleep(1 * time.Second)
 				// Should we try to stop udev here?
@@ -807,4 +787,97 @@ func (s *State) MountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
 		internalUtils.Log.Debug().Msg("No livecd/install media found")
 		return nil
 	}))...)
+}
+
+// UKIBootInitDagStep tries to launch /sbin/init in root and pass over the system
+// booting to the real init process
+// Drops to emergency if not able to. Panic if it cant even launch emergency.
+func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
+	return g.Add(cnst.OpUkiInit,
+		herd.WeakDeps,
+		herd.WithWeakDeps(cnst.OpRemountRootRO, cnst.OpRootfsHook, cnst.OpInitramfsHook, cnst.OpWriteFstab),
+		herd.WithCallback(func(ctx context.Context) error {
+			output, err := internalUtils.CommandWithPath("/usr/lib/systemd/systemd-pcrphase --graceful leave-initrd")
+			if err != nil {
+				internalUtils.Log.Err(err).Msg("running systemd-pcrphase")
+				internalUtils.Log.Debug().Str("out", output).Msg("systemd-pcrphase leave-initrd")
+			}
+			// Print dag before exit, otherwise its never printed as we never exit the program
+			internalUtils.Log.Info().Msg(s.WriteDAG(g))
+
+			// Mount a tmpfs under sysroot
+			err = syscall.Mount("tmpfs", s.path("sysroot"), "tmpfs", syscall.MS_NOSUID|syscall.MS_NODEV|syscall.MS_NOEXEC, "")
+
+			// Move all the dirs in root FS that are not a mountpoint to the new root via Bind mount
+			err = filepath.WalkDir(s.Rootdir, func(path string, d fs.DirEntry, err error) error {
+				if err != nil {
+					return err
+				}
+				if !d.IsDir() {
+					return nil
+				}
+				fileInfo, err := os.Stat(s.path(path))
+				if err != nil {
+					return err
+				}
+				parentPath := filepath.Dir(s.path(path))
+				parentInfo, err := os.Stat(parentPath)
+				if err != nil {
+					return err
+				}
+				// If the directory has the same device as its parent, it's not a mount point.
+				if fileInfo.Sys().(*syscall.Stat_t).Dev == parentInfo.Sys().(*syscall.Stat_t).Dev {
+					internalUtils.Log.Info().Msg(fmt.Sprintf("%s is a simple directory", path))
+					err = os.MkdirAll(filepath.Join(s.path("sysroot"), path), 0755)
+					if err != nil {
+						internalUtils.Log.Err(err).Str("what", filepath.Join(s.path("sysroot"), path)).Msg("mkdir")
+						return err
+					}
+					// Bind mount it
+					err = syscall.Mount(s.path(path), filepath.Join(s.path("sysroot"), path), "", syscall.MS_BIND, "")
+					if err != nil {
+						internalUtils.Log.Err(err).Str("what", s.path(path)).Str("where", filepath.Join(s.path("sysroot"), path)).Msg("bind mount")
+						return err
+					}
+				} else {
+					internalUtils.Log.Info().Msg(fmt.Sprintf("%s is a mount point, skipping", s.path(path)))
+				}
+
+				return err
+			})
+			if err != nil {
+				return err
+			}
+
+			// Now move the system mounts into the new dir
+			for _, d := range []string{"proc", "sys", "dev", "run", "tmp"} {
+				internalUtils.Log.Info().Msg(fmt.Sprintf("Moving %s to %s", filepath.Join(s.Rootdir, d), filepath.Join(s.path("sysroot"), d)))
+				err = syscall.Mount(filepath.Join(s.Rootdir, d), filepath.Join(s.path("sysroot"), d), "", syscall.MS_MOVE, "")
+				if err != nil {
+					return err
+				}
+			}
+
+			// Now chdir+chroot into the new dir
+			if err := unix.Chdir(s.path("sysroot")); err != nil {
+				internalUtils.Log.Err(err).Msg("chdir")
+				return fmt.Errorf("failed change directory to new_root %v", err)
+			}
+			err = unix.Chroot(".")
+			if err != nil {
+				internalUtils.Log.Err(err).Msg("chroot")
+				return fmt.Errorf("failed to chroot %v", err)
+			}
+
+			internalUtils.Log.Debug().Msg("Executing init callback!")
+			internalUtils.CloseLogFiles()
+			if err := unix.Exec("/sbin/init", []string{"/sbin/init"}, os.Environ()); err != nil {
+				internalUtils.Log.Err(err).Msg("running init")
+				// drop to emergency shell
+				if err := unix.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ()); err != nil {
+					internalUtils.Log.Fatal().Msg("Could not drop to emergency shell")
+				}
+			}
+			return nil
+		}))
 }
