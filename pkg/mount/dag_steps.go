@@ -875,6 +875,8 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 				internalUtils.Log.Info().Str("from", filepath.Join(s.path(), d)).Str("to", filepath.Join(s.path("sysroot"), d)).Msg(fmt.Sprintf("Mount moved"))
 			}
 
+			unix.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ())
+
 			// Now chdir+chroot into the new dir
 			if err := unix.Chdir(s.path("sysroot")); err != nil {
 				internalUtils.Log.Err(err).Msg("chdir")
