@@ -32,17 +32,6 @@ func SetLogger() {
 		w.TimeFormat = time.RFC3339
 	}))
 
-	// Create a logger that logs to ttyS0
-	// Open the serial port for writing
-	serial, err := os.OpenFile("/dev/ttyS0", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-	if err == nil {
-		loggers = append(loggers, zerolog.ConsoleWriter{Out: serial, TimeFormat: time.RFC3339, NoColor: true})
-	}
-	kmesg, err := os.OpenFile("/dev/kmesg", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
-	if err == nil {
-		loggers = append(loggers, zerolog.ConsoleWriter{Out: kmesg, TimeFormat: time.RFC3339, NoColor: true})
-	}
-
 	multi := zerolog.MultiLevelWriter(loggers...)
 	level = zerolog.InfoLevel
 	// Set debug level
