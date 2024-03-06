@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"golang.org/x/sys/unix"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -809,42 +808,43 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 			err = syscall.Mount("tmpfs", s.path("sysroot"), "tmpfs", syscall.MS_NOSUID|syscall.MS_NODEV|syscall.MS_NOEXEC, "")
 
 			// Move all the dirs in root FS that are not a mountpoint to the new root via Bind mount
-			err = filepath.WalkDir(s.Rootdir, func(path string, d fs.DirEntry, err error) error {
-				if err != nil {
-					return err
-				}
-				if !d.IsDir() {
-					return nil
-				}
-				fileInfo, err := os.Stat(s.path(path))
-				if err != nil {
-					return err
-				}
-				parentPath := filepath.Dir(s.path(path))
-				parentInfo, err := os.Stat(parentPath)
-				if err != nil {
-					return err
-				}
-				// If the directory has the same device as its parent, it's not a mount point.
-				if fileInfo.Sys().(*syscall.Stat_t).Dev == parentInfo.Sys().(*syscall.Stat_t).Dev {
-					internalUtils.Log.Info().Msg(fmt.Sprintf("%s is a simple directory", path))
-					err = os.MkdirAll(filepath.Join(s.path("sysroot"), path), 0755)
+			rootDirs, err := os.ReadDir(s.Rootdir)
+			for _, file := range rootDirs {
+				if file.IsDir() {
+					path := file.Name()
+					fileInfo, err := os.Stat(s.path(path))
 					if err != nil {
-						internalUtils.Log.Err(err).Str("what", filepath.Join(s.path("sysroot"), path)).Msg("mkdir")
 						return err
 					}
-					// Bind mount it
-					err = syscall.Mount(s.path(path), filepath.Join(s.path("sysroot"), path), "", syscall.MS_BIND, "")
+					parentPath := filepath.Dir(s.path(path))
+					parentInfo, err := os.Stat(parentPath)
 					if err != nil {
-						internalUtils.Log.Err(err).Str("what", s.path(path)).Str("where", filepath.Join(s.path("sysroot"), path)).Msg("bind mount")
 						return err
+					}
+					// If the directory has the same device as its parent, it's not a mount point.
+					if fileInfo.Sys().(*syscall.Stat_t).Dev == parentInfo.Sys().(*syscall.Stat_t).Dev {
+						internalUtils.Log.Info().Msg(fmt.Sprintf("%s is a simple directory", path))
+						err = os.MkdirAll(filepath.Join(s.path("sysroot"), path), 0755)
+						if err != nil {
+							internalUtils.Log.Err(err).Str("what", filepath.Join(s.path("sysroot"), path)).Msg("mkdir")
+							return err
+						}
+						// Bind mount it
+						err = syscall.Mount(s.path(path), filepath.Join(s.path("sysroot"), path), "", syscall.MS_BIND, "")
+						if err != nil {
+							internalUtils.Log.Err(err).Str("what", s.path(path)).Str("where", filepath.Join(s.path("sysroot"), path)).Msg("bind mount")
+							return err
+						}
+					} else {
+						internalUtils.Log.Info().Msg(fmt.Sprintf("%s is a mount point, skipping", s.path(path)))
 					}
 				} else {
-					internalUtils.Log.Info().Msg(fmt.Sprintf("%s is a mount point, skipping", s.path(path)))
+					// If its a file in the root dir just copy it over
+					info, _ := file.Info()
+					content, _ := os.ReadFile(s.path(file.Name()))
+					_ = os.WriteFile(s.path("sysroot/"+file.Name()), content, info.Mode())
 				}
-
-				return err
-			})
+			}
 			if err != nil {
 				return err
 			}
