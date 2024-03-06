@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/sanity-io/litter"
 	"golang.org/x/sys/unix"
 	"os"
 	"path/filepath"
@@ -810,7 +811,7 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 			// Move all the dirs in root FS that are not a mountpoint to the new root via Bind mount
 			rootDirs, err := os.ReadDir(s.Rootdir)
 			mountPoints := []string{}
-			internalUtils.Log.Info().Interface("s", rootDirs).Msg("Moving root dirs to sysroot")
+			internalUtils.Log.Info().Str("s", litter.Sdump(rootDirs)).Msg("Moving root dirs to sysroot")
 			time.Sleep(1 * time.Second)
 			for _, file := range rootDirs {
 				if file.Name() == "sysroot" {
@@ -862,13 +863,16 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 			internalUtils.Log.Info().Interface("a", mountPoints).Msg("mountpoints to bind mount")
 			// Now move the system mounts into the new dir
 			for _, d := range mountPoints {
-				os.MkdirAll(filepath.Join(s.path("sysroot"), d), 0755)
-				err = syscall.Mount(filepath.Join(s.Rootdir, d), filepath.Join(s.path("sysroot"), d), "", syscall.MS_MOVE, "")
+				err := os.MkdirAll(filepath.Join(s.path("sysroot"), d), 0755)
+				if err != nil {
+					internalUtils.Log.Err(err).Str("what", filepath.Join(s.path("sysroot"), d)).Msg("mkdir")
+				}
+				err = syscall.Mount(filepath.Join(s.path(), d), filepath.Join(s.path("sysroot"), d), "", syscall.MS_MOVE, "")
 				if err != nil {
 					internalUtils.Log.Err(err).Str("what", filepath.Join(s.Rootdir, d)).Str("where", filepath.Join(s.path("sysroot"), d)).Msg("move mount")
 					continue
 				}
-				internalUtils.Log.Info().Msg(fmt.Sprintf("Bind mounted %s to %s", filepath.Join(s.Rootdir, d), filepath.Join(s.path("sysroot"), d)))
+				internalUtils.Log.Info().Str("from", filepath.Join(s.path(), d)).Str("to", filepath.Join(s.path("sysroot"), d)).Msg(fmt.Sprintf("Mount moved"))
 			}
 
 			// Now chdir+chroot into the new dir
@@ -878,6 +882,12 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 			}
 			internalUtils.Log.Info().Msg("Chdir to sysroot done")
 
+			err = syscall.Mount(s.path("/"), filepath.Join(s.path("sysroot")), "", unix.MS_MOVE, "")
+			if err != nil {
+				internalUtils.Log.Err(err).Msg("move mount")
+				return err
+			}
+
 			err = unix.Chroot(".")
 			if err != nil {
 				internalUtils.Log.Err(err).Msg("chroot")
@@ -885,7 +895,7 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 			}
 			internalUtils.Log.Info().Msg("Chroot to sysroot done")
 			newRootDirs, err := os.ReadDir("/")
-			internalUtils.Log.Info().Interface("dirs", newRootDirs).Msg("New root dirs")
+			internalUtils.Log.Info().Str("dirs", litter.Sdump(newRootDirs)).Msg("New root dirs")
 			internalUtils.Log.Info().Msg("Executing init callback!")
 
 			if err := unix.Exec("/sbin/init", []string{"/sbin/init"}, os.Environ()); err != nil {
