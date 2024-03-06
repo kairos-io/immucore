@@ -808,7 +808,7 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 				internalUtils.Log.Err(err).Msg("reading rootdir content")
 			}
 			mountPoints := []string{}
-			internalUtils.Log.Info().Str("s", litter.Sdump(rootDirs)).Msg("Moving root dirs to sysroot")
+			internalUtils.Log.Debug().Str("s", litter.Sdump(rootDirs)).Msg("Moving root dirs to sysroot")
 			for _, file := range rootDirs {
 				if file.Name() == cnst.UkiSysrootDir {
 					continue
@@ -826,7 +826,7 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 					}
 					// If the directory has the same device as its parent, it's not a mount point.
 					if fileInfo.Sys().(*syscall.Stat_t).Dev == parentInfo.Sys().(*syscall.Stat_t).Dev {
-						internalUtils.Log.Info().Msg(fmt.Sprintf("%s is a simple directory", path))
+						internalUtils.Log.Debug().Msg(fmt.Sprintf("%s is a simple directory", path))
 						err = os.MkdirAll(filepath.Join(s.path(cnst.UkiSysrootDir), path), 0755)
 						if err != nil {
 							internalUtils.Log.Err(err).Str("what", filepath.Join(s.path(cnst.UkiSysrootDir), path)).Msg("mkdir")
@@ -839,12 +839,12 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 								Str("where", filepath.Join(s.path(cnst.UkiSysrootDir), path)).Msg("bind mount")
 							return err
 						}
-						internalUtils.Log.Info().Msg(fmt.Sprintf("Bind mounted %s to %s", s.path(path), filepath.Join(s.path(cnst.UkiSysrootDir), path)))
+						internalUtils.Log.Debug().Msg(fmt.Sprintf("Bind mounted %s to %s", s.path(path), filepath.Join(s.path(cnst.UkiSysrootDir), path)))
 
 						continue
 					}
 
-					internalUtils.Log.Info().Msg(fmt.Sprintf("%s is a mount point, skipping", s.path(path)))
+					internalUtils.Log.Debug().Msg(fmt.Sprintf("%s is a mount point, skipping", s.path(path)))
 					mountPoints = append(mountPoints, s.path(path))
 
 					continue
@@ -864,13 +864,13 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 					if err != nil {
 						return fmt.Errorf("failed to create symlink: %w", err)
 					}
-					internalUtils.Log.Info().Str("from", target).Str("to", symlinkPath).Msg("Symlinked file")
+					internalUtils.Log.Debug().Str("from", target).Str("to", symlinkPath).Msg("Symlinked file")
 				} else {
 					// If its a file in the root dir just copy it over
 					content, _ := os.ReadFile(s.path(file.Name()))
 					newFilePath := s.path(filepath.Join(cnst.UkiSysrootDir, file.Name()))
 					_ = os.WriteFile(newFilePath, content, info.Mode())
-					internalUtils.Log.Info().Msg(fmt.Sprintf("Copied %s to %s", s.path(file.Name()), newFilePath))
+					internalUtils.Log.Debug().Msg(fmt.Sprintf("Copied %s to %s", s.path(file.Name()), newFilePath))
 				}
 			}
 			// Now move the system mounts into the new dir
@@ -885,7 +885,7 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 					internalUtils.Log.Err(err).Str("what", filepath.Join(s.Rootdir, d)).Str("where", newDir).Msg("move mount")
 					continue
 				}
-				internalUtils.Log.Info().Str("from", filepath.Join(s.path(), d)).Str("to", newDir).Msg("Mount moved")
+				internalUtils.Log.Debug().Str("from", filepath.Join(s.path(), d)).Str("to", newDir).Msg("Mount moved")
 			}
 
 			// remount sysroot as readonly before chrooting
@@ -898,16 +898,16 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 				internalUtils.Log.Err(err).Msg("chdir")
 				return fmt.Errorf("failed change directory to new_root %v", err)
 			}
-			internalUtils.Log.Info().Msg("Chdir to sysroot done")
+			internalUtils.Log.Debug().Msg("Chdir to sysroot done")
 
 			err = unix.Chroot(".")
 			if err != nil {
 				internalUtils.Log.Err(err).Msg("chroot")
 				return fmt.Errorf("failed to chroot %v", err)
 			}
-			internalUtils.Log.Info().Msg("Chroot to sysroot done")
+			internalUtils.Log.Debug().Msg("Chroot to sysroot done")
 
-			internalUtils.Log.Info().Msg("Executing init callback!")
+			internalUtils.Log.Debug().Msg("Executing init callback!")
 			if err := unix.Exec("/sbin/init", []string{"/sbin/init"}, os.Environ()); err != nil {
 				internalUtils.Log.Err(err).Msg("running init")
 				// drop to emergency shell
