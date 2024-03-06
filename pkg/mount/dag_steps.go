@@ -871,7 +871,6 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 					}
 				}
 			}
-			internalUtils.Log.Info().Interface("a", mountPoints).Msg("mountpoints to bind mount")
 			// Now move the system mounts into the new dir
 			for _, d := range mountPoints {
 				err := os.MkdirAll(filepath.Join(s.path("sysroot"), d), 0755)
@@ -893,19 +892,14 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 			}
 			internalUtils.Log.Info().Msg("Chdir to sysroot done")
 
-			//err = syscall.Mount(s.path("/"), filepath.Join(s.path("sysroot")), "", unix.MS_MOVE, "")
-			//if err != nil {
-			//	internalUtils.Log.Err(err).Msg("move mount")
-			//	return err
-			//}
-			//internalUtils.Log.Info().Msg("Move mount done")
-
 			err = unix.Chroot(".")
 			if err != nil {
 				internalUtils.Log.Err(err).Msg("chroot")
 				return fmt.Errorf("failed to chroot %v", err)
 			}
 			internalUtils.Log.Info().Msg("Chroot to sysroot done")
+
+			unix.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ())
 
 			internalUtils.Log.Info().Msg("Executing init callback!")
 			if err := unix.Exec("/sbin/init", []string{"/sbin/init"}, os.Environ()); err != nil {
