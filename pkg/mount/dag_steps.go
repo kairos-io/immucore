@@ -893,12 +893,12 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 			}
 			internalUtils.Log.Info().Msg("Chdir to sysroot done")
 
-			err = syscall.Mount(s.path("/"), filepath.Join(s.path("sysroot")), "", unix.MS_MOVE, "")
-			if err != nil {
-				internalUtils.Log.Err(err).Msg("move mount")
-				return err
-			}
-			internalUtils.Log.Info().Msg("Move mount done")
+			//err = syscall.Mount(s.path("/"), filepath.Join(s.path("sysroot")), "", unix.MS_MOVE, "")
+			//if err != nil {
+			//	internalUtils.Log.Err(err).Msg("move mount")
+			//	return err
+			//}
+			//internalUtils.Log.Info().Msg("Move mount done")
 
 			err = unix.Chroot(".")
 			if err != nil {
