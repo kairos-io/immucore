@@ -207,6 +207,10 @@ func MountBasic() {
 	if !IsMounted("/run") {
 		_ = syscall.Mount("tmpfs", "/run", "tmpfs", syscall.MS_NOSUID|syscall.MS_NODEV|syscall.MS_NOEXEC|syscall.MS_RELATIME, "mode=755")
 	}
+	_ = os.MkdirAll("/dev", 0755)
+	if !IsMounted("/dev") {
+		_ = syscall.Mount("devtmpfs", "/dev", "devtmpfs", syscall.MS_NOSUID|syscall.MS_NODEV, "mode=755")
+	}
 }
 
 // GetOemTimeout parses the cmdline to get the oem timeout to use. Defaults to 5 (converted into seconds afterwards).

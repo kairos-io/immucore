@@ -809,6 +809,7 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 
 			// Move all the dirs in root FS that are not a mountpoint to the new root via Bind mount
 			rootDirs, err := os.ReadDir(s.Rootdir)
+			mountPoints := []string{}
 			for _, file := range rootDirs {
 				if file.IsDir() {
 					path := file.Name()
@@ -835,14 +836,17 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 							internalUtils.Log.Err(err).Str("what", s.path(path)).Str("where", filepath.Join(s.path("sysroot"), path)).Msg("bind mount")
 							return err
 						}
+						internalUtils.Log.Info().Msg(fmt.Sprintf("Bind mounted %s to %s", s.path(path), filepath.Join(s.path("sysroot"), path)))
 					} else {
 						internalUtils.Log.Info().Msg(fmt.Sprintf("%s is a mount point, skipping", s.path(path)))
+						mountPoints = append(mountPoints, s.path(path))
 					}
 				} else {
 					// If its a file in the root dir just copy it over
 					info, _ := file.Info()
 					content, _ := os.ReadFile(s.path(file.Name()))
 					_ = os.WriteFile(s.path("sysroot/"+file.Name()), content, info.Mode())
+					internalUtils.Log.Info().Msg(fmt.Sprintf("Copied %s to %s", s.path(file.Name()), s.path("sysroot/"+file.Name())))
 				}
 			}
 			if err != nil {
@@ -850,7 +854,7 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 			}
 
 			// Now move the system mounts into the new dir
-			for _, d := range []string{"proc", "sys", "dev", "run", "tmp"} {
+			for _, d := range mountPoints {
 				internalUtils.Log.Info().Msg(fmt.Sprintf("Moving %s to %s", filepath.Join(s.Rootdir, d), filepath.Join(s.path("sysroot"), d)))
 				err = syscall.Mount(filepath.Join(s.Rootdir, d), filepath.Join(s.path("sysroot"), d), "", syscall.MS_MOVE, "")
 				if err != nil {
