@@ -103,6 +103,7 @@ const (
 	UkiDefaultcdrom        = "/dev/sr0"
 	UkiDefaultcdromFsType  = "iso9660"
 	UkiDefaultEfiimgFsType = "vfat"
+	UkiSysrootDir          = "sysroot"
 	PersistentStateTarget  = "/usr/local/.state"
 	LogDir                 = "/run/immucore"
 )
