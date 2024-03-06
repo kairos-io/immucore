@@ -498,15 +498,28 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 				internalUtils.Log.Err(err).Msg("running systemd-pcrphase")
 				internalUtils.Log.Debug().Str("out", output).Msg("systemd-pcrphase leave-initrd")
 			}
-			// Print dag before exit, otherwise its never printed as we never exit the program
+
 			internalUtils.Log.Info().Msg(s.WriteDAG(g))
-			internalUtils.Log.Debug().Msg("Executing init callback!")
-			internalUtils.CloseLogFiles()
-			if err := unix.Exec("/sbin/init", []string{"/sbin/init", "--system"}, os.Environ()); err != nil {
-				internalUtils.Log.Err(err).Msg("running init")
-				// drop to emergency shell
-				if err := unix.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ()); err != nil {
-					internalUtils.Log.Fatal().Msg("Could not drop to emergency shell")
+
+			if _, err := os.Stat("/run/cos/live_mode"); err != nil {
+				if err := unix.Exec("/bin/switch.sh", []string{"/bin/switch.sh"}, os.Environ()); err != nil {
+					internalUtils.Log.Fatal().Msg("Could not fake a chroot: " + err.Error() + output)
+
+					if err := unix.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ()); err != nil {
+						internalUtils.Log.Fatal().Msg("Could not drop to emergency shell")
+					}
+				}
+			} else {
+				// Print dag before exit, otherwise its never printed as we never exit the program
+				// internalUtils.Log.Info().Msg(s.WriteDAG(g))
+				// internalUtils.Log.Debug().Msg("Executing init callback!")
+				internalUtils.CloseLogFiles()
+				if err := unix.Exec("/sbin/init", []string{"/sbin/init", "--system"}, os.Environ()); err != nil {
+					internalUtils.Log.Err(err).Msg("running init")
+					// drop to emergency shell
+					if err := unix.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ()); err != nil {
+						internalUtils.Log.Fatal().Msg("Could not drop to emergency shell")
+					}
 				}
 			}
 			return nil
