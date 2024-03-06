@@ -813,6 +813,9 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 			internalUtils.Log.Info().Interface("s", rootDirs).Msg("Moving root dirs to sysroot")
 			time.Sleep(1 * time.Second)
 			for _, file := range rootDirs {
+				if file.Name() == "sysroot" {
+					continue
+				}
 				if file.IsDir() {
 					path := file.Name()
 					fileInfo, err := os.Stat(s.path(path))
@@ -859,10 +862,11 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 			internalUtils.Log.Info().Interface("a", mountPoints).Msg("mountpoints to bind mount")
 			// Now move the system mounts into the new dir
 			for _, d := range mountPoints {
+				os.MkdirAll(filepath.Join(s.path("sysroot"), d), 0755)
 				err = syscall.Mount(filepath.Join(s.Rootdir, d), filepath.Join(s.path("sysroot"), d), "", syscall.MS_MOVE, "")
 				if err != nil {
 					internalUtils.Log.Err(err).Str("what", filepath.Join(s.Rootdir, d)).Str("where", filepath.Join(s.path("sysroot"), d)).Msg("move mount")
-					return err
+					continue
 				}
 				internalUtils.Log.Info().Msg(fmt.Sprintf("Bind mounted %s to %s", filepath.Join(s.Rootdir, d), filepath.Join(s.path("sysroot"), d)))
 			}
