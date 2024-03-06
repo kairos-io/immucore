@@ -893,9 +893,7 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 				return fmt.Errorf("failed to chroot %v", err)
 			}
 			internalUtils.Log.Info().Msg("Chroot to sysroot done")
-
-			unix.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ())
-
+			
 			internalUtils.Log.Info().Msg("Executing init callback!")
 			if err := unix.Exec("/sbin/init", []string{"/sbin/init"}, os.Environ()); err != nil {
 				internalUtils.Log.Err(err).Msg("running init")
