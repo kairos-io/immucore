@@ -798,140 +798,140 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 			// Print dag before exit, otherwise its never printed as we never exit the program
 			internalUtils.Log.Info().Msg(s.WriteDAG(g))
 
-			if true {
-				err = syscall.Mount("/", s.path(cnst.UkiSysrootDir), "", syscall.MS_MOVE, "")
-				if err != nil {
-					internalUtils.Log.Err(err).Msg("mounting / on sysroot")
-					dropToShell()
-				}
-			} else {
-				// Mount a tmpfs under sysroot
-				err = syscall.Mount("tmpfs", s.path(cnst.UkiSysrootDir), "tmpfs", syscall.MS_NOSUID|syscall.MS_NODEV|syscall.MS_NOEXEC, "")
-				if err != nil {
-					internalUtils.Log.Err(err).Msg("mounting tmpfs on sysroot")
-				}
-
-				// Move all the dirs in root FS that are not a mountpoint to the new root via Bind mount
-				rootDirs, err := os.ReadDir(s.Rootdir)
-				if err != nil {
-					internalUtils.Log.Err(err).Msg("reading rootdir content")
-				}
-				mountPoints := []string{}
-				internalUtils.Log.Debug().Str("s", litter.Sdump(rootDirs)).Msg("Moving root dirs to sysroot")
-				for _, file := range rootDirs {
-					if file.Name() == cnst.UkiSysrootDir {
-						continue
-					}
-					if file.IsDir() {
-						path := file.Name()
-						fileInfo, err := os.Stat(s.path(path))
-						if err != nil {
-							return err
-						}
-						parentPath := filepath.Dir(s.path(path))
-						parentInfo, err := os.Stat(parentPath)
-						if err != nil {
-							return err
-						}
-						// If the directory has the same device as its parent, it's not a mount point.
-						if fileInfo.Sys().(*syscall.Stat_t).Dev == parentInfo.Sys().(*syscall.Stat_t).Dev {
-							internalUtils.Log.Debug().Msg(fmt.Sprintf("%s is a simple directory", path))
-							err = os.MkdirAll(filepath.Join(s.path(cnst.UkiSysrootDir), path), 0755)
-							if err != nil {
-								internalUtils.Log.Err(err).Str("what", filepath.Join(s.path(cnst.UkiSysrootDir), path)).Msg("mkdir")
-								return err
-							}
-
-							internalUtils.Log.Debug().Msg(fmt.Sprintf("path :%s", s.path(path)))
-							internalUtils.Log.Debug().Msg(fmt.Sprintf("target path :%s", filepath.Join(s.path(cnst.UkiSysrootDir), path)))
-							out, err := internalUtils.CommandWithPath(fmt.Sprintf("cp -a %s %s", s.path(path), s.path(cnst.UkiSysrootDir)))
-							internalUtils.Log.Debug().Str("out", out).Msg("Copying dir")
-							if err != nil {
-								internalUtils.Log.Err(err).Msg(err.Error())
-							}
-
-							// Bind mount it
-							// err = syscall.Mount(s.path(path), filepath.Join(s.path(cnst.UkiSysrootDir), path), "", syscall.MS_BIND, "")
-							// if err != nil {
-							// 	internalUtils.Log.Err(err).Str("what", s.path(path)).
-							// 		Str("where", filepath.Join(s.path(cnst.UkiSysrootDir), path)).Msg("bind mount")
-							// 	return err
-							// }
-							// internalUtils.Log.Debug().Msg(fmt.Sprintf("Bind mounted %s to %s", s.path(path), filepath.Join(s.path(cnst.UkiSysrootDir), path)))
-
-							continue
-						}
-
-						internalUtils.Log.Debug().Msg(fmt.Sprintf("%s is a mount point, skipping", s.path(path)))
-						mountPoints = append(mountPoints, s.path(path))
-
-						continue
-					}
-
-					info, _ := file.Info()
-					fileInfo, _ := os.Lstat(file.Name())
-
-					// Symlink
-					if fileInfo.Mode()&os.ModeSymlink != 0 {
-						target, err := os.Readlink(file.Name())
-						if err != nil {
-							return fmt.Errorf("failed to read symlink: %w", err)
-						}
-						symlinkPath := s.path(filepath.Join(cnst.UkiSysrootDir, file.Name()))
-						err = os.Symlink(target, symlinkPath)
-						if err != nil {
-							return fmt.Errorf("failed to create symlink: %w", err)
-						}
-						internalUtils.Log.Debug().Str("from", target).Str("to", symlinkPath).Msg("Symlinked file")
-					} else {
-						// If its a file in the root dir just copy it over
-						content, _ := os.ReadFile(s.path(file.Name()))
-						newFilePath := s.path(filepath.Join(cnst.UkiSysrootDir, file.Name()))
-						_ = os.WriteFile(newFilePath, content, info.Mode())
-						internalUtils.Log.Debug().Msg(fmt.Sprintf("Copied %s to %s", s.path(file.Name()), newFilePath))
-					}
-				}
-				// Now move the system mounts into the new dir
-				for _, d := range mountPoints {
-					newDir := filepath.Join(s.path(cnst.UkiSysrootDir), d)
-					// if d == "/proc" || d == "/sys" {
-					// 	err = os.MkdirAll(newDir, 0o555)
-					// 	if err != nil {
-					// 		internalUtils.Log.Err(err).Str("what", newDir).Msg("mkdir")
-					// 	}
-					// 	// let systemd do it
-					// 	continue
-					// } else if d == "/dev" {
-					// 	err = os.MkdirAll(newDir, 0o777)
-					// 	if err != nil {
-					// 		internalUtils.Log.Err(err).Str("what", newDir).Msg("mkdir")
-					// 	}
-					// 	// let systemd do it
-					// 	continue
-					// }
-
-					// TODO: Let's try to move the / mount to /sysroot and then chroot into it
-					// without the rest of the crap
-
-					err := os.MkdirAll(newDir, 0755)
-					if err != nil {
-						internalUtils.Log.Err(err).Str("what", newDir).Msg("mkdir")
-					}
-					err = syscall.Mount(filepath.Join(s.path(), d), newDir, "", syscall.MS_MOVE, "")
-					if err != nil {
-						internalUtils.Log.Err(err).Str("what", filepath.Join(s.Rootdir, d)).Str("where", newDir).Msg("move mount")
-						continue
-					}
-					internalUtils.Log.Debug().Str("from", filepath.Join(s.path(), d)).Str("to", newDir).Msg("Mount moved")
-				}
-
-				// drop to emergency shell
-				// if runtime.BootState != state.LiveCD {
-				// 	if err := unix.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ()); err != nil {
-				// 		internalUtils.Log.Fatal().Msg("Could not drop to emergency shell")
-				// 	}
-				// }
+			// if true {
+			// 	err = syscall.Mount("/", s.path(cnst.UkiSysrootDir), "", syscall.MS_MOVE, "")
+			// 	if err != nil {
+			// 		internalUtils.Log.Err(err).Msg("mounting / on sysroot")
+			// 		dropToShell()
+			// 	}
+			// } else {
+			// Mount a tmpfs under sysroot
+			err = syscall.Mount("tmpfs", s.path(cnst.UkiSysrootDir), "tmpfs", syscall.MS_NOSUID|syscall.MS_NODEV|syscall.MS_NOEXEC, "")
+			if err != nil {
+				internalUtils.Log.Err(err).Msg("mounting tmpfs on sysroot")
 			}
+
+			// Move all the dirs in root FS that are not a mountpoint to the new root via Bind mount
+			rootDirs, err := os.ReadDir(s.Rootdir)
+			if err != nil {
+				internalUtils.Log.Err(err).Msg("reading rootdir content")
+			}
+			mountPoints := []string{}
+			internalUtils.Log.Debug().Str("s", litter.Sdump(rootDirs)).Msg("Moving root dirs to sysroot")
+			for _, file := range rootDirs {
+				if file.Name() == cnst.UkiSysrootDir {
+					continue
+				}
+				if file.IsDir() {
+					path := file.Name()
+					fileInfo, err := os.Stat(s.path(path))
+					if err != nil {
+						return err
+					}
+					parentPath := filepath.Dir(s.path(path))
+					parentInfo, err := os.Stat(parentPath)
+					if err != nil {
+						return err
+					}
+					// If the directory has the same device as its parent, it's not a mount point.
+					if fileInfo.Sys().(*syscall.Stat_t).Dev == parentInfo.Sys().(*syscall.Stat_t).Dev {
+						internalUtils.Log.Debug().Msg(fmt.Sprintf("%s is a simple directory", path))
+						err = os.MkdirAll(filepath.Join(s.path(cnst.UkiSysrootDir), path), 0755)
+						if err != nil {
+							internalUtils.Log.Err(err).Str("what", filepath.Join(s.path(cnst.UkiSysrootDir), path)).Msg("mkdir")
+							return err
+						}
+
+						// 						internalUtils.Log.Debug().Msg(fmt.Sprintf("path :%s", s.path(path)))
+						// 						internalUtils.Log.Debug().Msg(fmt.Sprintf("target path :%s", filepath.Join(s.path(cnst.UkiSysrootDir), path)))
+						// 						out, err := internalUtils.CommandWithPath(fmt.Sprintf("cp -a %s %s", s.path(path), s.path(cnst.UkiSysrootDir)))
+						// 						internalUtils.Log.Debug().Str("out", out).Msg("Copying dir")
+						// 						if err != nil {
+						// 							internalUtils.Log.Err(err).Msg(err.Error())
+						// 						}
+
+						// Bind mount it
+						err = syscall.Mount(s.path(path), filepath.Join(s.path(cnst.UkiSysrootDir), path), "", syscall.MS_BIND|syscall.MS_REC, "")
+						if err != nil {
+							internalUtils.Log.Err(err).Str("what", s.path(path)).
+								Str("where", filepath.Join(s.path(cnst.UkiSysrootDir), path)).Msg("bind mount")
+							return err
+						}
+						internalUtils.Log.Debug().Msg(fmt.Sprintf("Bind mounted %s to %s", s.path(path), filepath.Join(s.path(cnst.UkiSysrootDir), path)))
+
+						continue
+					}
+
+					internalUtils.Log.Debug().Msg(fmt.Sprintf("%s is a mount point, skipping", s.path(path)))
+					mountPoints = append(mountPoints, s.path(path))
+
+					continue
+				}
+
+				info, _ := file.Info()
+				fileInfo, _ := os.Lstat(file.Name())
+
+				// Symlink
+				if fileInfo.Mode()&os.ModeSymlink != 0 {
+					target, err := os.Readlink(file.Name())
+					if err != nil {
+						return fmt.Errorf("failed to read symlink: %w", err)
+					}
+					symlinkPath := s.path(filepath.Join(cnst.UkiSysrootDir, file.Name()))
+					err = os.Symlink(target, symlinkPath)
+					if err != nil {
+						return fmt.Errorf("failed to create symlink: %w", err)
+					}
+					internalUtils.Log.Debug().Str("from", target).Str("to", symlinkPath).Msg("Symlinked file")
+				} else {
+					// If its a file in the root dir just copy it over
+					content, _ := os.ReadFile(s.path(file.Name()))
+					newFilePath := s.path(filepath.Join(cnst.UkiSysrootDir, file.Name()))
+					_ = os.WriteFile(newFilePath, content, info.Mode())
+					internalUtils.Log.Debug().Msg(fmt.Sprintf("Copied %s to %s", s.path(file.Name()), newFilePath))
+				}
+			}
+			// Now move the system mounts into the new dir
+			for _, d := range mountPoints {
+				newDir := filepath.Join(s.path(cnst.UkiSysrootDir), d)
+				// if d == "/proc" || d == "/sys" {
+				// 	err = os.MkdirAll(newDir, 0o555)
+				// 	if err != nil {
+				// 		internalUtils.Log.Err(err).Str("what", newDir).Msg("mkdir")
+				// 	}
+				// 	// let systemd do it
+				// 	continue
+				// } else if d == "/dev" {
+				// 	err = os.MkdirAll(newDir, 0o777)
+				// 	if err != nil {
+				// 		internalUtils.Log.Err(err).Str("what", newDir).Msg("mkdir")
+				// 	}
+				// 	// let systemd do it
+				// 	continue
+				// }
+
+				// TODO: Let's try to move the / mount to /sysroot and then chroot into it
+				// without the rest of the crap
+
+				err := os.MkdirAll(newDir, 0755)
+				if err != nil {
+					internalUtils.Log.Err(err).Str("what", newDir).Msg("mkdir")
+				}
+				err = syscall.Mount(filepath.Join(s.path(), d), newDir, "", syscall.MS_MOVE, "")
+				if err != nil {
+					internalUtils.Log.Err(err).Str("what", filepath.Join(s.Rootdir, d)).Str("where", newDir).Msg("move mount")
+					continue
+				}
+				internalUtils.Log.Debug().Str("from", filepath.Join(s.path(), d)).Str("to", newDir).Msg("Mount moved")
+			}
+
+			// drop to emergency shell
+			// if runtime.BootState != state.LiveCD {
+			// 	if err := unix.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ()); err != nil {
+			// 		internalUtils.Log.Fatal().Msg("Could not drop to emergency shell")
+			// 	}
+			// }
+			//}
 
 			// remount sysroot as readonly before chrooting
 			if err = syscall.Mount("", s.path(cnst.UkiSysrootDir), "", syscall.MS_REMOUNT|syscall.MS_RDONLY, ""); err != nil {
