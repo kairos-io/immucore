@@ -116,10 +116,7 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 			}
 			return err
 		case "initramfs":
-			// Not sure if it will work under UKI where the s.Rootdir is the current root already
-			internalUtils.Log.Info().Msg("Running initramfs stage")
-			chroot := internalUtils.NewChroot(s.Rootdir)
-			return chroot.RunCallback(func() error {
+			if internalUtils.IsUKI() {
 				output, _ := internalUtils.RunStage("initramfs")
 				internalUtils.Log.Debug().Msg(output.String())
 				err := internalUtils.CreateIfNotExists(constants.LogDir)
@@ -131,7 +128,24 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 					internalUtils.Log.Err(e).Msg("Writing log for initramfs stage")
 				}
 				return err
-			})
+			} else {
+				// Not sure if it will work under UKI where the s.Rootdir is the current root already
+				internalUtils.Log.Info().Msg("Running initramfs stage")
+				chroot := internalUtils.NewChroot(s.Rootdir)
+				return chroot.RunCallback(func() error {
+					output, _ := internalUtils.RunStage("initramfs")
+					internalUtils.Log.Debug().Msg(output.String())
+					err := internalUtils.CreateIfNotExists(constants.LogDir)
+					if err != nil {
+						return err
+					}
+					e := os.WriteFile(filepath.Join(constants.LogDir, "initramfs_stage.log"), output.Bytes(), os.ModePerm)
+					if e != nil {
+						internalUtils.Log.Err(e).Msg("Writing log for initramfs stage")
+					}
+					return err
+				})
+			}
 		default:
 			return errors.New("no stage that we know off")
 		}
