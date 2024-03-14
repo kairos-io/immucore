@@ -788,6 +788,8 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 		herd.WeakDeps,
 		herd.WithWeakDeps(cnst.OpRemountRootRO, cnst.OpRootfsHook, cnst.OpInitramfsHook, cnst.OpWriteFstab),
 		herd.WithCallback(func(ctx context.Context) error {
+			//runtime, _ := state.NewRuntimeWithLogger(internalUtils.Log)
+
 			output, err := internalUtils.CommandWithPath("/usr/lib/systemd/systemd-pcrphase --graceful leave-initrd")
 			if err != nil {
 				internalUtils.Log.Err(err).Msg("running systemd-pcrphase")
@@ -832,14 +834,23 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 							internalUtils.Log.Err(err).Str("what", filepath.Join(s.path(cnst.UkiSysrootDir), path)).Msg("mkdir")
 							return err
 						}
-						// Bind mount it
-						err = syscall.Mount(s.path(path), filepath.Join(s.path(cnst.UkiSysrootDir), path), "", syscall.MS_BIND, "")
+
+						internalUtils.Log.Debug().Msg(fmt.Sprintf("path :%s", s.path(path)))
+						internalUtils.Log.Debug().Msg(fmt.Sprintf("target path :%s", filepath.Join(s.path(cnst.UkiSysrootDir), path)))
+						out, err := internalUtils.CommandWithPath(fmt.Sprintf("cp -a %s %s", s.path(path), s.path(cnst.UkiSysrootDir)))
+						internalUtils.Log.Debug().Str("out", out).Msg("Copying dir")
 						if err != nil {
-							internalUtils.Log.Err(err).Str("what", s.path(path)).
-								Str("where", filepath.Join(s.path(cnst.UkiSysrootDir), path)).Msg("bind mount")
-							return err
+							internalUtils.Log.Err(err).Msg(err.Error())
 						}
-						internalUtils.Log.Debug().Msg(fmt.Sprintf("Bind mounted %s to %s", s.path(path), filepath.Join(s.path(cnst.UkiSysrootDir), path)))
+
+						// Bind mount it
+						// err = syscall.Mount(s.path(path), filepath.Join(s.path(cnst.UkiSysrootDir), path), "", syscall.MS_BIND, "")
+						// if err != nil {
+						// 	internalUtils.Log.Err(err).Str("what", s.path(path)).
+						// 		Str("where", filepath.Join(s.path(cnst.UkiSysrootDir), path)).Msg("bind mount")
+						// 	return err
+						// }
+						// internalUtils.Log.Debug().Msg(fmt.Sprintf("Bind mounted %s to %s", s.path(path), filepath.Join(s.path(cnst.UkiSysrootDir), path)))
 
 						continue
 					}
@@ -887,6 +898,13 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 				}
 				internalUtils.Log.Debug().Str("from", filepath.Join(s.path(), d)).Str("to", newDir).Msg("Mount moved")
 			}
+
+			// drop to emergency shell
+			// if runtime.BootState != state.LiveCD {
+			// 	if err := unix.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ()); err != nil {
+			// 		internalUtils.Log.Fatal().Msg("Could not drop to emergency shell")
+			// 	}
+			// }
 
 			// remount sysroot as readonly before chrooting
 			if err = syscall.Mount("", s.path(cnst.UkiSysrootDir), "", syscall.MS_REMOUNT|syscall.MS_RDONLY, ""); err != nil {
