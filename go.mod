@@ -1,6 +1,6 @@
 module github.com/kairos-io/immucore
 
-go 1.20
+go 1.19
 
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
@@ -15,13 +15,12 @@ require (
 	github.com/kairos-io/kcrypt v0.9.2-0.20240301001623-4715d081ec03
 	github.com/moby/sys/mountinfo v0.7.1
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
-	github.com/mudler/yip v1.4.6
+	github.com/mudler/yip v1.5.0
 	github.com/onsi/ginkgo/v2 v2.16.0
 	github.com/onsi/gomega v1.31.1
 	github.com/rs/zerolog v1.32.0
-	github.com/sanity-io/litter v1.5.5
 	github.com/spectrocloud-labs/herd v0.4.2
-	github.com/twpayne/go-vfs v1.7.2
+	github.com/twpayne/go-vfs/v4 v4.3.0 // v5 requires a bump to go1.20
 	github.com/urfave/cli/v2 v2.27.1
 	golang.org/x/sys v0.18.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -31,14 +30,14 @@ require (
 	atomicgo.dev/cursor v0.1.3 // indirect
 	atomicgo.dev/keyboard v0.2.9 // indirect
 	atomicgo.dev/schedule v0.0.2 // indirect
+	dario.cat/mergo v1.0.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/Masterminds/sprig/v3 v3.2.3 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/Microsoft/hcsshim v0.11.4 // indirect
-	github.com/ProtonMail/go-crypto v0.0.0-20230117203413-a47887b8f098 // indirect
+	github.com/ProtonMail/go-crypto v0.0.0-20230828082145-3c4c8a2d2371 // indirect
 	github.com/StackExchange/wmi v1.2.1 // indirect
-	github.com/acomagu/bufpipe v1.0.3 // indirect
 	github.com/anatol/devmapper.go v0.0.0-20220907161421-ba4de5fc0fd1 // indirect
 	github.com/anatol/luks.go v0.0.0-20230125211543-ada2562d4206 // indirect
 	github.com/aybabtme/rgbterm v0.0.0-20170906152045-cc83f3b3ce59 // indirect
@@ -50,7 +49,8 @@ require (
 	github.com/containerd/continuity v0.4.2 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.14.3 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
+	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/denisbrodbeck/machineid v1.0.1 // indirect
 	github.com/dgryski/go-camellia v0.0.0-20191119043421-69a8a13fb23d // indirect
 	github.com/diskfs/go-diskfs v1.3.0 // indirect
@@ -62,9 +62,9 @@ require (
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
-	github.com/go-git/gcfg v1.5.0 // indirect
-	github.com/go-git/go-billy/v5 v5.3.1 // indirect
-	github.com/go-git/go-git/v5 v5.4.2 // indirect
+	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
+	github.com/go-git/go-billy/v5 v5.5.0 // indirect
+	github.com/go-git/go-git/v5 v5.11.0 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
@@ -94,7 +94,7 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
-	github.com/moby/moby v23.0.2+incompatible // indirect
+	github.com/moby/moby v24.0.9+incompatible // indirect
 	github.com/moby/sys/sequential v0.5.0 // indirect
 	github.com/mudler/entities v0.0.0-20220905203055-68348bae0f49 // indirect
 	github.com/mudler/go-pluggable v0.0.0-20230126220627-7710299a0ae5 // indirect
@@ -107,6 +107,7 @@ require (
 	github.com/phayes/permbits v0.0.0-20190612203442-39d7c581d2ee // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/pilebones/go-udev v0.0.0-20210126000448-a3c2a7a4afb7 // indirect
+	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/xattr v0.4.9 // indirect
 	github.com/pterm/pterm v0.12.63 // indirect
@@ -119,6 +120,7 @@ require (
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
+	github.com/skeema/knownhosts v1.2.1 // indirect
 	github.com/spf13/afero v1.9.3 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/tredoe/osutil/v2 v2.0.0-rc.16 // indirect
@@ -129,7 +131,7 @@ require (
 	github.com/vmware/vmw-guestinfo v0.0.0-20220317130741-510905f0efa3 // indirect
 	github.com/wayneashleyberry/terminal-dimensions v1.1.0 // indirect
 	github.com/willdonnelly/passwd v0.0.0-20141013001024-7935dab3074c // indirect
-	github.com/xanzy/ssh-agent v0.3.1 // indirect
+	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/zcalusic/sysinfo v1.0.1 // indirect
