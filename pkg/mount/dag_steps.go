@@ -11,7 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/sanity-io/litter"
 	"golang.org/x/sys/unix"
 
 	"github.com/foxboron/go-uefi/efi"
@@ -432,17 +431,24 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 						"",
 					},
 					{
-						"/dev",
-						"devtmpfs",
-						"devtmpfs",
-						syscall.MS_NOSUID,
-						"mode=755",
+						"/sys",
+						"",
+						"",
+						syscall.MS_SHARED,
+						"",
 					},
 					{
-						"/tmp",
-						"tmpfs",
-						"tmpfs",
-						syscall.MS_NOSUID | syscall.MS_NODEV,
+						"/sys/kernel/security",
+						"securityfs",
+						"securityfs",
+						0,
+						"",
+					},
+					{
+						"/sys/kernel/debug",
+						"debugfs",
+						"debugfs",
+						0,
 						"",
 					},
 					{
@@ -452,6 +458,61 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 						syscall.MS_NOSUID | syscall.MS_NODEV | syscall.MS_NOEXEC | syscall.MS_RELATIME,
 						"",
 					},
+					{
+						"/dev",
+						"devtmpfs",
+						"devtmpfs",
+						syscall.MS_NOSUID,
+						"mode=755",
+					},
+					{
+						"/dev",
+						"",
+						"",
+						syscall.MS_SHARED,
+						"",
+					},
+					{
+						"/dev/pts",
+						"devpts",
+						"devpts",
+						syscall.MS_NOSUID | syscall.MS_NOEXEC,
+						"ptmxmode=000,gid=5,mode=620",
+					},
+					{
+						"/dev/shm",
+						"tmpfs",
+						"tmpfs",
+						0,
+						"",
+					},
+					{
+						"/tmp",
+						"tmpfs",
+						"tmpfs",
+						syscall.MS_NOSUID | syscall.MS_NODEV,
+						"",
+					},
+					{
+						"/tmp",
+						"",
+						"",
+						syscall.MS_SHARED,
+						"",
+					},
+				}
+
+				for dir, perm := range map[string]os.FileMode{
+					"/proc":    0o555,
+					"/dev":     0o777,
+					"/dev/pts": 0o777,
+					"/dev/shm": 0o777,
+					"/sys":     0o555,
+				} {
+					e := os.MkdirAll(dir, perm)
+					if e != nil {
+						internalUtils.Log.Err(e).Str("dir", dir).Interface("permissions", perm).Msg("Creating dir")
+					}
 				}
 				for _, m := range mounts {
 					e := os.MkdirAll(m.where, 0755)
@@ -788,27 +849,42 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 		herd.WeakDeps,
 		herd.WithWeakDeps(cnst.OpRemountRootRO, cnst.OpRootfsHook, cnst.OpInitramfsHook, cnst.OpWriteFstab),
 		herd.WithCallback(func(ctx context.Context) error {
+			var err error
+
 			output, err := internalUtils.CommandWithPath("/usr/lib/systemd/systemd-pcrphase --graceful leave-initrd")
 			if err != nil {
 				internalUtils.Log.Err(err).Msg("running systemd-pcrphase")
 				internalUtils.Log.Debug().Str("out", output).Msg("systemd-pcrphase leave-initrd")
+				dropToShell()
 			}
-			// Print dag before exit, otherwise its never printed as we never exit the program
-			internalUtils.Log.Info().Msg(s.WriteDAG(g))
+
+			// make s.OverlayDirs shared so their submounts are moved to the new root
+			// We mount some mounts as overlay and then mount things on top of them
+			// If they are private, when moving the mount it will end up empty in the new sysroot
+			// so we make it shared so it propagates correctly with whatever is mounted on it
+			for _, d := range s.OverlayDirs {
+				internalUtils.Log.Debug().Str("what", d).Msg("Move overlay")
+				err := syscall.Mount(d, d, "", syscall.MS_SHARED|syscall.MS_REC, "")
+				if err != nil {
+					internalUtils.Log.Err(err).Str("what", d).Msg("mounting overlay as shared")
+				}
+			}
 
 			// Mount a tmpfs under sysroot
-			err = syscall.Mount("tmpfs", s.path(cnst.UkiSysrootDir), "tmpfs", syscall.MS_NOSUID|syscall.MS_NODEV|syscall.MS_NOEXEC, "")
+			internalUtils.Log.Debug().Msg("Mounting tmpfs on sysroot")
+			err = syscall.Mount("tmpfs", s.path(cnst.UkiSysrootDir), "tmpfs", 0, "")
 			if err != nil {
 				internalUtils.Log.Err(err).Msg("mounting tmpfs on sysroot")
+				dropToShell()
 			}
 
-			// Move all the dirs in root FS that are not a mountpoint to the new root via Bind mount
+			// Move all the dirs in root FS that are not a mountpoint to the new root via cp -R
 			rootDirs, err := os.ReadDir(s.Rootdir)
 			if err != nil {
 				internalUtils.Log.Err(err).Msg("reading rootdir content")
 			}
-			mountPoints := []string{}
-			internalUtils.Log.Debug().Str("s", litter.Sdump(rootDirs)).Msg("Moving root dirs to sysroot")
+
+			var mountPoints []string
 			for _, file := range rootDirs {
 				if file.Name() == cnst.UkiSysrootDir {
 					continue
@@ -826,25 +902,22 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 					}
 					// If the directory has the same device as its parent, it's not a mount point.
 					if fileInfo.Sys().(*syscall.Stat_t).Dev == parentInfo.Sys().(*syscall.Stat_t).Dev {
-						internalUtils.Log.Debug().Msg(fmt.Sprintf("%s is a simple directory", path))
+						internalUtils.Log.Debug().Str("what", path).Msg("simple directory")
 						err = os.MkdirAll(filepath.Join(s.path(cnst.UkiSysrootDir), path), 0755)
 						if err != nil {
 							internalUtils.Log.Err(err).Str("what", filepath.Join(s.path(cnst.UkiSysrootDir), path)).Msg("mkdir")
 							return err
 						}
-						// Bind mount it
-						err = syscall.Mount(s.path(path), filepath.Join(s.path(cnst.UkiSysrootDir), path), "", syscall.MS_BIND, "")
-						if err != nil {
-							internalUtils.Log.Err(err).Str("what", s.path(path)).
-								Str("where", filepath.Join(s.path(cnst.UkiSysrootDir), path)).Msg("bind mount")
-							return err
-						}
-						internalUtils.Log.Debug().Msg(fmt.Sprintf("Bind mounted %s to %s", s.path(path), filepath.Join(s.path(cnst.UkiSysrootDir), path)))
 
+						// Copy it over
+						out, err := internalUtils.CommandWithPath(fmt.Sprintf("cp -a %s %s", s.path(path), s.path(cnst.UkiSysrootDir)))
+						if err != nil {
+							internalUtils.Log.Err(err).Str("out", out).Str("what", s.path(path)).Str("where", s.path(cnst.UkiSysrootDir)).Msg("copying dir into sysroot")
+						}
 						continue
 					}
 
-					internalUtils.Log.Debug().Msg(fmt.Sprintf("%s is a mount point, skipping", s.path(path)))
+					internalUtils.Log.Debug().Str("what", path).Msg("mount point")
 					mountPoints = append(mountPoints, s.path(path))
 
 					continue
@@ -862,7 +935,8 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 					symlinkPath := s.path(filepath.Join(cnst.UkiSysrootDir, file.Name()))
 					err = os.Symlink(target, symlinkPath)
 					if err != nil {
-						return fmt.Errorf("failed to create symlink: %w", err)
+						internalUtils.Log.Err(err).Str("from", target).Str("to", symlinkPath).Msg("Symlink")
+						dropToShell()
 					}
 					internalUtils.Log.Debug().Str("from", target).Str("to", symlinkPath).Msg("Symlinked file")
 				} else {
@@ -870,51 +944,64 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 					content, _ := os.ReadFile(s.path(file.Name()))
 					newFilePath := s.path(filepath.Join(cnst.UkiSysrootDir, file.Name()))
 					_ = os.WriteFile(newFilePath, content, info.Mode())
-					internalUtils.Log.Debug().Msg(fmt.Sprintf("Copied %s to %s", s.path(file.Name()), newFilePath))
+					internalUtils.Log.Debug().Str("from", s.path(file.Name())).Str("to", newFilePath).Msg("Copied file")
 				}
 			}
+
 			// Now move the system mounts into the new dir
 			for _, d := range mountPoints {
 				newDir := filepath.Join(s.path(cnst.UkiSysrootDir), d)
-				err := os.MkdirAll(newDir, 0755)
-				if err != nil {
-					internalUtils.Log.Err(err).Str("what", newDir).Msg("mkdir")
+				if _, err := os.Stat(newDir); err != nil {
+					err = os.MkdirAll(newDir, 0755)
+					if err != nil {
+						internalUtils.Log.Err(err).Str("what", newDir).Msg("mkdir")
+					}
 				}
-				err = syscall.Mount(filepath.Join(s.path(), d), newDir, "", syscall.MS_MOVE, "")
+
+				err = syscall.Mount(d, newDir, "", syscall.MS_MOVE, "")
 				if err != nil {
-					internalUtils.Log.Err(err).Str("what", filepath.Join(s.Rootdir, d)).Str("where", newDir).Msg("move mount")
+					internalUtils.Log.Err(err).Str("what", d).Str("where", newDir).Msg("move mount")
 					continue
 				}
-				internalUtils.Log.Debug().Str("from", filepath.Join(s.path(), d)).Str("to", newDir).Msg("Mount moved")
+				internalUtils.Log.Debug().Str("from", d).Str("to", newDir).Msg("Mount moved")
 			}
 
-			// remount sysroot as readonly before chrooting
-			if err = syscall.Mount("", s.path(cnst.UkiSysrootDir), "", syscall.MS_REMOUNT|syscall.MS_RDONLY, ""); err != nil {
-				internalUtils.Log.Err(err).Msg("re-mounting sysroot as read only")
-			}
-
-			// Now chdir+chroot into the new dir
-			if err := unix.Chdir(s.path(cnst.UkiSysrootDir)); err != nil {
+			internalUtils.Log.Debug().Str("to", s.path(cnst.UkiSysrootDir)).Msg("Changing dir")
+			if err = unix.Chdir(s.path(cnst.UkiSysrootDir)); err != nil {
 				internalUtils.Log.Err(err).Msg("chdir")
-				return fmt.Errorf("failed change directory to new_root %v", err)
+				dropToShell()
 			}
-			internalUtils.Log.Debug().Msg("Chdir to sysroot done")
 
-			err = unix.Chroot(".")
-			if err != nil {
+			internalUtils.Log.Debug().Str("what", s.path(cnst.UkiSysrootDir)).Str("where", "/").Msg("Moving mount")
+			if err = unix.Mount(s.path(cnst.UkiSysrootDir), "/", "", unix.MS_MOVE, ""); err != nil {
+				internalUtils.Log.Err(err).Msg("mount move")
+				dropToShell()
+			}
+
+			internalUtils.Log.Debug().Str("to", ".").Msg("Chrooting")
+			if err = unix.Chroot("."); err != nil {
 				internalUtils.Log.Err(err).Msg("chroot")
-				return fmt.Errorf("failed to chroot %v", err)
+				dropToShell()
 			}
-			internalUtils.Log.Debug().Msg("Chroot to sysroot done")
 
+			// Print dag before exit, otherwise its never printed as we never exit the program
+			internalUtils.Log.Info().Msg(s.WriteDAG(g))
 			internalUtils.Log.Debug().Msg("Executing init callback!")
 			if err := unix.Exec("/sbin/init", []string{"/sbin/init"}, os.Environ()); err != nil {
-				internalUtils.Log.Err(err).Msg("running init")
-				// drop to emergency shell
-				if err := unix.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ()); err != nil {
-					internalUtils.Log.Fatal().Msg("Could not drop to emergency shell")
-				}
+				dropToShell()
 			}
 			return nil
 		}))
+}
+
+func dropToShell() {
+	if err := unix.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ()); err != nil {
+		if err := unix.Exec("/bin/sh", []string{"/bin/sh"}, os.Environ()); err != nil {
+			if err := unix.Exec("/sysroot/bin/bash", []string{"/sysroot/bin/bash"}, os.Environ()); err != nil {
+				if err := unix.Exec("/sysroot/bin/sh", []string{"/sysroot/bin/sh"}, os.Environ()); err != nil {
+					internalUtils.Log.Fatal().Msg("Could not drop to emergency shell")
+				}
+			}
+		}
+	}
 }
