@@ -14,7 +14,7 @@ import (
 	"github.com/mudler/yip/pkg/plugins"
 	"github.com/mudler/yip/pkg/schema"
 	"github.com/rs/zerolog"
-	"github.com/twpayne/go-vfs"
+	"github.com/twpayne/go-vfs/v4"
 	"gopkg.in/yaml.v3"
 )
 
