@@ -1,6 +1,8 @@
 module github.com/kairos-io/immucore
 
-go 1.19
+go 1.21
+
+toolchain go1.22.1
 
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
@@ -20,11 +22,13 @@ require (
 	github.com/onsi/gomega v1.31.1
 	github.com/rs/zerolog v1.32.0
 	github.com/spectrocloud-labs/herd v0.4.2
-	github.com/twpayne/go-vfs/v4 v4.3.0 // v5 requires a bump to go1.20
+	github.com/twpayne/go-vfs/v5 v5.0.3 // v5 requires a bump to go1.20
 	github.com/urfave/cli/v2 v2.27.1
 	golang.org/x/sys v0.18.0
 	gopkg.in/yaml.v3 v3.0.1
 )
+
+require github.com/twpayne/go-vfs/v4 v4.3.0
 
 require (
 	atomicgo.dev/cursor v0.1.3 // indirect
