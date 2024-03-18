@@ -2,38 +2,38 @@ VERSION 0.6
 # renovate: datasource=docker depName=quay.io/kairos/osbuilder-tools versioning=semver-coerced
 ARG OSBUILDER_VERSION=v0.200.7
 ARG OSBUILDER_IMAGE=quay.io/kairos/osbuilder-tools:$OSBUILDER_VERSION
-# renovate: datasource=docker depName=golang
-ARG GO_VERSION=1.20
 # renovate: datasource=docker depName=golangci/golangci-lint
 ARG GOLINT_VERSION=v1.55.2
+# renovate: datasource=docker depName=golang
+ARG GO_VERSION=1.20-bookworm
 
 version:
-    FROM alpine
-    RUN apk add git
+    FROM +go-deps
     COPY . ./
-    RUN --no-cache echo $(git describe --tags | sed 's/\(.*\)-.*/\1/') > VERSION
+    RUN --no-cache echo $(git describe --always --tags --dirty) > VERSION
     RUN --no-cache echo $(git describe --always --dirty) > COMMIT
     ARG VERSION=$(cat VERSION)
     ARG COMMIT=$(cat COMMIT)
-    SAVE ARTIFACT COMMIT COMMIT
     SAVE ARTIFACT VERSION VERSION
+    SAVE ARTIFACT COMMIT COMMIT
 
-golang-image:
+go-deps:
     ARG GO_VERSION
     FROM golang:$GO_VERSION
     WORKDIR /build
     COPY go.mod go.sum ./
     RUN go mod download
+    SAVE ARTIFACT go.mod AS LOCAL go.mod
+    SAVE ARTIFACT go.sum AS LOCAL go.sum
 
 test:
-    FROM +golang-image
+    FROM +go-deps
     WORKDIR /build
-    RUN go install -mod=mod github.com/onsi/ginkgo/v2/ginkgo
     COPY . .
-    RUN ginkgo run --race --covermode=atomic --coverprofile=coverage.out -p -r ./...
+    RUN go run github.com/onsi/ginkgo/v2/ginkgo --race --covermode=atomic --coverprofile=coverage.out -p -r ./...
     SAVE ARTIFACT coverage.out AS LOCAL coverage.out
 
-lint:
+golint:
     ARG GOLINT_VERSION
     FROM golangci/golangci-lint:$GOLINT_VERSION
     WORKDIR /build
@@ -41,7 +41,7 @@ lint:
     RUN golangci-lint run -v
 
 build-immucore:
-    FROM +golang-image
+    FROM +go-deps
     WORKDIR /work
     COPY go.mod go.sum /work
     COPY main.go /work

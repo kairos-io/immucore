@@ -19,31 +19,23 @@ jobs:
           fetch-depth: 0
       - uses: earthly/actions-setup@v1
       - name: Run Lint checks
-        run: earthly +lint
+        run: earthly +golint
   unit-tests:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Match this version to the maintained FIPS version in packages at https://github.com/kairos-io/packages/blob/main/packages/toolchain-go/collection.yaml#L63
+        go-version: [ "1.19.10-bookworm", "1.20-bookworm", "1.21-bookworm" ]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-      - name: Install Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: 'go.mod'
       - uses: earthly/actions-setup@v1
       - name: Build
         run: earthly +build
       - name: Run tests
-        run: earthly +test
+        run: earthly +test --GO_VERSION=${{ matrix.go-version }}
       - name: Codecov
         uses: codecov/codecov-action@v4
         with:
