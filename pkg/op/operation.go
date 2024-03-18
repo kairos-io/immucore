@@ -1,4 +1,4 @@
-package mount
+package op
 
 import (
 	"github.com/containerd/containerd/mount"
@@ -9,14 +9,14 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type mountOperation struct {
+type MountOperation struct {
 	FstabEntry      fstab.Mount
 	MountOption     mount.Mount
 	Target          string
 	PrepareCallback func() error
 }
 
-func (m mountOperation) run() error {
+func (m MountOperation) Run() error {
 	// Add context to sublogger
 	l := internalUtils.Log.With().Str("what", m.MountOption.Source).Str("where", m.Target).Str("type", m.MountOption.Type).Strs("options", m.MountOption.Options).Logger()
 	// Not sure why this defaults to debuglevel when creating a sublogger, so make sure we set it properly

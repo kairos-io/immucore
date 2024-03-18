@@ -7,7 +7,8 @@ import (
 
 	"github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/immucore/internal/version"
-	"github.com/kairos-io/immucore/pkg/mount"
+	"github.com/kairos-io/immucore/pkg/dag"
+	"github.com/kairos-io/immucore/pkg/state"
 	"github.com/spectrocloud-labs/herd"
 	"github.com/urfave/cli/v2"
 )
@@ -20,7 +21,7 @@ func main() {
 	app.Copyright = "kairos authors"
 	app.Action = func(c *cli.Context) (err error) {
 		var targetDevice, targetImage string
-		var state *mount.State
+		var st *state.State
 
 		utils.MountBasic()
 		utils.SetLogger()
@@ -38,7 +39,7 @@ func main() {
 			return err
 		}
 
-		state = &mount.State{
+		st = &state.State{
 			Rootdir:       utils.GetRootDir(),
 			TargetDevice:  targetDevice,
 			TargetImage:   targetImage,
@@ -48,20 +49,20 @@ func main() {
 
 		if utils.DisableImmucore() {
 			utils.Log.Info().Msg("Stanza rd.cos.disable/rd.immucore.disable on the cmdline or booting from CDROM/Netboot/Squash recovery. Disabling immucore.")
-			err = state.RegisterLiveMedia(g)
+			err = dag.RegisterLiveMedia(st, g)
 		} else if utils.IsUKI() {
 			utils.Log.Info().Msg("UKI booting!")
-			err = state.RegisterUKI(g)
+			err = dag.RegisterUKI(st, g)
 		} else {
 			utils.Log.Info().Msg("Booting on active/passive/recovery.")
-			err = state.RegisterNormalBoot(g)
+			err = dag.RegisterNormalBoot(st, g)
 		}
 
 		if err != nil {
 			return err
 		}
 
-		utils.Log.Info().Msg(state.WriteDAG(g))
+		utils.Log.Info().Msg(st.WriteDAG(g))
 
 		// Once we print the dag we can exit already
 		if c.Bool("dry-run") {
@@ -69,7 +70,7 @@ func main() {
 		}
 
 		err = g.Run(context.Background())
-		utils.Log.Info().Msg(state.WriteDAG(g))
+		utils.Log.Info().Msg(st.WriteDAG(g))
 		return err
 	}
 	app.Flags = []cli.Flag{

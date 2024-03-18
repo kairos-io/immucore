@@ -1,11 +1,12 @@
-package mount_test
+package state_test
 
 import (
-	"context"
+	"github.com/kairos-io/immucore/pkg/op"
+	"github.com/kairos-io/immucore/pkg/state"
 	"time"
 
 	cnst "github.com/kairos-io/immucore/internal/constants"
-	"github.com/kairos-io/immucore/pkg/mount"
+	"github.com/kairos-io/immucore/pkg/dag"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/spectrocloud-labs/herd"
@@ -21,7 +22,7 @@ var _ = Describe("mounting immutable setup", func() {
 
 	Context("SortedBindMounts()", func() {
 		It("returns the nodes with less depth first and in alfabetical order", func() {
-			s := &mount.State{
+			s := &state.State{
 				BindMounts: []string{
 					"/etc/nginx/config.d/",
 					"/etc/nginx",
@@ -43,13 +44,13 @@ var _ = Describe("mounting immutable setup", func() {
 	Context("simple invocation", func() {
 		It("generates normal dag", func() {
 			Skip("Cant override bootstate yet")
-			s := &mount.State{
+			s := &state.State{
 				Rootdir:      "/",
 				TargetImage:  "/cOS/myimage.img",
 				TargetDevice: "/dev/disk/by-label/COS_LABEL",
 			}
 
-			err := s.RegisterNormalBoot(g)
+			err := dag.RegisterNormalBoot(s, g)
 			Expect(err).ToNot(HaveOccurred())
 
 			dag := g.Analyze()
@@ -59,12 +60,12 @@ var _ = Describe("mounting immutable setup", func() {
 		})
 		It("generates normal dag with extra dirs", func() {
 			Skip("Cant override bootstate yet")
-			s := &mount.State{Rootdir: "/",
+			s := &state.State{Rootdir: "/",
 				OverlayDirs:  []string{"/etc"},
 				BindMounts:   []string{"/etc/kubernetes"},
 				CustomMounts: map[string]string{"COS_PERSISTENT": "/usr/local"}}
 
-			err := s.RegisterNormalBoot(g)
+			err := dag.RegisterNormalBoot(s, g)
 			Expect(err).ToNot(HaveOccurred())
 
 			dag := g.Analyze()
@@ -72,8 +73,8 @@ var _ = Describe("mounting immutable setup", func() {
 			checkDag(dag, s.WriteDAG(g))
 		})
 		It("generates livecd dag", func() {
-			s := &mount.State{}
-			err := s.RegisterLiveMedia(g)
+			s := &state.State{}
+			err := dag.RegisterLiveMedia(s, g)
 			Expect(err).ToNot(HaveOccurred())
 			dag := g.Analyze()
 			checkLiveCDDag(dag, s.WriteDAG(g))
@@ -81,9 +82,7 @@ var _ = Describe("mounting immutable setup", func() {
 		})
 
 		It("Mountop timeouts", func() {
-			s := &mount.State{}
-			f := s.MountOP("/dev/doesntexist", "/tmp/jojobizarreadventure", "", []string{}, 500*time.Millisecond)
-			err := f(context.Background())
+			_, err := op.MountOPWithFstab("/dev/doesntexist", "/tmp/jojobizarreadventure", "", []string{}, 500*time.Millisecond)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("exhausted"))
 		})

@@ -1,4 +1,4 @@
-package mount
+package op
 
 import (
 	"fmt"
@@ -8,13 +8,14 @@ import (
 
 	"github.com/containerd/containerd/mount"
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
+	"github.com/kairos-io/immucore/pkg/schema"
 )
 
 // https://github.com/kairos-io/packages/blob/94aa3bef3d1330cb6c6905ae164f5004b6a58b8c/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L129
-func baseOverlay(overlay Overlay) (mountOperation, error) {
+func BaseOverlay(overlay schema.Overlay) (MountOperation, error) {
 	var dat []string
 	if err := os.MkdirAll(overlay.Base, 0700); err != nil {
-		return mountOperation{}, err
+		return MountOperation{}, err
 	}
 
 	// BackingBase can be a device (LABEL=COS_PERSISTENT) or a tmpfs+size (tmpfs:20%)
@@ -33,7 +34,7 @@ func baseOverlay(overlay Overlay) (mountOperation, error) {
 		dat = datTmpfs
 	}
 	if len(dat) != 2 {
-		return mountOperation{}, fmt.Errorf("invalid backing base. must be a tmpfs with a size or a LABEL/UUID device. e.g. tmpfs:30%%, LABEL:COS_PERSISTENT. Input: %s", overlay.BackingBase)
+		return MountOperation{}, fmt.Errorf("invalid backing base. must be a tmpfs with a size or a LABEL/UUID device. e.g. tmpfs:30%%, LABEL:COS_PERSISTENT. Input: %s", overlay.BackingBase)
 	}
 
 	t := dat[0]
@@ -42,7 +43,7 @@ func baseOverlay(overlay Overlay) (mountOperation, error) {
 		tmpMount := mount.Mount{Type: "tmpfs", Source: "tmpfs", Options: []string{fmt.Sprintf("size=%s", dat[1])}}
 		tmpFstab := internalUtils.MountToFstab(tmpMount)
 		tmpFstab.File = internalUtils.CleanSysrootForFstab(overlay.Base)
-		return mountOperation{
+		return MountOperation{
 			MountOption: tmpMount,
 			FstabEntry:  *tmpFstab,
 			Target:      overlay.Base,
@@ -55,18 +56,18 @@ func baseOverlay(overlay Overlay) (mountOperation, error) {
 		tmpFstab.File = internalUtils.CleanSysrootForFstab(overlay.Base)
 		tmpFstab.MntOps["default"] = ""
 
-		return mountOperation{
+		return MountOperation{
 			MountOption: blockMount,
 			FstabEntry:  *tmpFstab,
 			Target:      overlay.Base,
 		}, nil
 	default:
-		return mountOperation{}, fmt.Errorf("invalid overlay backing base type")
+		return MountOperation{}, fmt.Errorf("invalid overlay backing base type")
 	}
 }
 
 // https://github.com/kairos-io/packages/blob/94aa3bef3d1330cb6c6905ae164f5004b6a58b8c/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L183
-func mountBind(mountpoint, root, stateTarget string) mountOperation {
+func MountBind(mountpoint, root, stateTarget string) MountOperation {
 	mountpoint = strings.TrimLeft(mountpoint, "/") // normalize, remove / upfront as we are going to re-use it in subdirs
 	rootMount := filepath.Join(root, mountpoint)
 	bindMountPath := strings.ReplaceAll(mountpoint, "/", "-")
@@ -84,7 +85,7 @@ func mountBind(mountpoint, root, stateTarget string) mountOperation {
 	tmpFstab := internalUtils.MountToFstab(tmpMount)
 	tmpFstab.File = internalUtils.CleanSysrootForFstab(fmt.Sprintf("/%s", mountpoint))
 	tmpFstab.Spec = internalUtils.CleanSysrootForFstab(tmpFstab.Spec)
-	return mountOperation{
+	return MountOperation{
 		MountOption: tmpMount,
 		FstabEntry:  *tmpFstab,
 		Target:      rootMount,
@@ -102,7 +103,7 @@ func mountBind(mountpoint, root, stateTarget string) mountOperation {
 }
 
 // https://github.com/kairos-io/packages/blob/94aa3bef3d1330cb6c6905ae164f5004b6a58b8c/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L145
-func mountWithBaseOverlay(mountpoint, root, base string) mountOperation {
+func MountWithBaseOverlay(mountpoint, root, base string) MountOperation {
 	mountpoint = strings.TrimLeft(mountpoint, "/") // normalize, remove / upfront as we are going to re-use it in subdirs
 	rootMount := filepath.Join(root, mountpoint)
 	bindMountPath := strings.ReplaceAll(mountpoint, "/", "-")
@@ -127,7 +128,7 @@ func mountWithBaseOverlay(mountpoint, root, base string) mountOperation {
 	tmpFstab.File = internalUtils.CleanSysrootForFstab(rootMount)
 	// TODO: update fstab with x-systemd info
 	// https://github.com/kairos-io/packages/blob/94aa3bef3d1330cb6c6905ae164f5004b6a58b8c/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L170
-	return mountOperation{
+	return MountOperation{
 		MountOption: tmpMount,
 		FstabEntry:  *tmpFstab,
 		Target:      rootMount,
