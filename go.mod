@@ -2,6 +2,11 @@ module github.com/kairos-io/immucore
 
 go 1.19
 
+replace (
+	github.com/onsi/ginkgo/v2 v2.16.0 => github.com/onsi/ginkgo/v2 v2.12.1
+	github.com/onsi/gomega v1.31.1 => github.com/onsi/gomega v1.30.0
+)
+
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/containerd/containerd v1.7.13
@@ -125,6 +130,7 @@ require (
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/tredoe/osutil/v2 v2.0.0-rc.16 // indirect
 	github.com/ulikunitz/xz v0.5.11 // indirect
+	github.com/urfave/cli v1.22.14 // indirect
 	github.com/vbatts/tar-split v0.11.3 // indirect
 	github.com/vishvananda/netlink v1.2.1-beta.2 // indirect
 	github.com/vishvananda/netns v0.0.4 // indirect
