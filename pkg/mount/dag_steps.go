@@ -56,7 +56,7 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 	err = g.Add(cnst.OpDiscoverState,
 		herd.WithDeps(cnst.OpMountState),
 		herd.WithCallback(
-			func(ctx context.Context) error {
+			func(_ context.Context) error {
 				// Check if loop device is mounted already
 				if internalUtils.IsMounted(s.TargetDevice) {
 					internalUtils.Log.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetDevice", s.TargetDevice).Msg("Not mounting loop, already mounted")
@@ -117,7 +117,7 @@ func (s *State) InitramfsStageDagStep(g *herd.Graph, opts ...herd.OpOption) erro
 func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpLoadConfig,
 		append(opts, herd.WithDeps(cnst.OpRootfsHook),
-			herd.WithCallback(func(ctx context.Context) error {
+			herd.WithCallback(func(_ context.Context) error {
 				if s.CustomMounts == nil {
 					s.CustomMounts = map[string]string{}
 				}
@@ -210,7 +210,7 @@ func (s *State) MountBaseOverlayDagStep(g *herd.Graph, opts ...herd.OpOption) er
 	return g.Add(cnst.OpMountBaseOverlay,
 		append(opts, herd.WithDeps(cnst.OpLoadConfig),
 			herd.WithCallback(
-				func(ctx context.Context) error {
+				func(_ context.Context) error {
 					op, err := baseOverlay(Overlay{
 						Base:        "/run/overlay",
 						BackingBase: s.OverlayBase,
@@ -240,7 +240,7 @@ func (s *State) MountCustomOverlayDagStep(g *herd.Graph, opts ...herd.OpOption) 
 	return g.Add(cnst.OpOverlayMount,
 		append(opts, herd.WithDeps(cnst.OpLoadConfig, cnst.OpMountBaseOverlay),
 			herd.WithCallback(
-				func(ctx context.Context) error {
+				func(_ context.Context) error {
 					var multierr *multierror.Error
 					internalUtils.Log.Debug().Strs("dirs", s.OverlayDirs).Msg("Mounting overlays")
 					for _, p := range s.OverlayDirs {
@@ -306,7 +306,7 @@ func (s *State) MountCustomBindsDagStep(g *herd.Graph, opts ...herd.OpOption) er
 	return g.Add(cnst.OpMountBind,
 		append(opts, herd.WithDeps(cnst.OpOverlayMount, cnst.OpCustomMounts, cnst.OpLoadConfig),
 			herd.WithCallback(
-				func(ctx context.Context) error {
+				func(_ context.Context) error {
 					var err *multierror.Error
 					internalUtils.Log.Debug().Strs("mounts", s.BindMounts).Msg("Mounting binds")
 
@@ -346,7 +346,7 @@ func (s *State) WriteFstabDagStep(g *herd.Graph) error {
 func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 	return g.Add(cnst.OpSentinel,
 		herd.WithDeps(deps...),
-		herd.WithCallback(func(ctx context.Context) error {
+		herd.WithCallback(func(_ context.Context) error {
 			var sentinel string
 
 			internalUtils.Log.Debug().Msg("Will now create /run/cos is not exists")
@@ -420,7 +420,7 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 	return g.Add(
 		cnst.OpUkiBaseMounts,
 		herd.WithCallback(
-			func(ctx context.Context) error {
+			func(_ context.Context) error {
 				var err error
 				mounts := []mount{
 					{
@@ -557,7 +557,7 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 func (s *State) UKIRemountRootRODagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpRemountRootRO,
 		herd.WithDeps(cnst.OpRootfsHook),
-		herd.WithCallback(func(ctx context.Context) error {
+		herd.WithCallback(func(_ context.Context) error {
 			// Create the /sysroot dir before remounting as RO
 			err := os.MkdirAll(s.path(cnst.UkiSysrootDir), 0755)
 			if err != nil {
@@ -574,7 +574,7 @@ func (s *State) UKIRemountRootRODagStep(g *herd.Graph) error {
 func (s *State) UKIUdevDaemon(g *herd.Graph) error {
 	return g.Add(cnst.OpUkiUdev,
 		herd.WithDeps(cnst.OpUkiBaseMounts, cnst.OpUkiKernelModules),
-		herd.WithCallback(func(ctx context.Context) error {
+		herd.WithCallback(func(_ context.Context) error {
 			// Should probably figure out other udevd binaries....
 			var udevBin string
 			if _, err := os.Stat("/usr/lib/systemd/systemd-udevd"); !os.IsNotExist(err) {
@@ -611,7 +611,7 @@ func (s *State) UKIUdevDaemon(g *herd.Graph) error {
 func (s *State) LoadKernelModules(g *herd.Graph) error {
 	return g.Add(cnst.OpUkiKernelModules,
 		herd.WithDeps(cnst.OpUkiBaseMounts),
-		herd.WithCallback(func(ctx context.Context) error {
+		herd.WithCallback(func(_ context.Context) error {
 			drivers, err := kdetect.ProbeKernelModules("")
 			if err != nil {
 				internalUtils.Log.Err(err).Msg("Detecting needed modules")
@@ -666,7 +666,7 @@ func (s *State) WaitForSysrootDagStep(g *herd.Graph) error {
 
 // LVMActivation will try to activate lvm volumes/groups on the system.
 func (s *State) LVMActivation(g *herd.Graph) error {
-	return g.Add(cnst.OpLvmActivate, herd.WithCallback(func(ctx context.Context) error {
+	return g.Add(cnst.OpLvmActivate, herd.WithCallback(func(_ context.Context) error {
 		return internalUtils.ActivateLVM()
 	}))
 }
@@ -674,7 +674,7 @@ func (s *State) LVMActivation(g *herd.Graph) error {
 // RunKcrypt will run the UnlockAll method of kcrypt to unlock the encrypted partitions
 // Requires sysroot to be mounted as the kcrypt-challenger binary is not injected in the initramfs.
 func (s *State) RunKcrypt(g *herd.Graph, opts ...herd.OpOption) error {
-	return g.Add(cnst.OpKcryptUnlock, append(opts, herd.WithCallback(func(ctx context.Context) error {
+	return g.Add(cnst.OpKcryptUnlock, append(opts, herd.WithCallback(func(_ context.Context) error {
 		internalUtils.Log.Debug().Msg("Unlocking with kcrypt")
 		return kcrypt.UnlockAllWithLogger(false, internalUtils.Log)
 	}))...)
@@ -684,7 +684,7 @@ func (s *State) RunKcrypt(g *herd.Graph, opts ...herd.OpOption) error {
 // we inspect the uuid of the partition directly to know which label to use for the key
 // As those old installs have an old agent the only way to do it is during the first boot after the upgrade to the newest immucore.
 func (s *State) RunKcryptUpgrade(g *herd.Graph, opts ...herd.OpOption) error {
-	return g.Add(cnst.OpKcryptUpgrade, append(opts, herd.WithCallback(func(ctx context.Context) error {
+	return g.Add(cnst.OpKcryptUpgrade, append(opts, herd.WithCallback(func(_ context.Context) error {
 		return internalUtils.UpgradeKcryptPartitions()
 	}))...)
 }
@@ -746,7 +746,7 @@ func (s *State) MountESPPartition(g *herd.Graph, opts ...herd.OpOption) error {
 }
 
 func (s *State) UKIUnlock(g *herd.Graph, opts ...herd.OpOption) error {
-	return g.Add(cnst.OpUkiKcrypt, append(opts, herd.WithCallback(func(ctx context.Context) error {
+	return g.Add(cnst.OpUkiKcrypt, append(opts, herd.WithCallback(func(_ context.Context) error {
 		// Set full path on uki to get all the binaries
 		if !state.EfiBootFromInstall(internalUtils.Log) {
 			internalUtils.Log.Debug().Msg("Not unlocking disks as we think we are booting from removable media")
@@ -761,7 +761,7 @@ func (s *State) UKIUnlock(g *herd.Graph, opts ...herd.OpOption) error {
 // MountLiveCd tries to mount the livecd if we are booting from one into /run/initramfs/live
 // to mimic the same behavior as the livecd on non-uki boot.
 func (s *State) MountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
-	return g.Add(cnst.OpUkiMountLivecd, append(opts, herd.WithCallback(func(ctx context.Context) error {
+	return g.Add(cnst.OpUkiMountLivecd, append(opts, herd.WithCallback(func(_ context.Context) error {
 		// If we are booting from Install Media
 		if state.EfiBootFromInstall(internalUtils.Log) {
 			internalUtils.Log.Debug().Msg("Not mounting livecd as we think we are booting from removable media")
@@ -848,7 +848,7 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpUkiInit,
 		herd.WeakDeps,
 		herd.WithWeakDeps(cnst.OpRemountRootRO, cnst.OpRootfsHook, cnst.OpInitramfsHook, cnst.OpWriteFstab),
-		herd.WithCallback(func(ctx context.Context) error {
+		herd.WithCallback(func(_ context.Context) error {
 			var err error
 
 			output, err := internalUtils.CommandWithPath("/usr/lib/systemd/systemd-pcrphase --graceful leave-initrd")

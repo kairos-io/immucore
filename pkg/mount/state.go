@@ -85,7 +85,7 @@ func (s *State) WriteFstab(fstabFile string) func(context.Context) error {
 // RunStageOp runs elemental run-stage stage. If its rootfs its special as it needs som symlinks
 // If its uki we don't symlink as we already have everything in the sysroot.
 func (s *State) RunStageOp(stage string) func(context.Context) error {
-	return func(ctx context.Context) error {
+	return func(_ context.Context) error {
 		switch stage {
 		case "rootfs":
 			if !internalUtils.IsUKI() {
