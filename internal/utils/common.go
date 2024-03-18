@@ -173,7 +173,7 @@ func GetState() string {
 		retry.Delay(1*time.Second),
 		retry.Attempts(10),
 		retry.DelayType(retry.FixedDelay),
-		retry.OnRetry(func(n uint, err error) {
+		retry.OnRetry(func(n uint, _ error) {
 			Log.Debug().Uint("try", n).Msg("Cannot get state label, retrying")
 		}),
 	)
