@@ -11,8 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	"golang.org/x/sys/unix"
-
 	"github.com/foxboron/go-uefi/efi"
 	"github.com/hashicorp/go-multierror"
 	cnst "github.com/kairos-io/immucore/internal/constants"
@@ -553,22 +551,6 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 	)
 }
 
-// UKIRemountRootRODagStep remount root read only.
-func (s *State) UKIRemountRootRODagStep(g *herd.Graph) error {
-	return g.Add(cnst.OpRemountRootRO,
-		herd.WithDeps(cnst.OpRootfsHook),
-		herd.WithCallback(func(_ context.Context) error {
-			// Create the /sysroot dir before remounting as RO
-			err := os.MkdirAll(s.path(cnst.UkiSysrootDir), 0755)
-			if err != nil {
-				internalUtils.Log.Err(err).Str("path", s.path(cnst.UkiSysrootDir)).Msg("Creating sysroot")
-				return err
-			}
-			return nil
-		}),
-	)
-}
-
 // UKIUdevDaemon launches the udevd daemon and triggers+settles in order to discover devices
 // Needed if we expect to find devices by label...
 func (s *State) UKIUdevDaemon(g *herd.Graph) error {
@@ -847,7 +829,7 @@ func (s *State) MountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
 func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpUkiInit,
 		herd.WeakDeps,
-		herd.WithWeakDeps(cnst.OpRemountRootRO, cnst.OpRootfsHook, cnst.OpInitramfsHook, cnst.OpWriteFstab),
+		herd.WithWeakDeps(cnst.OpRootfsHook, cnst.OpInitramfsHook, cnst.OpWriteFstab),
 		herd.WithCallback(func(_ context.Context) error {
 			var err error
 
@@ -870,6 +852,12 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 				}
 			}
 
+			internalUtils.Log.Debug().Str("what", s.path(cnst.UkiSysrootDir)).Msg("Creating sysroot dir")
+			err = os.MkdirAll(s.path(cnst.UkiSysrootDir), 0755)
+			if err != nil {
+				internalUtils.Log.Err(err).Msg("creating sysroot dir")
+				dropToShell()
+			}
 			// Mount a tmpfs under sysroot
 			internalUtils.Log.Debug().Msg("Mounting tmpfs on sysroot")
 			err = syscall.Mount("tmpfs", s.path(cnst.UkiSysrootDir), "tmpfs", 0, "")
@@ -967,19 +955,25 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 			}
 
 			internalUtils.Log.Debug().Str("to", s.path(cnst.UkiSysrootDir)).Msg("Changing dir")
-			if err = unix.Chdir(s.path(cnst.UkiSysrootDir)); err != nil {
+			if err = syscall.Chdir(s.path(cnst.UkiSysrootDir)); err != nil {
 				internalUtils.Log.Err(err).Msg("chdir")
 				dropToShell()
 			}
 
+			internalUtils.Log.Debug().Str("what", s.path(cnst.UkiSysrootDir)).Msg("Mount / RO")
+			if err = syscall.Mount("", s.path(cnst.UkiSysrootDir), "", syscall.MS_REMOUNT|syscall.MS_RDONLY, "ro"); err != nil {
+				internalUtils.Log.Err(err).Msg("Mount / RO")
+				dropToShell()
+			}
+
 			internalUtils.Log.Debug().Str("what", s.path(cnst.UkiSysrootDir)).Str("where", "/").Msg("Moving mount")
-			if err = unix.Mount(s.path(cnst.UkiSysrootDir), "/", "", unix.MS_MOVE, ""); err != nil {
+			if err = syscall.Mount(s.path(cnst.UkiSysrootDir), "/", "", syscall.MS_MOVE, ""); err != nil {
 				internalUtils.Log.Err(err).Msg("mount move")
 				dropToShell()
 			}
 
 			internalUtils.Log.Debug().Str("to", ".").Msg("Chrooting")
-			if err = unix.Chroot("."); err != nil {
+			if err = syscall.Chroot("."); err != nil {
 				internalUtils.Log.Err(err).Msg("chroot")
 				dropToShell()
 			}
@@ -987,7 +981,7 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 			// Print dag before exit, otherwise its never printed as we never exit the program
 			internalUtils.Log.Info().Msg(s.WriteDAG(g))
 			internalUtils.Log.Debug().Msg("Executing init callback!")
-			if err := unix.Exec("/sbin/init", []string{"/sbin/init"}, os.Environ()); err != nil {
+			if err := syscall.Exec("/sbin/init", []string{"/sbin/init"}, os.Environ()); err != nil {
 				dropToShell()
 			}
 			return nil
@@ -995,10 +989,10 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 }
 
 func dropToShell() {
-	if err := unix.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ()); err != nil {
-		if err := unix.Exec("/bin/sh", []string{"/bin/sh"}, os.Environ()); err != nil {
-			if err := unix.Exec("/sysroot/bin/bash", []string{"/sysroot/bin/bash"}, os.Environ()); err != nil {
-				if err := unix.Exec("/sysroot/bin/sh", []string{"/sysroot/bin/sh"}, os.Environ()); err != nil {
+	if err := syscall.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ()); err != nil {
+		if err := syscall.Exec("/bin/sh", []string{"/bin/sh"}, os.Environ()); err != nil {
+			if err := syscall.Exec("/sysroot/bin/bash", []string{"/sysroot/bin/bash"}, os.Environ()); err != nil {
+				if err := syscall.Exec("/sysroot/bin/sh", []string{"/sysroot/bin/sh"}, os.Environ()); err != nil {
 					internalUtils.Log.Fatal().Msg("Could not drop to emergency shell")
 				}
 			}
