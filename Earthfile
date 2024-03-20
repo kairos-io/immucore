@@ -34,11 +34,12 @@ test:
     SAVE ARTIFACT coverage.out AS LOCAL coverage.out
 
 golint:
+    FROM +go-deps
     ARG GOLINT_VERSION
-    FROM golangci/golangci-lint:$GOLINT_VERSION
+    RUN wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s $GOLINT_VERSION
     WORKDIR /build
     COPY . .
-    RUN golangci-lint run -v
+    RUN ./bin/golangci-lint run -v
 
 build-immucore:
     FROM +go-deps
