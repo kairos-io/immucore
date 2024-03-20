@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/avast/retry-go"
@@ -238,4 +239,16 @@ func GetHostProcCmdline() string {
 		return "/proc/cmdline"
 	}
 	return proc
+}
+
+func DropToEmergencyShell() {
+	if err := syscall.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ()); err != nil {
+		if err := syscall.Exec("/bin/sh", []string{"/bin/sh"}, os.Environ()); err != nil {
+			if err := syscall.Exec("/sysroot/bin/bash", []string{"/sysroot/bin/bash"}, os.Environ()); err != nil {
+				if err := syscall.Exec("/sysroot/bin/sh", []string{"/sysroot/bin/sh"}, os.Environ()); err != nil {
+					Log.Fatal().Msg("Could not drop to emergency shell")
+				}
+			}
+		}
+	}
 }

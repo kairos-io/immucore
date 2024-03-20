@@ -1,4 +1,4 @@
-package mount_test
+package state_test
 
 import (
 	"testing"

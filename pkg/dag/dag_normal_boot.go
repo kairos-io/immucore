@@ -1,7 +1,8 @@
-package mount
+package dag
 
 import (
 	cnst "github.com/kairos-io/immucore/internal/constants"
+	"github.com/kairos-io/immucore/pkg/state"
 	"github.com/spectrocloud-labs/herd"
 )
 
@@ -9,7 +10,7 @@ import (
 // final system. This mounts root, oem, runs rootfs, loads the cos-layout.env file and mounts custom stuff from that file
 // and finally writes the fstab.
 // This is all done on initramfs, very early, and ends up pivoting to the final system, usually under /sysroot.
-func (s *State) RegisterNormalBoot(g *herd.Graph) error {
+func RegisterNormalBoot(s *state.State, g *herd.Graph) error {
 	var err error
 
 	s.LogIfError(s.LVMActivation(g), "lvm activation")
@@ -47,10 +48,6 @@ func (s *State) RegisterNormalBoot(g *herd.Graph) error {
 	// Mount base overlay under /run/overlay
 	s.LogIfError(s.MountBaseOverlayDagStep(g), "base overlay mount")
 
-	// Note(Itxaka): This was a dependency for overlayMount, opCustomMounts and opMountBind steps
-	// But I don't see how the s.Rootdir could ever be an overlay as we mount COS_STATE on it
-	// overlayCondition := herd.ConditionalOption(func() bool { return internalUtils.DiskFSType(s.Rootdir) != "overlay" }, herd.WithDeps(opMountBaseOverlay))
-
 	// Mount custom overlays loaded from the /run/cos/cos-layout.env file
 	s.LogIfError(s.MountCustomOverlayDagStep(g), "custom overlays mount")
 
@@ -61,7 +58,10 @@ func (s *State) RegisterNormalBoot(g *herd.Graph) error {
 	s.LogIfError(s.MountCustomBindsDagStep(g), "custom binds mount")
 
 	// Write fstab file
-	s.LogIfError(s.WriteFstabDagStep(g), "write fstab")
+	s.LogIfError(s.WriteFstabDagStep(g,
+		herd.WithDeps(cnst.OpMountRoot, cnst.OpDiscoverState, cnst.OpLoadConfig),
+		herd.WithWeakDeps(cnst.OpMountOEM, cnst.OpCustomMounts, cnst.OpMountBind, cnst.OpOverlayMount)), "write fstab")
+
 	// do it after fstab is created
 	s.LogIfError(s.InitramfsStageDagStep(g,
 		herd.WithDeps(cnst.OpMountRoot, cnst.OpDiscoverState, cnst.OpLoadConfig, cnst.OpWriteFstab),
