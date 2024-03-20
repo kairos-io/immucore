@@ -84,7 +84,6 @@ const (
 	OpInitramfsHook        = "initramfs-hook"
 	OpLoadConfig           = "load-config"
 	OpMountTmpfs           = "mount-tmpfs"
-	OpRemountRootRO        = "remount-ro"
 	OpUkiInit              = "uki-init"
 	OpSentinel             = "create-sentinel"
 	OpUkiUdev              = "uki-udev"
