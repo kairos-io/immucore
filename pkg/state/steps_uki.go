@@ -20,7 +20,6 @@ import (
 	kcrypt "github.com/kairos-io/kcrypt/pkg/lib"
 	"github.com/mudler/go-kdetect"
 	"github.com/spectrocloud-labs/herd"
-	"golang.org/x/sys/unix"
 )
 
 // UKIMountBaseSystem mounts the base system for the UKI boot system
@@ -171,22 +170,6 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 				return err
 			},
 		),
-	)
-}
-
-// UKIRemountRootRODagStep remount root read only.
-func (s *State) UKIRemountRootRODagStep(g *herd.Graph) error {
-	return g.Add(cnst.OpRemountRootRO,
-		herd.WithDeps(cnst.OpRootfsHook),
-		herd.WithCallback(func(_ context.Context) error {
-			// Create the /sysroot dir before remounting as RO
-			err := os.MkdirAll(s.path(cnst.UkiSysrootDir), 0755)
-			if err != nil {
-				internalUtils.Log.Err(err).Str("path", s.path(cnst.UkiSysrootDir)).Msg("Creating sysroot")
-				return err
-			}
-			return nil
-		}),
 	)
 }
 
@@ -354,7 +337,7 @@ func (s *State) UKIMountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
 func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpUkiInit,
 		herd.WeakDeps,
-		herd.WithWeakDeps(cnst.OpRemountRootRO, cnst.OpRootfsHook, cnst.OpInitramfsHook, cnst.OpWriteFstab),
+		herd.WithWeakDeps(cnst.OpRootfsHook, cnst.OpInitramfsHook, cnst.OpWriteFstab),
 		herd.WithCallback(func(_ context.Context) error {
 			var err error
 
@@ -375,6 +358,13 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 				if err != nil {
 					internalUtils.Log.Err(err).Str("what", d).Msg("mounting overlay as shared")
 				}
+			}
+
+			internalUtils.Log.Debug().Str("what", s.path(cnst.UkiSysrootDir)).Msg("Creating sysroot dir")
+			err = os.MkdirAll(s.path(cnst.UkiSysrootDir), 0755)
+			if err != nil {
+				internalUtils.Log.Err(err).Msg("creating sysroot dir")
+				internalUtils.DropToEmergencyShell()
 			}
 
 			// Mount a tmpfs under sysroot
@@ -474,19 +464,25 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 			}
 
 			internalUtils.Log.Debug().Str("to", s.path(cnst.UkiSysrootDir)).Msg("Changing dir")
-			if err = unix.Chdir(s.path(cnst.UkiSysrootDir)); err != nil {
+			if err = syscall.Chdir(s.path(cnst.UkiSysrootDir)); err != nil {
 				internalUtils.Log.Err(err).Msg("chdir")
 				internalUtils.DropToEmergencyShell()
 			}
 
+			internalUtils.Log.Debug().Str("what", s.path(cnst.UkiSysrootDir)).Msg("Mount / RO")
+			if err = syscall.Mount("", s.path(cnst.UkiSysrootDir), "", syscall.MS_REMOUNT|syscall.MS_RDONLY, "ro"); err != nil {
+				internalUtils.Log.Err(err).Msg("Mount / RO")
+				internalUtils.DropToEmergencyShell()
+			}
+
 			internalUtils.Log.Debug().Str("what", s.path(cnst.UkiSysrootDir)).Str("where", "/").Msg("Moving mount")
-			if err = unix.Mount(s.path(cnst.UkiSysrootDir), "/", "", unix.MS_MOVE, ""); err != nil {
+			if err = syscall.Mount(s.path(cnst.UkiSysrootDir), "/", "", syscall.MS_MOVE, ""); err != nil {
 				internalUtils.Log.Err(err).Msg("mount move")
 				internalUtils.DropToEmergencyShell()
 			}
 
 			internalUtils.Log.Debug().Str("to", ".").Msg("Chrooting")
-			if err = unix.Chroot("."); err != nil {
+			if err = syscall.Chroot("."); err != nil {
 				internalUtils.Log.Err(err).Msg("chroot")
 				internalUtils.DropToEmergencyShell()
 			}
@@ -494,7 +490,7 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 			// Print dag before exit, otherwise its never printed as we never exit the program
 			internalUtils.Log.Info().Msg(s.WriteDAG(g))
 			internalUtils.Log.Debug().Msg("Executing init callback!")
-			if err := unix.Exec("/sbin/init", []string{"/sbin/init"}, os.Environ()); err != nil {
+			if err := syscall.Exec("/sbin/init", []string{"/sbin/init"}, os.Environ()); err != nil {
 				internalUtils.DropToEmergencyShell()
 			}
 			return nil

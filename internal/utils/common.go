@@ -7,12 +7,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/avast/retry-go"
 	"github.com/joho/godotenv"
 	"github.com/kairos-io/kairos-sdk/state"
-	"golang.org/x/sys/unix"
 )
 
 // BootStateToLabelDevice lets us know the device we need to mount sysroot on based on labels.
@@ -242,10 +242,10 @@ func GetHostProcCmdline() string {
 }
 
 func DropToEmergencyShell() {
-	if err := unix.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ()); err != nil {
-		if err := unix.Exec("/bin/sh", []string{"/bin/sh"}, os.Environ()); err != nil {
-			if err := unix.Exec("/sysroot/bin/bash", []string{"/sysroot/bin/bash"}, os.Environ()); err != nil {
-				if err := unix.Exec("/sysroot/bin/sh", []string{"/sysroot/bin/sh"}, os.Environ()); err != nil {
+	if err := syscall.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ()); err != nil {
+		if err := syscall.Exec("/bin/sh", []string{"/bin/sh"}, os.Environ()); err != nil {
+			if err := syscall.Exec("/sysroot/bin/bash", []string{"/sysroot/bin/bash"}, os.Environ()); err != nil {
+				if err := syscall.Exec("/sysroot/bin/sh", []string{"/sysroot/bin/sh"}, os.Environ()); err != nil {
 					Log.Fatal().Msg("Could not drop to emergency shell")
 				}
 			}
