@@ -49,6 +49,8 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 				sentinel = "passive_mode"
 			case state.Recovery:
 				sentinel = "recovery_mode"
+			case state.AutoReset:
+				sentinel = "autoreset_mode"
 			case state.LiveCD:
 				sentinel = "live_mode"
 			default:
