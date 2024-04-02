@@ -242,10 +242,20 @@ func GetHostProcCmdline() string {
 }
 
 func DropToEmergencyShell() {
-	if err := syscall.Exec("/bin/bash", []string{"/bin/bash"}, os.Environ()); err != nil {
-		if err := syscall.Exec("/bin/sh", []string{"/bin/sh"}, os.Environ()); err != nil {
-			if err := syscall.Exec("/sysroot/bin/bash", []string{"/sysroot/bin/bash"}, os.Environ()); err != nil {
-				if err := syscall.Exec("/sysroot/bin/sh", []string{"/sysroot/bin/sh"}, os.Environ()); err != nil {
+	env := os.Environ()
+	pathAppend := "/usr/bin:/usr/sbin:/bin:/sbin"
+	// try to extract any existing path from the environment
+	for _, e := range env {
+		splitted := strings.Split(e, "=")
+		if splitted[0] == "PATH" {
+			pathAppend = fmt.Sprintf("%s:%s", pathAppend, splitted[1])
+		}
+	}
+	env = append(env, fmt.Sprintf("PATH=%s", pathAppend))
+	if err := syscall.Exec("/bin/bash", []string{"/bin/bash"}, env); err != nil {
+		if err := syscall.Exec("/bin/sh", []string{"/bin/sh"}, env); err != nil {
+			if err := syscall.Exec("/sysroot/bin/bash", []string{"/sysroot/bin/bash"}, env); err != nil {
+				if err := syscall.Exec("/sysroot/bin/sh", []string{"/sysroot/bin/sh"}, env); err != nil {
 					Log.Fatal().Msg("Could not drop to emergency shell")
 				}
 			}

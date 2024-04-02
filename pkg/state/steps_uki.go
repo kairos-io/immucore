@@ -148,6 +148,8 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 					internalUtils.Log.Debug().Str("from", d).Str("to", newDir).Msg("Mount moved")
 				}
 
+				time.Sleep(10 * time.Second)
+
 				internalUtils.Log.Debug().Str("to", s.path(cnst.UkiSysrootDir)).Msg("Changing dir")
 				if err = syscall.Chdir(s.path(cnst.UkiSysrootDir)); err != nil {
 					internalUtils.Log.Err(err).Msg("chdir")
