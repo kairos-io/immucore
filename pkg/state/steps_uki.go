@@ -42,7 +42,118 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 		herd.WithCallback(
 			func(_ context.Context) error {
 				var err error
+				// Now continue with the new root dir as usual
 
+				mounts := []mount{
+					{
+						"/sys",
+						"sysfs",
+						"sysfs",
+						syscall.MS_NOSUID | syscall.MS_NODEV | syscall.MS_NOEXEC | syscall.MS_RELATIME,
+						"",
+					},
+					{
+						"/sys",
+						"",
+						"",
+						syscall.MS_SHARED,
+						"",
+					},
+					{
+						"/sys/kernel/security",
+						"securityfs",
+						"securityfs",
+						0,
+						"",
+					},
+					{
+						"/sys/kernel/debug",
+						"debugfs",
+						"debugfs",
+						0,
+						"",
+					},
+					{
+						"/sys/firmware/efi/efivars",
+						"efivarfs",
+						"efivarfs",
+						syscall.MS_NOSUID | syscall.MS_NODEV | syscall.MS_NOEXEC | syscall.MS_RELATIME,
+						"",
+					},
+					{
+						"/dev",
+						"devtmpfs",
+						"devtmpfs",
+						syscall.MS_NOSUID,
+						"mode=755",
+					},
+					{
+						"/dev",
+						"",
+						"",
+						syscall.MS_SHARED,
+						"",
+					},
+					{
+						"/dev/pts",
+						"devpts",
+						"devpts",
+						syscall.MS_NOSUID | syscall.MS_NOEXEC,
+						"ptmxmode=000,gid=5,mode=620",
+					},
+					{
+						"/dev/shm",
+						"tmpfs",
+						"tmpfs",
+						0,
+						"",
+					},
+					{
+						"/tmp",
+						"tmpfs",
+						"tmpfs",
+						syscall.MS_NOSUID | syscall.MS_NODEV,
+						"",
+					},
+					{
+						"/tmp",
+						"",
+						"",
+						syscall.MS_SHARED,
+						"",
+					},
+				}
+
+				for dir, perm := range map[string]os.FileMode{
+					"/proc":    0o555,
+					"/dev":     0o777,
+					"/dev/pts": 0o777,
+					"/dev/shm": 0o777,
+					"/sys":     0o555,
+				} {
+					e := os.MkdirAll(dir, perm)
+					if e != nil {
+						internalUtils.Log.Err(e).Str("dir", dir).Interface("permissions", perm).Msg("Creating dir")
+					}
+				}
+				for _, m := range mounts {
+					e := os.MkdirAll(m.where, 0755)
+					if e != nil {
+						err = multierror.Append(err, e)
+						internalUtils.Log.Err(e).Msg("Creating dir")
+					}
+
+					e = syscall.Mount(m.what, m.where, m.fs, m.flags, m.data)
+					if e != nil {
+						err = multierror.Append(err, e)
+						internalUtils.Log.Err(e).Str("what", m.what).Str("where", m.where).Str("type", m.fs).Msg("Mounting")
+					}
+				}
+
+				// Now that we have all the mounts, check if we got secureboot enabled
+				if !efi.GetSecureBoot() && len(internalUtils.ReadCMDLineArg("rd.immucore.securebootdisabled")) == 0 {
+					internalUtils.Log.Panic().Msg("Secure boot is not enabled")
+				}
 				// Create the new sysroot and move to it
 				// We need the sysroot to NOT be of type rootfs, otherwise kubernetes stuff doesnt really work
 				internalUtils.Log.Debug().Str("what", s.path(cnst.UkiSysrootDir)).Msg("Creating sysroot dir")
@@ -166,119 +277,6 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 				if err = syscall.Chroot("."); err != nil {
 					internalUtils.Log.Err(err).Msg("chroot")
 					internalUtils.DropToEmergencyShell()
-				}
-
-				// Now continue with the new root dir as usual
-
-				mounts := []mount{
-					{
-						"/sys",
-						"sysfs",
-						"sysfs",
-						syscall.MS_NOSUID | syscall.MS_NODEV | syscall.MS_NOEXEC | syscall.MS_RELATIME,
-						"",
-					},
-					{
-						"/sys",
-						"",
-						"",
-						syscall.MS_SHARED,
-						"",
-					},
-					{
-						"/sys/kernel/security",
-						"securityfs",
-						"securityfs",
-						0,
-						"",
-					},
-					{
-						"/sys/kernel/debug",
-						"debugfs",
-						"debugfs",
-						0,
-						"",
-					},
-					{
-						"/sys/firmware/efi/efivars",
-						"efivarfs",
-						"efivarfs",
-						syscall.MS_NOSUID | syscall.MS_NODEV | syscall.MS_NOEXEC | syscall.MS_RELATIME,
-						"",
-					},
-					{
-						"/dev",
-						"devtmpfs",
-						"devtmpfs",
-						syscall.MS_NOSUID,
-						"mode=755",
-					},
-					{
-						"/dev",
-						"",
-						"",
-						syscall.MS_SHARED,
-						"",
-					},
-					{
-						"/dev/pts",
-						"devpts",
-						"devpts",
-						syscall.MS_NOSUID | syscall.MS_NOEXEC,
-						"ptmxmode=000,gid=5,mode=620",
-					},
-					{
-						"/dev/shm",
-						"tmpfs",
-						"tmpfs",
-						0,
-						"",
-					},
-					{
-						"/tmp",
-						"tmpfs",
-						"tmpfs",
-						syscall.MS_NOSUID | syscall.MS_NODEV,
-						"",
-					},
-					{
-						"/tmp",
-						"",
-						"",
-						syscall.MS_SHARED,
-						"",
-					},
-				}
-
-				for dir, perm := range map[string]os.FileMode{
-					"/proc":    0o555,
-					"/dev":     0o777,
-					"/dev/pts": 0o777,
-					"/dev/shm": 0o777,
-					"/sys":     0o555,
-				} {
-					e := os.MkdirAll(dir, perm)
-					if e != nil {
-						internalUtils.Log.Err(e).Str("dir", dir).Interface("permissions", perm).Msg("Creating dir")
-					}
-				}
-				for _, m := range mounts {
-					e := os.MkdirAll(m.where, 0755)
-					if e != nil {
-						err = multierror.Append(err, e)
-						internalUtils.Log.Err(e).Msg("Creating dir")
-					}
-
-					e = syscall.Mount(m.what, m.where, m.fs, m.flags, m.data)
-					if e != nil {
-						err = multierror.Append(err, e)
-						internalUtils.Log.Err(e).Str("what", m.what).Str("where", m.where).Str("type", m.fs).Msg("Mounting")
-					}
-				}
-
-				// Now that we have all the mounts, check if we got secureboot enabled
-				if !efi.GetSecureBoot() && len(internalUtils.ReadCMDLineArg("rd.immucore.securebootdisabled")) == 0 {
-					internalUtils.Log.Panic().Msg("Secure boot is not enabled")
 				}
 
 				output, pcrErr := internalUtils.CommandWithPath("/usr/lib/systemd/systemd-pcrphase --graceful enter-initrd")
