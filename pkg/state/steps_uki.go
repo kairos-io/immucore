@@ -43,10 +43,6 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 			func(_ context.Context) error {
 				var err error
 
-				if !efi.GetSecureBoot() && len(internalUtils.ReadCMDLineArg("rd.immucore.securebootdisabled")) == 0 {
-					internalUtils.Log.Panic().Msg("Secure boot is not enabled")
-				}
-
 				// Create the new sysroot and move to it
 				// We need the sysroot to NOT be of type rootfs, otherwise kubernetes stuff doesnt really work
 				internalUtils.Log.Debug().Str("what", s.path(cnst.UkiSysrootDir)).Msg("Creating sysroot dir")
@@ -277,7 +273,12 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 						internalUtils.Log.Err(e).Str("what", m.what).Str("where", m.where).Str("type", m.fs).Msg("Mounting")
 					}
 				}
-				
+
+				// Now that we have all the mounts, check if we got secureboot enabled
+				if !efi.GetSecureBoot() && len(internalUtils.ReadCMDLineArg("rd.immucore.securebootdisabled")) == 0 {
+					internalUtils.Log.Panic().Msg("Secure boot is not enabled")
+				}
+
 				output, pcrErr := internalUtils.CommandWithPath("/usr/lib/systemd/systemd-pcrphase --graceful enter-initrd")
 				if pcrErr != nil {
 					internalUtils.Log.Err(pcrErr).Msg("running systemd-pcrphase")
