@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/foxboron/go-uefi/efi"
 	"os"
 	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
 
+	"github.com/foxboron/go-uefi/efi"
 	"github.com/hashicorp/go-multierror"
 	cnst "github.com/kairos-io/immucore/internal/constants"
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
@@ -42,8 +42,7 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 		herd.WithCallback(
 			func(_ context.Context) error {
 				var err error
-				// Now continue with the new root dir as usual
-
+				// Mount base mounts
 				mounts := []mount{
 					{
 						"/sys",
@@ -154,156 +153,168 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 				if !efi.GetSecureBoot() && len(internalUtils.ReadCMDLineArg("rd.immucore.securebootdisabled")) == 0 {
 					internalUtils.Log.Panic().Msg("Secure boot is not enabled")
 				}
-				// Create the new sysroot and move to it
-				// We need the sysroot to NOT be of type rootfs, otherwise kubernetes stuff doesnt really work
-				internalUtils.Log.Debug().Str("what", s.path(cnst.UkiSysrootDir)).Msg("Creating sysroot dir")
-				err = os.MkdirAll(s.path(cnst.UkiSysrootDir), 0755)
-				if err != nil {
-					internalUtils.Log.Err(err).Msg("creating sysroot dir")
-					internalUtils.DropToEmergencyShell()
-				}
-
-				// Mount a tmpfs under sysroot
-				internalUtils.Log.Debug().Msg("Mounting tmpfs on sysroot")
-				err = syscall.Mount("tmpfs", s.path(cnst.UkiSysrootDir), "tmpfs", 0, "")
-				if err != nil {
-					internalUtils.Log.Err(err).Msg("mounting tmpfs on sysroot")
-					internalUtils.DropToEmergencyShell()
-				}
-
-				// Move all the dirs in root FS that are not a mountpoint to the new root via cp -R
-				rootDirs, err := os.ReadDir(s.Rootdir)
-				if err != nil {
-					internalUtils.Log.Err(err).Msg("reading rootdir content")
-				}
-
-				var mountPoints []string
-				for _, file := range rootDirs {
-					if file.Name() == cnst.UkiSysrootDir {
-						continue
-					}
-					if file.IsDir() {
-						path := file.Name()
-						fileInfo, err := os.Stat(s.path(path))
-						if err != nil {
-							return err
-						}
-						parentPath := filepath.Dir(s.path(path))
-						parentInfo, err := os.Stat(parentPath)
-						if err != nil {
-							return err
-						}
-						// If the directory has the same device as its parent, it's not a mount point.
-						if fileInfo.Sys().(*syscall.Stat_t).Dev == parentInfo.Sys().(*syscall.Stat_t).Dev {
-							internalUtils.Log.Debug().Str("what", path).Msg("simple directory")
-							err = os.MkdirAll(filepath.Join(s.path(cnst.UkiSysrootDir), path), 0755)
-							if err != nil {
-								internalUtils.Log.Err(err).Str("what", filepath.Join(s.path(cnst.UkiSysrootDir), path)).Msg("mkdir")
-								return err
-							}
-
-							// Copy it over
-							out, err := internalUtils.CommandWithPath(fmt.Sprintf("cp -a %s %s", s.path(path), s.path(cnst.UkiSysrootDir)))
-							if err != nil {
-								internalUtils.Log.Err(err).Str("out", out).Str("what", s.path(path)).Str("where", s.path(cnst.UkiSysrootDir)).Msg("copying dir into sysroot")
-							}
-							continue
-						}
-
-						internalUtils.Log.Debug().Str("what", path).Msg("mount point")
-						mountPoints = append(mountPoints, s.path(path))
-
-						continue
-					}
-
-					info, _ := file.Info()
-					fileInfo, _ := os.Lstat(file.Name())
-
-					// Symlink
-					if fileInfo.Mode()&os.ModeSymlink != 0 {
-						target, err := os.Readlink(file.Name())
-						if err != nil {
-							return fmt.Errorf("failed to read symlink: %w", err)
-						}
-						symlinkPath := s.path(filepath.Join(cnst.UkiSysrootDir, file.Name()))
-						err = os.Symlink(target, symlinkPath)
-						if err != nil {
-							internalUtils.Log.Err(err).Str("from", target).Str("to", symlinkPath).Msg("Symlink")
-							internalUtils.DropToEmergencyShell()
-						}
-						internalUtils.Log.Debug().Str("from", target).Str("to", symlinkPath).Msg("Symlinked file")
-					} else {
-						// If its a file in the root dir just copy it over
-						content, _ := os.ReadFile(s.path(file.Name()))
-						newFilePath := s.path(filepath.Join(cnst.UkiSysrootDir, file.Name()))
-						_ = os.WriteFile(newFilePath, content, info.Mode())
-						internalUtils.Log.Debug().Str("from", s.path(file.Name())).Str("to", newFilePath).Msg("Copied file")
-					}
-				}
-
-				// Now move the system mounts into the new dir
-				for _, d := range mountPoints {
-					newDir := filepath.Join(s.path(cnst.UkiSysrootDir), d)
-					if _, err := os.Stat(newDir); err != nil {
-						err = os.MkdirAll(newDir, 0755)
-						if err != nil {
-							internalUtils.Log.Err(err).Str("what", newDir).Msg("mkdir")
-						}
-					}
-
-					err = syscall.Mount(d, newDir, "", syscall.MS_MOVE, "")
-					if err != nil {
-						internalUtils.Log.Err(err).Str("what", d).Str("where", newDir).Msg("move mount")
-						continue
-					}
-					internalUtils.Log.Debug().Str("from", d).Str("to", newDir).Msg("Mount moved")
-				}
-				
-				internalUtils.Log.Debug().Str("to", s.path(cnst.UkiSysrootDir)).Msg("Changing dir")
-				if err = syscall.Chdir(s.path(cnst.UkiSysrootDir)); err != nil {
-					internalUtils.Log.Err(err).Msg("chdir")
-					internalUtils.DropToEmergencyShell()
-				}
-
-				internalUtils.Log.Debug().Str("what", s.path(cnst.UkiSysrootDir)).Str("where", "/").Msg("Moving mount")
-				if err = syscall.Mount(s.path(cnst.UkiSysrootDir), "/", "", syscall.MS_MOVE, ""); err != nil {
-					internalUtils.Log.Err(err).Msg("mount move")
-					internalUtils.DropToEmergencyShell()
-				}
-
-				internalUtils.Log.Debug().Str("to", ".").Msg("Chrooting")
-				if err = syscall.Chroot("."); err != nil {
-					internalUtils.Log.Err(err).Msg("chroot")
-					internalUtils.DropToEmergencyShell()
-				}
-
-				output, pcrErr := internalUtils.CommandWithPath("/usr/lib/systemd/systemd-pcrphase --graceful enter-initrd")
-				if pcrErr != nil {
-					internalUtils.Log.Err(pcrErr).Msg("running systemd-pcrphase")
-					internalUtils.Log.Debug().Str("out", output).Msg("systemd-pcrphase enter-initrd")
-				}
-				pcrErr = os.MkdirAll("/run/systemd", 0755)
-				if pcrErr != nil {
-					internalUtils.Log.Err(pcrErr).Msg("Creating /run/systemd dir")
-				}
-				// This dir is created by systemd-stub and passed to the kernel as a cpio archive
-				// that gets mounted in the initial ramdisk where we run immucore from
-				// It contains the tpm public key and signatures of the current uki
-				out, pcrErr := internalUtils.CommandWithPath("cp /.extra/* /run/systemd/")
-				if pcrErr != nil {
-					internalUtils.Log.Err(pcrErr).Str("out", out).Msg("Copying extra files")
-				}
 				return err
 			},
 		),
 	)
 }
 
+// UkiPivotToSysroot moves the rootfs to the sysroot and chroots into it
+// Making the /sysroot the new rootfs with a tmpfs fs
+// And moving all the mounts into it and all the files as well.
+func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
+	return g.Add(cnst.OpUkiPivotToSysroot,
+		herd.WithDeps(cnst.OpUkiBaseMounts),
+		herd.WithCallback(func(_ context.Context) error {
+			var err error
+			// Create the new sysroot and move to it
+			// We need the sysroot to NOT be of type rootfs, otherwise kubernetes stuff doesnt really work
+			internalUtils.Log.Debug().Str("what", s.path(cnst.UkiSysrootDir)).Msg("Creating sysroot dir")
+			err = os.MkdirAll(s.path(cnst.UkiSysrootDir), 0755)
+			if err != nil {
+				internalUtils.Log.Err(err).Msg("creating sysroot dir")
+				internalUtils.DropToEmergencyShell()
+			}
+
+			// Mount a tmpfs under sysroot
+			internalUtils.Log.Debug().Msg("Mounting tmpfs on sysroot")
+			err = syscall.Mount("tmpfs", s.path(cnst.UkiSysrootDir), "tmpfs", 0, "")
+			if err != nil {
+				internalUtils.Log.Err(err).Msg("mounting tmpfs on sysroot")
+				internalUtils.DropToEmergencyShell()
+			}
+
+			// Move all the dirs in root FS that are not a mountpoint to the new root via cp -R
+			rootDirs, err := os.ReadDir(s.Rootdir)
+			if err != nil {
+				internalUtils.Log.Err(err).Msg("reading rootdir content")
+			}
+
+			var mountPoints []string
+			for _, file := range rootDirs {
+				if file.Name() == cnst.UkiSysrootDir {
+					continue
+				}
+				if file.IsDir() {
+					path := file.Name()
+					fileInfo, err := os.Stat(s.path(path))
+					if err != nil {
+						return err
+					}
+					parentPath := filepath.Dir(s.path(path))
+					parentInfo, err := os.Stat(parentPath)
+					if err != nil {
+						return err
+					}
+					// If the directory has the same device as its parent, it's not a mount point.
+					if fileInfo.Sys().(*syscall.Stat_t).Dev == parentInfo.Sys().(*syscall.Stat_t).Dev {
+						internalUtils.Log.Debug().Str("what", path).Msg("simple directory")
+						err = os.MkdirAll(filepath.Join(s.path(cnst.UkiSysrootDir), path), 0755)
+						if err != nil {
+							internalUtils.Log.Err(err).Str("what", filepath.Join(s.path(cnst.UkiSysrootDir), path)).Msg("mkdir")
+							return err
+						}
+
+						// Copy it over
+						out, err := internalUtils.CommandWithPath(fmt.Sprintf("cp -a %s %s", s.path(path), s.path(cnst.UkiSysrootDir)))
+						if err != nil {
+							internalUtils.Log.Err(err).Str("out", out).Str("what", s.path(path)).Str("where", s.path(cnst.UkiSysrootDir)).Msg("copying dir into sysroot")
+						}
+						continue
+					}
+
+					internalUtils.Log.Debug().Str("what", path).Msg("mount point")
+					mountPoints = append(mountPoints, s.path(path))
+
+					continue
+				}
+
+				info, _ := file.Info()
+				fileInfo, _ := os.Lstat(file.Name())
+
+				// Symlink
+				if fileInfo.Mode()&os.ModeSymlink != 0 {
+					target, err := os.Readlink(file.Name())
+					if err != nil {
+						return fmt.Errorf("failed to read symlink: %w", err)
+					}
+					symlinkPath := s.path(filepath.Join(cnst.UkiSysrootDir, file.Name()))
+					err = os.Symlink(target, symlinkPath)
+					if err != nil {
+						internalUtils.Log.Err(err).Str("from", target).Str("to", symlinkPath).Msg("Symlink")
+						internalUtils.DropToEmergencyShell()
+					}
+					internalUtils.Log.Debug().Str("from", target).Str("to", symlinkPath).Msg("Symlinked file")
+				} else {
+					// If its a file in the root dir just copy it over
+					content, _ := os.ReadFile(s.path(file.Name()))
+					newFilePath := s.path(filepath.Join(cnst.UkiSysrootDir, file.Name()))
+					_ = os.WriteFile(newFilePath, content, info.Mode())
+					internalUtils.Log.Debug().Str("from", s.path(file.Name())).Str("to", newFilePath).Msg("Copied file")
+				}
+			}
+
+			// Now move the system mounts into the new dir
+			for _, d := range mountPoints {
+				newDir := filepath.Join(s.path(cnst.UkiSysrootDir), d)
+				if _, err := os.Stat(newDir); err != nil {
+					err = os.MkdirAll(newDir, 0755)
+					if err != nil {
+						internalUtils.Log.Err(err).Str("what", newDir).Msg("mkdir")
+					}
+				}
+
+				err = syscall.Mount(d, newDir, "", syscall.MS_MOVE, "")
+				if err != nil {
+					internalUtils.Log.Err(err).Str("what", d).Str("where", newDir).Msg("move mount")
+					continue
+				}
+				internalUtils.Log.Debug().Str("from", d).Str("to", newDir).Msg("Mount moved")
+			}
+
+			internalUtils.Log.Debug().Str("to", s.path(cnst.UkiSysrootDir)).Msg("Changing dir")
+			if err = syscall.Chdir(s.path(cnst.UkiSysrootDir)); err != nil {
+				internalUtils.Log.Err(err).Msg("chdir")
+				internalUtils.DropToEmergencyShell()
+			}
+
+			internalUtils.Log.Debug().Str("what", s.path(cnst.UkiSysrootDir)).Str("where", "/").Msg("Moving mount")
+			if err = syscall.Mount(s.path(cnst.UkiSysrootDir), "/", "", syscall.MS_MOVE, ""); err != nil {
+				internalUtils.Log.Err(err).Msg("mount move")
+				internalUtils.DropToEmergencyShell()
+			}
+
+			internalUtils.Log.Debug().Str("to", ".").Msg("Chrooting")
+			if err = syscall.Chroot("."); err != nil {
+				internalUtils.Log.Err(err).Msg("chroot")
+				internalUtils.DropToEmergencyShell()
+			}
+
+			output, pcrErr := internalUtils.CommandWithPath("/usr/lib/systemd/systemd-pcrphase --graceful enter-initrd")
+			if pcrErr != nil {
+				internalUtils.Log.Err(pcrErr).Msg("running systemd-pcrphase")
+				internalUtils.Log.Debug().Str("out", output).Msg("systemd-pcrphase enter-initrd")
+			}
+			pcrErr = os.MkdirAll("/run/systemd", 0755)
+			if pcrErr != nil {
+				internalUtils.Log.Err(pcrErr).Msg("Creating /run/systemd dir")
+			}
+			// This dir is created by systemd-stub and passed to the kernel as a cpio archive
+			// that gets mounted in the initial ramdisk where we run immucore from
+			// It contains the tpm public key and signatures of the current uki
+			out, pcrErr := internalUtils.CommandWithPath("cp /.extra/* /run/systemd/")
+			if pcrErr != nil {
+				internalUtils.Log.Err(pcrErr).Str("out", out).Msg("Copying extra files")
+			}
+			return err
+		}))
+}
+
 // UKIUdevDaemon launches the udevd daemon and triggers+settles in order to discover devices
 // Needed if we expect to find devices by label...
 func (s *State) UKIUdevDaemon(g *herd.Graph) error {
 	return g.Add(cnst.OpUkiUdev,
-		herd.WithDeps(cnst.OpUkiBaseMounts, cnst.OpUkiKernelModules),
+		herd.WithDeps(cnst.OpUkiBaseMounts, cnst.OpUkiPivotToSysroot, cnst.OpUkiKernelModules),
 		herd.WithCallback(func(_ context.Context) error {
 			// Should probably figure out other udevd binaries....
 			var udevBin string
@@ -340,7 +351,7 @@ func (s *State) UKIUdevDaemon(g *herd.Graph) error {
 // probably others down the line.
 func (s *State) UKILoadKernelModules(g *herd.Graph) error {
 	return g.Add(cnst.OpUkiKernelModules,
-		herd.WithDeps(cnst.OpUkiBaseMounts),
+		herd.WithDeps(cnst.OpUkiBaseMounts, cnst.OpUkiPivotToSysroot),
 		herd.WithCallback(func(_ context.Context) error {
 			drivers, err := kdetect.ProbeKernelModules("")
 			if err != nil {

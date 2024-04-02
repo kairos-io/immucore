@@ -12,6 +12,7 @@ import (
 
 	"github.com/avast/retry-go"
 	"github.com/joho/godotenv"
+	"github.com/kairos-io/immucore/internal/constants"
 	"github.com/kairos-io/kairos-sdk/state"
 )
 
@@ -219,15 +220,15 @@ func CommandWithPath(c string) (string, error) {
 func PrepareCommandWithPath(c string) *exec.Cmd {
 	cmd := exec.Command("/bin/sh", "-c", c)
 	cmd.Env = os.Environ()
-	pathAppend := "/usr/bin:/usr/sbin:/bin:/sbin"
+	pathAppend := constants.PathAppend
 	// try to extract any existing path from the environment
 	for _, env := range cmd.Env {
 		splitted := strings.Split(env, "=")
-		if splitted[0] == "PATH" {
+		if splitted[0] == constants.PathEnvKey {
 			pathAppend = fmt.Sprintf("%s:%s", pathAppend, splitted[1])
 		}
 	}
-	cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%s", pathAppend))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", constants.PathEnvKey, pathAppend))
 	return cmd
 }
 
@@ -243,15 +244,15 @@ func GetHostProcCmdline() string {
 
 func DropToEmergencyShell() {
 	env := os.Environ()
-	pathAppend := "/usr/bin:/usr/sbin:/bin:/sbin"
 	// try to extract any existing path from the environment
+	pathAppend := constants.PathAppend
 	for _, e := range env {
 		splitted := strings.Split(e, "=")
-		if splitted[0] == "PATH" {
+		if splitted[0] == constants.PathEnvKey {
 			pathAppend = fmt.Sprintf("%s:%s", pathAppend, splitted[1])
 		}
 	}
-	env = append(env, fmt.Sprintf("PATH=%s", pathAppend))
+	env = append(env, fmt.Sprintf("%s=%s", constants.PathEnvKey, pathAppend))
 	if err := syscall.Exec("/bin/bash", []string{"/bin/bash"}, env); err != nil {
 		if err := syscall.Exec("/bin/sh", []string{"/bin/sh"}, env); err != nil {
 			if err := syscall.Exec("/sysroot/bin/bash", []string{"/sysroot/bin/bash"}, env); err != nil {
