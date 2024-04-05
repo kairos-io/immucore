@@ -170,7 +170,7 @@ func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
 			// Create the new sysroot and move to it
 			// We need the sysroot to NOT be of type rootfs, otherwise kubernetes stuff doesnt really work
 			internalUtils.Log.Debug().Str("what", s.path(cnst.UkiSysrootDir)).Msg("Creating sysroot dir")
-			err = os.MkdirAll(s.path(cnst.UkiSysrootDir), 0755)
+			err = os.MkdirAll(s.path(cnst.UkiSysrootDir), 0755) // #nosec G301 -- Sysroot needs to be 755 to be world readable
 			if err != nil {
 				internalUtils.Log.Err(err).Msg("creating sysroot dir")
 				internalUtils.DropToEmergencyShell()
@@ -209,7 +209,7 @@ func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
 					// If the directory has the same device as its parent, it's not a mount point.
 					if fileInfo.Sys().(*syscall.Stat_t).Dev == parentInfo.Sys().(*syscall.Stat_t).Dev {
 						internalUtils.Log.Debug().Str("what", path).Msg("simple directory")
-						err = os.MkdirAll(filepath.Join(s.path(cnst.UkiSysrootDir), path), 0755)
+						err = os.MkdirAll(filepath.Join(s.path(cnst.UkiSysrootDir), path), fileInfo.Mode())
 						if err != nil {
 							internalUtils.Log.Err(err).Str("what", filepath.Join(s.path(cnst.UkiSysrootDir), path)).Msg("mkdir")
 							return err
@@ -257,8 +257,8 @@ func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
 			// Now move the system mounts into the new dir
 			for _, d := range mountPoints {
 				newDir := filepath.Join(s.path(cnst.UkiSysrootDir), d)
-				if _, err := os.Stat(newDir); err != nil {
-					err = os.MkdirAll(newDir, 0755)
+				if dirStat, err := os.Stat(newDir); err != nil {
+					err = os.MkdirAll(newDir, dirStat.Mode())
 					if err != nil {
 						internalUtils.Log.Err(err).Str("what", newDir).Msg("mkdir")
 					}
@@ -295,7 +295,8 @@ func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
 				internalUtils.Log.Err(pcrErr).Msg("running systemd-pcrphase")
 				internalUtils.Log.Debug().Str("out", output).Msg("systemd-pcrphase enter-initrd")
 			}
-			pcrErr = os.MkdirAll("/run/systemd", 0755)
+
+			pcrErr = os.MkdirAll("/run/systemd", 0755) // #nosec G301 -- Original dir has this permissions
 			if pcrErr != nil {
 				internalUtils.Log.Err(pcrErr).Msg("Creating /run/systemd dir")
 			}

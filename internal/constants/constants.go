@@ -107,5 +107,5 @@ const (
 	PersistentStateTarget  = "/usr/local/.state"
 	LogDir                 = "/run/immucore"
 	PathAppend             = "/usr/bin:/usr/sbin:/bin:/sbin"
-	PathEnvKey             = "PATH"
+	PATH                   = "PATH"
 )

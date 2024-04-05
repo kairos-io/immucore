@@ -224,11 +224,11 @@ func PrepareCommandWithPath(c string) *exec.Cmd {
 	// try to extract any existing path from the environment
 	for _, env := range cmd.Env {
 		splitted := strings.Split(env, "=")
-		if splitted[0] == constants.PathEnvKey {
+		if splitted[0] == constants.PATH {
 			pathAppend = fmt.Sprintf("%s:%s", pathAppend, splitted[1])
 		}
 	}
-	cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", constants.PathEnvKey, pathAppend))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", constants.PATH, pathAppend))
 	return cmd
 }
 
@@ -248,11 +248,11 @@ func DropToEmergencyShell() {
 	pathAppend := constants.PathAppend
 	for _, e := range env {
 		splitted := strings.Split(e, "=")
-		if splitted[0] == constants.PathEnvKey {
+		if splitted[0] == constants.PATH {
 			pathAppend = fmt.Sprintf("%s:%s", pathAppend, splitted[1])
 		}
 	}
-	env = append(env, fmt.Sprintf("%s=%s", constants.PathEnvKey, pathAppend))
+	env = append(env, fmt.Sprintf("%s=%s", constants.PATH, pathAppend))
 	if err := syscall.Exec("/bin/bash", []string{"/bin/bash"}, env); err != nil {
 		if err := syscall.Exec("/bin/sh", []string{"/bin/sh"}, env); err != nil {
 			if err := syscall.Exec("/sysroot/bin/bash", []string{"/sysroot/bin/bash"}, env); err != nil {
