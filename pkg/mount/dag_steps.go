@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -576,7 +577,18 @@ func (s *State) LoadKernelModules(g *herd.Graph) error {
 func (s *State) WaitForSysrootDagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpWaitForSysroot,
 		herd.WithCallback(func(ctx context.Context) error {
-			cc := time.After(60 * time.Second)
+			var timeout = 60 * time.Second
+
+			timeoutArg := internalUtils.CleanupSlice(internalUtils.ReadCMDLineArg("rd.immucore.sysrootwait="))
+			if len(timeoutArg) > 0 {
+				atoi, err := strconv.Atoi(timeoutArg[0])
+				if err == nil && atoi > 0 {
+					timeout = time.Duration(atoi) * time.Second
+				}
+			}
+
+			cc := time.After(timeout)
+
 			for {
 				select {
 				default:
