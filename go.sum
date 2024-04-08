@@ -333,6 +333,8 @@ github.com/jtolds/gls v4.20.0+incompatible/go.mod h1:QJZ7F/aHp+rZTRtaJ1ow/lLfFfV
 github.com/julienschmidt/httprouter v1.2.0/go.mod h1:SYymIcj16QtmaHHD7aYtjjsJG7VTCxuUUipMqKk8s4w=
 github.com/kairos-io/kairos-sdk v0.0.28 h1:vjIUo3uSb6xNbr027XlyOaS0NzIIMXdCB2AzluBFV2o=
 github.com/kairos-io/kairos-sdk v0.0.28/go.mod h1:btSB2QAds/WSyIyPxnQ3jueMbkkZ75pHUUCj+yHpthQ=
+github.com/kairos-io/kairos-sdk v0.0.29 h1:GI1XOC1YkyBrtRemexp4z4HLJbGVkBAjF/2sXWnaIs4=
+github.com/kairos-io/kairos-sdk v0.0.29/go.mod h1:QyUBFFKzea0pfI+30E+i001+YYco7DMKLQRXncKZoYI=
 github.com/kairos-io/kcrypt v0.9.2-0.20240301001623-4715d081ec03 h1:74NTzm++i1I4MPdoGoOe7t5Xq2LwDlORO0Mk6CdUuIY=
 github.com/kairos-io/kcrypt v0.9.2-0.20240301001623-4715d081ec03/go.mod h1:9QIfoINqK496QsTVFG1gbNJEC//kJrKjsIIEQ3PSQgA=
 github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 h1:Z9n2FFNUXsshfwJMBgNA0RU6/i7WVaAegv3PtuIHPMs=
