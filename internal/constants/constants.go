@@ -88,6 +88,7 @@ const (
 	OpSentinel             = "create-sentinel"
 	OpUkiUdev              = "uki-udev"
 	OpUkiBaseMounts        = "uki-base-mounts"
+	OpUkiPivotToSysroot    = "uki-pivot-to-sysroot"
 	OpUkiKernelModules     = "uki-kernel-modules"
 	OpWaitForSysroot       = "wait-for-sysroot"
 	OpLvmActivate          = "lvm-activation"
@@ -105,4 +106,6 @@ const (
 	UkiSysrootDir          = "sysroot"
 	PersistentStateTarget  = "/usr/local/.state"
 	LogDir                 = "/run/immucore"
+	PathAppend             = "/usr/bin:/usr/sbin:/bin:/sbin"
+	PATH                   = "PATH"
 )

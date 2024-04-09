@@ -15,6 +15,9 @@ func RegisterUKI(s *state.State, g *herd.Graph) error {
 	// Mount basic mounts
 	s.LogIfError(s.UKIMountBaseSystem(g), "mounting base mounts")
 
+	// Move to sysroot
+	s.LogIfError(s.UkiPivotToSysroot(g), "pivot to sysroot")
+
 	// Write sentinel
 	s.LogIfError(s.WriteSentinelDagStep(g, cnst.OpUkiBaseMounts), "sentinel")
 
