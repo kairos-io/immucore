@@ -89,7 +89,9 @@ The immutable rootfs can be configured with the following kernel parameters:
 
 * `rd.immucore.debug`: Enables debug logging
 
-* `rd.immucore.uki`: Enables UKI booting (Experimental)
+* `rd.immucore.uki`: Enables UKI booting
+
+* `rd.immucore.sysrootwait=<seconds>`: Waits for the sysroot to be mounted up to <seconds> before continuing with the boot process. This is useful when booting from CD/Netboot as immucore doesn't mount the /sysroot in those cases, but we want to run the initramfs stage once the system is ready. Sometimes dracut can be really slow and the default 1 minute of waiting is not enough. In those cases you can increase this value to wait more time. Defaults to 60s.
 
 
 ### Configuration with an environment file
