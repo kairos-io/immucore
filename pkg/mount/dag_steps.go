@@ -586,7 +586,7 @@ func (s *State) WaitForSysrootDagStep(g *herd.Graph) error {
 					timeout = time.Duration(atoi) * time.Second
 				}
 			}
-
+			internalUtils.Log.Debug().Str("timeout", timeout.String()).Msg("Waiting for sysroot")
 			cc := time.After(timeout)
 
 			for {
