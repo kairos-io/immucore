@@ -257,8 +257,8 @@ func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
 			// Now move the system mounts into the new dir
 			for _, d := range mountPoints {
 				newDir := filepath.Join(s.path(cnst.UkiSysrootDir), d)
-				if dirStat, err := os.Stat(newDir); err != nil {
-					err = os.MkdirAll(newDir, dirStat.Mode())
+				if _, err := os.Stat(newDir); err != nil {
+					err = os.MkdirAll(newDir, 0755)
 					if err != nil {
 						internalUtils.Log.Err(err).Str("what", newDir).Msg("mkdir")
 					}
