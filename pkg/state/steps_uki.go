@@ -22,6 +22,19 @@ import (
 	"github.com/spectrocloud-labs/herd"
 )
 
+// UKIExtendPCR extends the PCR with the given extension in a graceful way.
+func UKIExtendPCR(extension string) (string, error) {
+	if _, err := os.Stat("/usr/lib/systemd/systemd-pcrphase"); err == nil {
+		return internalUtils.CommandWithPath(fmt.Sprintf("/usr/lib/systemd/systemd-pcrphase --graceful %s", extension))
+	}
+
+	if _, err := os.Stat("/usr/lib/systemd/systemd-pcrextend"); err == nil {
+		return internalUtils.CommandWithPath(fmt.Sprintf("/usr/lib/systemd/systemd-pcrextend --graceful %s", extension))
+	}
+
+	return "", fmt.Errorf("no systemd-pcrphase or systemd-pcrextend found")
+}
+
 // UKIMountBaseSystem mounts the base system for the UKI boot system
 // as when booting in UKI mode we have a blank slate and we need to mount everything
 // Make sure we set the directories as MS_SHARED
@@ -290,10 +303,11 @@ func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
 				internalUtils.DropToEmergencyShell()
 			}
 
-			output, pcrErr := internalUtils.CommandWithPath("/usr/lib/systemd/systemd-pcrphase --graceful enter-initrd")
+			ext := "enter-initrd"
+			output, pcrErr := UKIExtendPCR(ext)
 			if pcrErr != nil {
-				internalUtils.Log.Err(pcrErr).Msg("running systemd-pcrphase")
-				internalUtils.Log.Debug().Str("out", output).Msg("systemd-pcrphase enter-initrd")
+				internalUtils.Log.Err(pcrErr).Msg("running systemd-pcrextends")
+				internalUtils.Log.Debug().Str("ext", ext).Str("out", output).Msg("systemd-pcrextends")
 			}
 
 			pcrErr = os.MkdirAll("/run/systemd", 0755) // #nosec G301 -- Original dir has this permissions
@@ -479,10 +493,11 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 		herd.WithCallback(func(_ context.Context) error {
 			var err error
 
-			output, err := internalUtils.CommandWithPath("/usr/lib/systemd/systemd-pcrphase --graceful leave-initrd")
+			ext := "leave-initrd"
+			output, err := UKIExtendPCR(ext)
 			if err != nil {
-				internalUtils.Log.Err(err).Msg("running systemd-pcrphase")
-				internalUtils.Log.Debug().Str("out", output).Msg("systemd-pcrphase leave-initrd")
+				internalUtils.Log.Err(err).Msg("running systemd-pcrextends")
+				internalUtils.Log.Debug().Str("ext", ext).Str("out", output).Msg("systemd-pcrextends")
 				internalUtils.DropToEmergencyShell()
 			}
 
