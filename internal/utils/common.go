@@ -1,8 +1,10 @@
 package utils
 
 import (
+	"crypto/sha256"
 	"errors"
 	"fmt"
+	"github.com/google/go-tpm/tpm2"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -11,6 +13,7 @@ import (
 	"time"
 
 	"github.com/avast/retry-go"
+	"github.com/google/go-tpm/tpm2/transport"
 	"github.com/joho/godotenv"
 	"github.com/kairos-io/immucore/internal/constants"
 	"github.com/kairos-io/kairos-sdk/state"
@@ -262,4 +265,36 @@ func DropToEmergencyShell() {
 			}
 		}
 	}
+}
+
+// PCRExtend extends the given pcr with the give data
+func PCRExtend(pcr int, data []byte) error {
+	t, err := transport.OpenTPM()
+	if err != nil {
+		return err
+	}
+	defer func(t transport.TPMCloser) {
+		_ = t.Close()
+	}(t)
+	digest := sha256.Sum256(data)
+	pcrHandle := tpm2.PCRExtend{
+		PCRHandle: tpm2.AuthHandle{
+			Handle: tpm2.TPMHandle(pcr),
+			Auth:   tpm2.PasswordAuth(nil),
+		},
+		Digests: tpm2.TPMLDigestValues{
+			Digests: []tpm2.TPMTHA{
+				{
+					HashAlg: tpm2.TPMAlgSHA256,
+					Digest:  digest[:],
+				},
+			},
+		},
+	}
+
+	if _, err = pcrHandle.Execute(t); err != nil {
+		return err
+	}
+
+	return nil
 }
