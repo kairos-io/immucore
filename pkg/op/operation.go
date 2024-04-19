@@ -17,6 +17,9 @@ type MountOperation struct {
 }
 
 func (m MountOperation) Run() error {
+	// call sync to make sure the data is written to disk
+	defer internalUtils.Sync()
+
 	// Add context to sublogger
 	l := internalUtils.Log.With().Str("what", m.MountOption.Source).Str("where", m.Target).Str("type", m.MountOption.Type).Strs("options", m.MountOption.Options).Logger()
 	// Not sure why this defaults to debuglevel when creating a sublogger, so make sure we set it properly

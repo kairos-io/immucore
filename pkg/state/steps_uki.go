@@ -155,7 +155,7 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 						internalUtils.Log.Err(e).Msg("Creating dir")
 					}
 
-					e = syscall.Mount(m.what, m.where, m.fs, m.flags, m.data)
+					e = internalUtils.Mount(m.what, m.where, m.fs, m.flags, m.data)
 					if e != nil {
 						err = multierror.Append(err, e)
 						internalUtils.Log.Err(e).Str("what", m.what).Str("where", m.where).Str("type", m.fs).Msg("Mounting")
@@ -191,7 +191,7 @@ func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
 
 			// Mount a tmpfs under sysroot
 			internalUtils.Log.Debug().Msg("Mounting tmpfs on sysroot")
-			err = syscall.Mount("tmpfs", s.path(cnst.UkiSysrootDir), "tmpfs", 0, "")
+			err = internalUtils.Mount("tmpfs", s.path(cnst.UkiSysrootDir), "tmpfs", 0, "")
 			if err != nil {
 				internalUtils.Log.Err(err).Msg("mounting tmpfs on sysroot")
 				internalUtils.DropToEmergencyShell()
@@ -277,7 +277,7 @@ func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
 					}
 				}
 
-				err = syscall.Mount(d, newDir, "", syscall.MS_MOVE, "")
+				err = internalUtils.Mount(d, newDir, "", syscall.MS_MOVE, "")
 				if err != nil {
 					internalUtils.Log.Err(err).Str("what", d).Str("where", newDir).Msg("move mount")
 					continue
@@ -292,7 +292,7 @@ func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
 			}
 
 			internalUtils.Log.Debug().Str("what", s.path(cnst.UkiSysrootDir)).Str("where", "/").Msg("Moving mount")
-			if err = syscall.Mount(s.path(cnst.UkiSysrootDir), "/", "", syscall.MS_MOVE, ""); err != nil {
+			if err = internalUtils.Mount(s.path(cnst.UkiSysrootDir), "/", "", syscall.MS_MOVE, ""); err != nil {
 				internalUtils.Log.Err(err).Msg("mount move")
 				internalUtils.DropToEmergencyShell()
 			}
@@ -452,13 +452,12 @@ func (s *State) UKIMountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
 
 		// Mount it
 		if cdrom != "" {
-			err = syscall.Mount(cdrom, s.path(cnst.UkiLivecdMountPoint), cnst.UkiDefaultcdromFsType, syscall.MS_RDONLY, "")
+			err = internalUtils.Mount(cdrom, s.path(cnst.UkiLivecdMountPoint), cnst.UkiDefaultcdromFsType, syscall.MS_RDONLY, "")
 			if err != nil {
 				internalUtils.Log.Err(err).Msg(fmt.Sprintf("Mounting %s", cdrom))
 				return err
 			}
 			internalUtils.Log.Debug().Msg(fmt.Sprintf("Mounted %s", cdrom))
-			syscall.Sync()
 
 			// This needs the loop module to be inserted in the kernel!
 			cmd := fmt.Sprintf("losetup --show -f %s", s.path(filepath.Join(cnst.UkiLivecdMountPoint, cnst.UkiIsoBootImage)))
@@ -469,13 +468,12 @@ func (s *State) UKIMountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
 				internalUtils.Log.Err(err).Str("out", out).Msg(cmd)
 				return err
 			}
-			syscall.Sync()
-			err = syscall.Mount(loop, s.path(cnst.UkiIsoBaseTree), cnst.UkiDefaultEfiimgFsType, syscall.MS_RDONLY, "")
+
+			err = internalUtils.Mount(loop, s.path(cnst.UkiIsoBaseTree), cnst.UkiDefaultEfiimgFsType, syscall.MS_RDONLY, "")
 			if err != nil {
 				internalUtils.Log.Err(err).Msg(fmt.Sprintf("Mounting %s into %s", loop, s.path(cnst.UkiIsoBaseTree)))
 				return err
 			}
-			syscall.Sync()
 			return nil
 		}
 		internalUtils.Log.Debug().Msg("No livecd/install media found")
@@ -502,7 +500,7 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 			}
 
 			internalUtils.Log.Debug().Str("what", s.path(s.Rootdir)).Msg("Mount / RO")
-			if err = syscall.Mount("", s.path(s.Rootdir), "", syscall.MS_REMOUNT|syscall.MS_RDONLY, "ro"); err != nil {
+			if err = internalUtils.Mount("", s.path(s.Rootdir), "", syscall.MS_REMOUNT|syscall.MS_RDONLY, "ro"); err != nil {
 				internalUtils.Log.Err(err).Msg("Mount / RO")
 				internalUtils.DropToEmergencyShell()
 			}

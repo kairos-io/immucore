@@ -201,13 +201,13 @@ func Fsck(device string) error {
 func MountBasic() {
 	_ = os.MkdirAll("/proc", 0755)
 	if !IsMounted("/proc") {
-		_ = syscall.Mount("proc", "/proc", "proc", syscall.MS_NOSUID|syscall.MS_NODEV|syscall.MS_NOEXEC|syscall.MS_RELATIME, "")
-		_ = syscall.Mount("", "/proc", "", syscall.MS_SHARED, "")
+		_ = Mount("proc", "/proc", "proc", syscall.MS_NOSUID|syscall.MS_NODEV|syscall.MS_NOEXEC|syscall.MS_RELATIME, "")
+		_ = Mount("", "/proc", "", syscall.MS_SHARED, "")
 	}
 	_ = os.MkdirAll("/run", 0755)
 	if !IsMounted("/run") {
-		_ = syscall.Mount("tmpfs", "/run", "tmpfs", syscall.MS_NOSUID|syscall.MS_NODEV|syscall.MS_NOEXEC|syscall.MS_RELATIME, "mode=755")
-		_ = syscall.Mount("", "/run", "", syscall.MS_SHARED, "")
+		_ = Mount("tmpfs", "/run", "tmpfs", syscall.MS_NOSUID|syscall.MS_NODEV|syscall.MS_NOEXEC|syscall.MS_RELATIME, "mode=755")
+		_ = Mount("", "/run", "", syscall.MS_SHARED, "")
 	}
 }
 
@@ -301,4 +301,18 @@ func ActivateLVM() error {
 
 	_, _ = CommandWithPath("udevadm --trigger")
 	return err
+}
+
+// Force flushing the data to disk.
+func Sync() {
+	// wrapper isn't necessary, but leaving it here in case
+	// we want to add more logic in the future.
+	syscall.Sync()
+}
+
+// Mount will mount the given source to the target with the given fstype and flags.
+func Mount(source string, target string, fstype string, flags uintptr, data string) (err error) {
+	Sync()
+	defer Sync()
+	return syscall.Mount(source, target, fstype, flags, data)
 }

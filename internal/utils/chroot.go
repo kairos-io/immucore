@@ -70,9 +70,9 @@ func (c *Chroot) Prepare() error {
 		// For example you can also have a cdrom device mounted under /dev/sr0 or /dev/cdrom and we dont know how to find it and mark it private
 		switch {
 		case mnt == "/sys", mnt == "/dev", mnt == "/run":
-			err = syscall.Mount(mnt, mountPoint, "", syscall.MS_BIND, "")
+			err = Mount(mnt, mountPoint, "", syscall.MS_BIND, "")
 		default:
-			err = syscall.Mount(mnt, mountPoint, "", syscall.MS_BIND|syscall.MS_REC, "")
+			err = Mount(mnt, mountPoint, "", syscall.MS_BIND|syscall.MS_REC, "")
 		}
 
 		if err != nil {
@@ -80,7 +80,7 @@ func (c *Chroot) Prepare() error {
 			return err
 		}
 		// "remount" with private so unmount events do not propagate
-		err = syscall.Mount("", mountPoint, "", syscall.MS_PRIVATE, "")
+		err = Mount("", mountPoint, "", syscall.MS_PRIVATE, "")
 		if err != nil {
 			Log.Err(err).Str("where", mountPoint).Str("what", mnt).Msg("Mounting chroot bind")
 			return err
