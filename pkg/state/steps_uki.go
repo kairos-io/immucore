@@ -452,13 +452,12 @@ func (s *State) UKIMountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
 
 		// Mount it
 		if cdrom != "" {
-			err = syscall.Mount(cdrom, s.path(cnst.UkiLivecdMountPoint), cnst.UkiDefaultcdromFsType, syscall.MS_RDONLY, "")
+			err = internalUtils.Mount(cdrom, s.path(cnst.UkiLivecdMountPoint), cnst.UkiDefaultcdromFsType, syscall.MS_RDONLY, "")
 			if err != nil {
 				internalUtils.Log.Err(err).Msg(fmt.Sprintf("Mounting %s", cdrom))
 				return err
 			}
 			internalUtils.Log.Debug().Msg(fmt.Sprintf("Mounted %s", cdrom))
-			syscall.Sync()
 
 			// This needs the loop module to be inserted in the kernel!
 			cmd := fmt.Sprintf("losetup --show -f %s", s.path(filepath.Join(cnst.UkiLivecdMountPoint, cnst.UkiIsoBootImage)))
@@ -469,13 +468,12 @@ func (s *State) UKIMountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
 				internalUtils.Log.Err(err).Str("out", out).Msg(cmd)
 				return err
 			}
-			syscall.Sync()
-			err = syscall.Mount(loop, s.path(cnst.UkiIsoBaseTree), cnst.UkiDefaultEfiimgFsType, syscall.MS_RDONLY, "")
+
+			err = internalUtils.Mount(loop, s.path(cnst.UkiIsoBaseTree), cnst.UkiDefaultEfiimgFsType, syscall.MS_RDONLY, "")
 			if err != nil {
 				internalUtils.Log.Err(err).Msg(fmt.Sprintf("Mounting %s into %s", loop, s.path(cnst.UkiIsoBaseTree)))
 				return err
 			}
-			syscall.Sync()
 			return nil
 		}
 		internalUtils.Log.Debug().Msg("No livecd/install media found")
