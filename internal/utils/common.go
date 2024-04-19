@@ -267,7 +267,7 @@ func DropToEmergencyShell() {
 	}
 }
 
-// PCRExtend extends the given pcr with the give data
+// PCRExtend extends the given pcr with the give data.
 func PCRExtend(pcr int, data []byte) error {
 	t, err := transport.OpenTPM()
 	if err != nil {
