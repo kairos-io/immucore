@@ -23,16 +23,9 @@ import (
 )
 
 // UKIExtendPCR extends the PCR with the given extension in a graceful way.
-func UKIExtendPCR(extension string) (string, error) {
-	if _, err := os.Stat("/usr/lib/systemd/systemd-pcrphase"); err == nil {
-		return internalUtils.CommandWithPath(fmt.Sprintf("/usr/lib/systemd/systemd-pcrphase --graceful %s", extension))
-	}
+func UKIExtendPCR(extension string) error {
+	return internalUtils.PCRExtend(cnst.DefaultPCR, []byte(extension))
 
-	if _, err := os.Stat("/usr/lib/systemd/systemd-pcrextend"); err == nil {
-		return internalUtils.CommandWithPath(fmt.Sprintf("/usr/lib/systemd/systemd-pcrextend --graceful %s", extension))
-	}
-
-	return "", fmt.Errorf("no systemd-pcrphase or systemd-pcrextend found")
 }
 
 // UKIMountBaseSystem mounts the base system for the UKI boot system
@@ -304,10 +297,9 @@ func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
 			}
 
 			ext := "enter-initrd"
-			output, pcrErr := UKIExtendPCR(ext)
+			pcrErr := UKIExtendPCR(ext)
 			if pcrErr != nil {
-				internalUtils.Log.Err(pcrErr).Msg("running systemd-pcrextends")
-				internalUtils.Log.Debug().Str("ext", ext).Str("out", output).Msg("systemd-pcrextends")
+				internalUtils.Log.Err(pcrErr).Str("ext", ext).Msg("extend-pcr")
 			}
 
 			pcrErr = os.MkdirAll("/run/systemd", 0755) // #nosec G301 -- Original dir has this permissions
@@ -492,10 +484,9 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 			var err error
 
 			ext := "leave-initrd"
-			output, err := UKIExtendPCR(ext)
+			err = UKIExtendPCR(ext)
 			if err != nil {
-				internalUtils.Log.Err(err).Msg("running systemd-pcrextends")
-				internalUtils.Log.Debug().Str("ext", ext).Str("out", output).Msg("systemd-pcrextends")
+				internalUtils.Log.Err(err).Str("ext", ext).Msg("extend-pcr")
 				internalUtils.DropToEmergencyShell()
 			}
 

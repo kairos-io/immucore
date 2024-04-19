@@ -31,6 +31,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
+require github.com/google/go-tpm v0.9.0
+
 require (
 	atomicgo.dev/cursor v0.1.3 // indirect
 	atomicgo.dev/keyboard v0.2.9 // indirect

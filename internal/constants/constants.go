@@ -108,4 +108,5 @@ const (
 	LogDir                 = "/run/immucore"
 	PathAppend             = "/usr/bin:/usr/sbin:/bin:/sbin"
 	PATH                   = "PATH"
+	DefaultPCR             = 11
 )
