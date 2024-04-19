@@ -303,14 +303,14 @@ func ActivateLVM() error {
 	return err
 }
 
-// Force flushing the data to disk
+// Force flushing the data to disk.
 func Sync() {
 	// wrapper isn't necessary, but leaving it here in case
-	// we want to add more logic in the future
+	// we want to add more logic in the future.
 	syscall.Sync()
 }
 
-// Mount will mount the given source to the target with the given fstype and flags
+// Mount will mount the given source to the target with the given fstype and flags.
 func Mount(source string, target string, fstype string, flags uintptr, data string) (err error) {
 	Sync()
 	defer Sync()
