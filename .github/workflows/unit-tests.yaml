@@ -33,7 +33,7 @@ jobs:
           fetch-depth: 0
       - uses: earthly/actions-setup@v1
       - name: Build
-        run: earthly +build
+        run: earthly +build --GO_VERSION=${{ matrix.go-version }}
       - name: Run tests
         run: earthly +test --GO_VERSION=${{ matrix.go-version }}
       - name: Codecov
