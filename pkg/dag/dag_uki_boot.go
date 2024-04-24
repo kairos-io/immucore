@@ -35,13 +35,13 @@ func RegisterUKI(s *state.State, g *herd.Graph) error {
 	// Mount cdrom under /run/initramfs/livecd and /run/rootfsbase for the efiboot.img contents
 	s.LogIfError(s.UKIMountLiveCd(g, herd.WithDeps(cnst.OpSentinel, cnst.OpUkiUdev)), "Mount LiveCD")
 
-	// Run rootfs stage (doesnt this need to be run after mounting OEM???
-	s.LogIfError(s.RootfsStageDagStep(g, herd.WithDeps(cnst.OpSentinel, cnst.OpUkiUdev), herd.WithWeakDeps(cnst.OpUkiMountLivecd)), "uki rootfs")
-
 	// Unlock partitions if needed with TPM
 	s.LogIfError(s.UKIUnlock(g, herd.WithDeps(cnst.OpSentinel, cnst.OpUkiUdev)), "uki unlock")
 
 	s.LogIfError(s.MountOemDagStep(g, herd.WithDeps(cnst.OpUkiKcrypt), herd.WeakDeps), "oem mount")
+
+	// Run rootfs stage
+	s.LogIfError(s.RootfsStageDagStep(g, herd.WithDeps(cnst.OpSentinel, cnst.OpUkiUdev, cnst.OpMountOEM), herd.WithWeakDeps(cnst.OpUkiMountLivecd)), "uki rootfs")
 
 	// Populate state bind mounts, overlay mounts, custom-mounts from /run/cos/cos-layout.env
 	// Requires stage rootfs to have run, which usually creates the cos-layout.env file
