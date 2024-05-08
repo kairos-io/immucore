@@ -3,7 +3,7 @@ VERSION 0.6
 ARG OSBUILDER_VERSION=v0.200.12
 ARG OSBUILDER_IMAGE=quay.io/kairos/osbuilder-tools:$OSBUILDER_VERSION
 # renovate: datasource=docker depName=golangci/golangci-lint
-ARG GOLINT_VERSION=v1.57.2
+ARG GOLINT_VERSION=v1.58.1
 # renovate: datasource=docker depName=golang
 ARG GO_VERSION=1.20-bookworm
 
