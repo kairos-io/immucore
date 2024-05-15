@@ -20,7 +20,7 @@ require (
 	github.com/kairos-io/kcrypt v0.9.2-0.20240408223923-05628aef6d95
 	github.com/moby/sys/mountinfo v0.7.1
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
-	github.com/mudler/yip v1.6.2
+	github.com/mudler/yip v1.7.0
 	github.com/onsi/ginkgo/v2 v2.17.1
 	github.com/onsi/gomega v1.33.0
 	github.com/rs/zerolog v1.32.0
@@ -98,6 +98,7 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
+	github.com/mauromorales/xpasswd v0.3.0 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
