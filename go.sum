@@ -375,6 +375,8 @@ github.com/mattn/go-runewidth v0.0.13/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh
 github.com/mattn/go-runewidth v0.0.15 h1:UNAjwbU9l54TA3KzvqLGxwWjHmMgBUVhBiTjelZgg3U=
 github.com/mattn/go-runewidth v0.0.15/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh153qUoGf23w=
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
+github.com/mauromorales/xpasswd v0.3.0 h1:yVfSoAgKp3uEzkbqzp0mWAdbVFdBzSsBknTqn1Wy/Jo=
+github.com/mauromorales/xpasswd v0.3.0/go.mod h1:Z3+aY19mhNfcGi3st0+RAVSz2vC+pyoju2S/FPN8kEg=
 github.com/mitchellh/copystructure v1.0.0/go.mod h1:SNtv71yrdKgLRyLFxmLdkAbkKEFWgYaq1OVrnRcwhnw=
 github.com/mitchellh/copystructure v1.2.0 h1:vpKXTN4ewci03Vljg/q9QvCGUDttBOGBIa15WveJJGw=
 github.com/mitchellh/copystructure v1.2.0/go.mod h1:qLl+cE2AmVv+CoeAwDPye/v+N2HKCj9FbZEVFJRxO9s=
@@ -398,8 +400,8 @@ github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8 h1:+g0budy5fEFMX
 github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8/go.mod h1:826dAJvIa3X5kfBoxSupdQbIFO4egt+hoUiw4BfPKdI=
 github.com/mudler/go-pluggable v0.0.0-20230126220627-7710299a0ae5 h1:FaZD86+A9mVt7lh9glAryzQblMsbJYU2VnrdZ8yHlTs=
 github.com/mudler/go-pluggable v0.0.0-20230126220627-7710299a0ae5/go.mod h1:WmKcT8ONmhDQIqQ+HxU+tkGWjzBEyY/KFO8LTGCu4AI=
-github.com/mudler/yip v1.6.2 h1:h1JRUihraESf2hwiq1iEitJiu+LxFUCEV5RGajk8+F8=
-github.com/mudler/yip v1.6.2/go.mod h1:bj95Z12z4AyUYO3kBxZNwx2wW7q8LGwlfUkk3celTYY=
+github.com/mudler/yip v1.7.0 h1:IAb7cFcfuaJnrpLL5KJWLQfjRUdAQQROIZKlUtUqI30=
+github.com/mudler/yip v1.7.0/go.mod h1:YMsvH82hU7OHhuw4J28RkCoh48JpLfZdkgLprdRs8fc=
 github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
 github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 h1:zYyBkD/k9seD2A7fsi6Oo2LfFZAehjjQMERAvZLEDnQ=
 github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646/go.mod h1:jpp1/29i3P1S/RLdc7JQKbRpFeM1dOBd8T9ki5s+AY8=
