@@ -35,18 +35,20 @@ test:
 golint:
     ARG GOLINT_VERSION
     FROM golangci/golangci-lint:$GOLINT_VERSION
+    COPY . .
     WORKDIR /build
     RUN golangci-lint run -v
 
 build-immucore:
     FROM +go-deps
-    WORKDIR /build
+    COPY +version/VERSION ./
+    COPY +version/COMMIT ./
     ARG VERSION=$(cat VERSION)
     ARG COMMIT=$(cat COMMIT)
     ARG LDFLAGS="-s -w -X github.com/kairos-io/immucore/internal/version.version=$VERSION -X github.com/kairos-io/immucore/internal/version.gitCommit=$COMMIT"
     RUN echo ${LDFLAGS}
     RUN CGO_ENABLED=0 go build -o immucore -ldflags "${LDFLAGS}"
-    SAVE ARTIFACT /build/immucore immucore AS LOCAL build/immucore-$VERSION
+    SAVE ARTIFACT immucore immucore AS LOCAL build/immucore-$VERSION
 
 # Alias for ease of use
 build:
