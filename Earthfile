@@ -35,8 +35,8 @@ test:
 golint:
     ARG GOLINT_VERSION
     FROM golangci/golangci-lint:$GOLINT_VERSION
-    COPY . .
     WORKDIR /build
+    COPY . .
     RUN golangci-lint run -v
 
 build-immucore:
