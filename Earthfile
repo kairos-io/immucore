@@ -21,15 +21,14 @@ go-deps:
     ARG GO_VERSION
     FROM golang:$GO_VERSION
     WORKDIR /build
-    COPY go.mod go.sum ./
+    COPY . .
+    RUN go mod tidy --compat=1.19
     RUN go mod download
-    SAVE ARTIFACT go.mod AS LOCAL go.mod
-    SAVE ARTIFACT go.sum AS LOCAL go.sum
+    RUN go mod verify
 
 test:
     FROM +go-deps
     WORKDIR /build
-    COPY . .
     RUN go run github.com/onsi/ginkgo/v2/ginkgo --race --covermode=atomic --coverprofile=coverage.out -p -r ./...
     SAVE ARTIFACT coverage.out AS LOCAL coverage.out
 
@@ -37,24 +36,17 @@ golint:
     ARG GOLINT_VERSION
     FROM golangci/golangci-lint:$GOLINT_VERSION
     WORKDIR /build
-    COPY . .
     RUN golangci-lint run -v
 
 build-immucore:
     FROM +go-deps
-    WORKDIR /work
-    COPY go.mod go.sum /work
-    COPY main.go /work
-    COPY --dir internal /work
-    COPY --dir pkg /work
-    COPY +version/VERSION ./
-    COPY +version/COMMIT ./
+    WORKDIR /build
     ARG VERSION=$(cat VERSION)
     ARG COMMIT=$(cat COMMIT)
     ARG LDFLAGS="-s -w -X github.com/kairos-io/immucore/internal/version.version=$VERSION -X github.com/kairos-io/immucore/internal/version.gitCommit=$COMMIT"
     RUN echo ${LDFLAGS}
     RUN CGO_ENABLED=0 go build -o immucore -ldflags "${LDFLAGS}"
-    SAVE ARTIFACT /work/immucore immucore AS LOCAL build/immucore-$VERSION
+    SAVE ARTIFACT /build/immucore immucore AS LOCAL build/immucore-$VERSION
 
 # Alias for ease of use
 build:
