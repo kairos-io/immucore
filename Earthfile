@@ -37,6 +37,7 @@ golint:
     FROM golangci/golangci-lint:$GOLINT_VERSION
     WORKDIR /build
     COPY . .
+    RUN go mod tidy --compat=1.19
     RUN golangci-lint run -v
 
 build-immucore:
