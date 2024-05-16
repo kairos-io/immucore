@@ -11,7 +11,7 @@ require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/containerd/containerd v1.7.16
 	github.com/deniswernert/go-fstab v0.0.0-20141204152952-eb4090f26517
-	github.com/foxboron/go-uefi v0.0.0-20240128152106-48be911532c2
+	github.com/foxboron/go-uefi v0.0.0-20240516155935-218de5b87734
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jaypipes/ghw v0.12.0
