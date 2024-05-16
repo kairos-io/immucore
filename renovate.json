@@ -9,6 +9,9 @@
     "every weekend"
   ],
   "timezone": "Europe/Brussels",
+  "postUpdateOptions": [
+    "gomodTidy1.17"
+  ],
   "constraints": {
     "go": "1.19"
   },
