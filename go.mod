@@ -11,12 +11,12 @@ require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/containerd/containerd v1.7.17
 	github.com/deniswernert/go-fstab v0.0.0-20141204152952-eb4090f26517
-	github.com/foxboron/go-uefi v0.0.0-20240520183946-fb230067d302
+	github.com/foxboron/go-uefi v0.0.0-20240522180132-205d5597883a
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jaypipes/ghw v0.12.0
 	github.com/joho/godotenv v1.5.1
-	github.com/kairos-io/kairos-sdk v0.1.6
+	github.com/kairos-io/kairos-sdk v0.1.8
 	github.com/kairos-io/kcrypt v0.10.1
 	github.com/moby/sys/mountinfo v0.7.1
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
