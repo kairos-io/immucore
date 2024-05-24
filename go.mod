@@ -23,7 +23,7 @@ require (
 	github.com/mudler/yip v1.7.0
 	github.com/onsi/ginkgo/v2 v2.17.1
 	github.com/onsi/gomega v1.33.0
-	github.com/rs/zerolog v1.32.0
+	github.com/rs/zerolog v1.33.0
 	github.com/spectrocloud-labs/herd v0.4.2
 	github.com/twpayne/go-vfs/v4 v4.3.0 // v5 requires a bump to go1.20
 	github.com/urfave/cli/v2 v2.27.2
