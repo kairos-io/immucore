@@ -31,6 +31,7 @@ test:
     FROM +go-deps
     WORKDIR /build
     COPY . .
+    RUN go mod tidy -compat=1.19
     RUN go run github.com/onsi/ginkgo/v2/ginkgo --race --covermode=atomic --coverprofile=coverage.out -p -r ./...
     SAVE ARTIFACT coverage.out AS LOCAL coverage.out
 
