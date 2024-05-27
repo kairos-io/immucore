@@ -55,6 +55,7 @@ build-immucore:
     ARG COMMIT=$(cat COMMIT)
     ARG LDFLAGS="-s -w -X github.com/kairos-io/immucore/internal/version.version=$VERSION -X github.com/kairos-io/immucore/internal/version.gitCommit=$COMMIT"
     RUN echo ${LDFLAGS}
+    RUN go mod tidy -compat=1.19
     RUN CGO_ENABLED=0 go build -o immucore -ldflags "${LDFLAGS}"
     SAVE ARTIFACT /work/immucore immucore AS LOCAL build/immucore-$VERSION
 
