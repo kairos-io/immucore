@@ -20,18 +20,15 @@ version:
 go-deps:
     ARG GO_VERSION
     FROM golang:$GO_VERSION
+    RUN apt-get update && apt-get install -y rsync gcc bash git
     WORKDIR /build
-    COPY go.mod go.sum ./
+    COPY . .
     RUN go mod tidy --compat=1.19
     RUN go mod download
-    SAVE ARTIFACT go.mod AS LOCAL go.mod
-    SAVE ARTIFACT go.sum AS LOCAL go.sum
+    RUN go mod verify
 
 test:
     FROM +go-deps
-    WORKDIR /build
-    COPY . .
-    RUN go mod tidy -compat=1.19
     RUN go run github.com/onsi/ginkgo/v2/ginkgo --race --covermode=atomic --coverprofile=coverage.out -p -r ./...
     SAVE ARTIFACT coverage.out AS LOCAL coverage.out
 
@@ -45,20 +42,14 @@ golint:
 
 build-immucore:
     FROM +go-deps
-    WORKDIR /work
-    COPY go.mod go.sum /work
-    COPY main.go /work
-    COPY --dir internal /work
-    COPY --dir pkg /work
     COPY +version/VERSION ./
     COPY +version/COMMIT ./
     ARG VERSION=$(cat VERSION)
     ARG COMMIT=$(cat COMMIT)
     ARG LDFLAGS="-s -w -X github.com/kairos-io/immucore/internal/version.version=$VERSION -X github.com/kairos-io/immucore/internal/version.gitCommit=$COMMIT"
     RUN echo ${LDFLAGS}
-    RUN go mod tidy -compat=1.19
     RUN CGO_ENABLED=0 go build -o immucore -ldflags "${LDFLAGS}"
-    SAVE ARTIFACT /work/immucore immucore AS LOCAL build/immucore-$VERSION
+    SAVE ARTIFACT immucore immucore AS LOCAL build/immucore-$VERSION
 
 # Alias for ease of use
 build:
