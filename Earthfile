@@ -22,6 +22,7 @@ go-deps:
     FROM golang:$GO_VERSION
     WORKDIR /build
     COPY go.mod go.sum ./
+    RUN go mod tidy --compat=1.19
     RUN go mod download
     SAVE ARTIFACT go.mod AS LOCAL go.mod
     SAVE ARTIFACT go.sum AS LOCAL go.sum
@@ -38,6 +39,7 @@ golint:
     FROM golangci/golangci-lint:$GOLINT_VERSION
     WORKDIR /build
     COPY . .
+    RUN go mod tidy --compat=1.19
     RUN golangci-lint run -v
 
 build-immucore:
