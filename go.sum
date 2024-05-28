@@ -350,6 +350,8 @@ github.com/kairos-io/kcrypt v0.10.4 h1:NKXkunMmK/qcKSCq/lVBOngOlQQXttYpUTj8pAk6i
 github.com/kairos-io/kcrypt v0.10.4/go.mod h1:JuJSn/Udkrd/XyJQ8YI+7ywOfcSJlmfntDYxQB93pjI=
 github.com/kairos-io/kcrypt v0.11.2 h1:qu00WGDKvOn6tm9xaWho3RRpo0iRQBzZa9M/hnXhLbs=
 github.com/kairos-io/kcrypt v0.11.2/go.mod h1:znIdTYzsTtePMDA2v5bDJeikqxIb0W6YJMH77TU2Phs=
+github.com/kairos-io/kcrypt v0.11.3-0.20240528184308-d7c5198d6377 h1:R0WaFTk3v2g8eSspTVsiKhOPOBZ5uvKIWwqYJUzD19w=
+github.com/kairos-io/kcrypt v0.11.3-0.20240528184308-d7c5198d6377/go.mod h1:znIdTYzsTtePMDA2v5bDJeikqxIb0W6YJMH77TU2Phs=
 github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 h1:Z9n2FFNUXsshfwJMBgNA0RU6/i7WVaAegv3PtuIHPMs=
 github.com/kendru/darwin/go/depgraph v0.0.0-20221105232959-877d6a81060c h1:eKb4PqwAMhlqwXw0W3atpKaYaPGlXE/Fwh+xpCEYaPk=
 github.com/kendru/darwin/go/depgraph v0.0.0-20221105232959-877d6a81060c/go.mod h1:VOfm8h1NySetVlpHDSnbpCMsvCgYaU+YDn4XezUy2+4=
