@@ -157,7 +157,10 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 
 				// Now that we have all the mounts, check if we got secureboot enabled
 				if !efi.GetSecureBoot() && len(internalUtils.ReadCMDLineArg("rd.immucore.securebootdisabled")) == 0 {
-					internalUtils.Log.Panic().Msg("Secure boot is not enabled")
+					internalUtils.Log.Error().Msg("Secure boot is not enabled. Aborting boot.")
+					// Sleep forever.
+					// We dont want to exit and print panics or kernel panic, so we print our message and wait for the user to ctrl+alt+del
+					select {}
 				}
 				return err
 			},
