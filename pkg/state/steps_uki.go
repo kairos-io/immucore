@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/immucore/pkg/op"
 	"github.com/kairos-io/immucore/pkg/schema"
+	"github.com/kairos-io/kairos-sdk/signatures"
 	"github.com/kairos-io/kairos-sdk/state"
 	kcrypt "github.com/kairos-io/kcrypt/pkg/lib"
 	"github.com/mudler/go-kdetect"
@@ -555,5 +557,74 @@ func (s *State) UKIMountESPPartition(g *herd.Graph, opts ...herd.OpOption) error
 
 		}
 		return nil
+	}))...)
+}
+
+func (s *State) ExtractCerts(g *herd.Graph, opts ...herd.OpOption) error {
+	return g.Add(cnst.OpUkiExtractCerts, append(opts, herd.WithCallback(func(_ context.Context) error {
+		// Get all the full certs
+		certs, err := signatures.GetAllFullCerts()
+		if err != nil {
+			return err
+		}
+
+		err = os.MkdirAll(s.path(cnst.VerityCertDir), 0755)
+		if err != nil {
+			return err
+		}
+		// Write all certs in x509 DER format to /run/verity.d/ for sysextensions to verify against
+		for i, cert := range certs.PK {
+			err := os.WriteFile(filepath.Join(s.path(cnst.VerityCertDir), fmt.Sprintf("PK%d.crt", i)), cert.Raw, 0644)
+			if err != nil {
+				return err
+			}
+		}
+		for i, cert := range certs.KEK {
+			err := os.WriteFile(filepath.Join(s.path(cnst.VerityCertDir), fmt.Sprintf("PK%d.crt", i)), cert.Raw, 0644)
+			if err != nil {
+				return err
+			}
+		}
+		for i, cert := range certs.DB {
+			err := os.WriteFile(filepath.Join(s.path(cnst.VerityCertDir), fmt.Sprintf("PK%d.crt", i)), cert.Raw, 0644)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}))...)
+}
+
+// CopySysExtensionsDagStep Copies extensions from the EFI partitions to the persistent one so they can be started
+func (s *State) CopySysExtensionsDagStep(g *herd.Graph, opts ...herd.OpOption) error {
+	return g.Add(cnst.OpUkiCopySysExtensions, append(opts, herd.WithCallback(func(_ context.Context) error {
+		// Copy the sys extensions to the rootfs
+		// return if the source or dest dir is not there
+		if _, err := os.Stat(s.path(cnst.SourceSysExtDir)); os.IsNotExist(err) {
+			internalUtils.Log.Debug().Str("dir", s.path(cnst.SourceSysExtDir)).Msg("No sysextensions found")
+			return nil
+		}
+		if _, err := os.Stat(s.path(cnst.DestSysExtDir)); os.IsNotExist(err) {
+			internalUtils.Log.Debug().Str("dir", s.path(cnst.DestSysExtDir)).Msg("No sysextensions found")
+			return nil
+		}
+		err := filepath.WalkDir(s.path(cnst.SourceSysExtDir), func(path string, d fs.DirEntry, err error) error {
+			if d.IsDir() {
+				return nil
+			}
+			src := filepath.Join(cnst.SourceSysExtDir, d.Name())
+			dest := filepath.Join(cnst.DestSysExtDir, d.Name())
+			// Copy the file to the sys-extensions directory
+			err = internalUtils.Copy(src, dest)
+			if err != nil {
+				internalUtils.Log.Err(err).Str("src", src).Str("dest", dest).Msg("Copying sysextension")
+			}
+			return err
+		})
+		if err != nil {
+			return err
+		}
+		return err
 	}))...)
 }

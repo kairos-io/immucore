@@ -32,6 +32,9 @@ func RegisterUKI(s *state.State, g *herd.Graph) error {
 	// Mount ESP partition under efi if it exists
 	s.LogIfError(s.UKIMountESPPartition(g, herd.WithDeps(cnst.OpSentinel, cnst.OpUkiUdev)), "mount ESP partition")
 
+	// Extract EFI public certs for sysextensions validation
+	s.LogIfError(s.ExtractCerts(g, herd.WithDeps(cnst.OpSentinel, cnst.OpUkiUdev)), "extract certs")
+
 	// Mount cdrom under /run/initramfs/livecd and /run/rootfsbase for the efiboot.img contents
 	s.LogIfError(s.UKIMountLiveCd(g, herd.WithDeps(cnst.OpSentinel, cnst.OpUkiUdev)), "Mount LiveCD")
 
@@ -60,8 +63,12 @@ func RegisterUKI(s *state.State, g *herd.Graph) error {
 	// Depends on mount binds as that usually mounts COS_PERSISTENT
 	s.LogIfError(s.MountCustomBindsDagStep(g, herd.WeakDeps), "custom binds mount")
 
+	// Copy any sysextensions found under cnst.SourceSysExtDir into cnst.DestSysExtDir so its loaded by systemd automatically on start
+	// always after cnst.OpMountBind stage so we have a persistent cnst.DestSysExtDir
+	s.LogIfError(s.CopySysExtensionsDagStep(g, herd.WithDeps(cnst.OpMountBind)), "copy sysextensions")
+
 	// run initramfs stage
-	s.LogIfError(s.InitramfsStageDagStep(g, herd.WeakDeps, herd.WithDeps(cnst.OpMountBind)), "uki initramfs")
+	s.LogIfError(s.InitramfsStageDagStep(g, herd.WeakDeps, herd.WithDeps(cnst.OpMountBind, cnst.OpUkiCopySysExtensions)), "uki initramfs")
 
 	s.LogIfError(s.WriteFstabDagStep(g,
 		herd.WithDeps(cnst.OpLoadConfig, cnst.OpCustomMounts, cnst.OpMountBind, cnst.OpOverlayMount),

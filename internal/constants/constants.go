@@ -96,6 +96,8 @@ const (
 	OpKcryptUpgrade        = "upgrade-kcrypt"
 	OpUkiKcrypt            = "uki-unlock"
 	OpUkiMountLivecd       = "mount-livecd"
+	OpUkiExtractCerts      = "extract-certs"
+	OpUkiCopySysExtensions = "copy-sysextensions"
 	UkiLivecdMountPoint    = "/run/initramfs/live"
 	UkiIsoBaseTree         = "/run/rootfsbase"
 	UkiIsoBootImage        = "efiboot.img"
@@ -109,4 +111,7 @@ const (
 	PathAppend             = "/usr/bin:/usr/sbin:/bin:/sbin"
 	PATH                   = "PATH"
 	DefaultPCR             = 11
+	SourceSysExtDir        = "/.extra/sysext/"
+	DestSysExtDir          = "/var/lib/extensions"
+	VerityCertDir          = "/run/verity.d/"
 )
