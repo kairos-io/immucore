@@ -301,7 +301,7 @@ func PCRExtend(pcr int, data []byte) error {
 }
 
 // Copy copies src to dst like the cp command.
-func Copy(dst, src string) error {
+func Copy(src, dst string) error {
 	if dst == src {
 		return os.ErrInvalid
 	}
