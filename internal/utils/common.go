@@ -331,18 +331,20 @@ func Copy(src, dst string) error {
 
 func LoadSysExtensions() error {
 	errch := make(chan error, 1)
+
 	go func() {
 		output, err := CommandWithPath("SYSTEMD_LOG_LEVEL=debug systemd-sysext refresh --image-policy=\"root=verity+signed+absent:usr=verity+signed+absent\"")
 		if err != nil || strings.Contains(output, "image does not match image policy") {
-			Log.Debug().Str("output", output).Msg("Could not load sys extensions")
+			Log.Debug().Err(err).Str("output", output).Msg("Could not load sys extensions")
 		}
+		Log.Debug().Str("output", output).Msg("Loaded sys extensions")
 		errch <- err
 	}()
 
 	select {
-	case <-time.After(time.Second * 5):
+	case <-time.After(time.Second * 10):
 		Log.Debug().Msg("Timeout loading sys extensions")
-		return nil
+		return fmt.Errorf("timeout loading sys extensions")
 	case err := <-errch:
 		if err != nil {
 			Log.Debug().Err(err).Msg("Error loading sys extensions")
