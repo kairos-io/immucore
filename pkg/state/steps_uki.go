@@ -623,6 +623,12 @@ func (s *State) CopySysExtensionsDagStep(g *herd.Graph, opts ...herd.OpOption) e
 			internalUtils.Log.Debug().Msg("Not copying sysextensions as we think we are booting from removable media")
 			return nil
 		}
+		// mask systemd-sysext service as we manage it manually
+		output, err := internalUtils.CommandWithPath("ln -s  /dev/null /etc/systemd/system/systemd-sysext.service")
+		if err != nil {
+			internalUtils.Log.Err(err).Str("out", output).Msg("Masking systemd-sysext")
+			return err
+		}
 		// Copy the sys extensions to the rootfs
 		// return if the source or dest dir is not there
 		if _, err := os.Stat(s.path(cnst.SourceSysExtDir)); os.IsNotExist(err) {
@@ -635,7 +641,7 @@ func (s *State) CopySysExtensionsDagStep(g *herd.Graph, opts ...herd.OpOption) e
 		// Run a defer at the end just in case we fail to load the sysextensions or return early, we dont want to
 		// leave stuff around
 		defer internalUtils.RemoveSysExtensions()
-		err := filepath.WalkDir(s.path(cnst.SourceSysExtDir), func(path string, d fs.DirEntry, err error) error {
+		err = filepath.WalkDir(s.path(cnst.SourceSysExtDir), func(path string, d fs.DirEntry, err error) error {
 			if d.IsDir() {
 				return nil
 			}
