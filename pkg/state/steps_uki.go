@@ -580,13 +580,13 @@ func (s *State) ExtractCerts(g *herd.Graph, opts ...herd.OpOption) error {
 			}
 		}
 		for i, cert := range certs.KEK {
-			err := os.WriteFile(filepath.Join(s.path(cnst.VerityCertDir), fmt.Sprintf("PK%d.crt", i)), cert.Raw, 0644)
+			err := os.WriteFile(filepath.Join(s.path(cnst.VerityCertDir), fmt.Sprintf("KEK%d.crt", i)), cert.Raw, 0644)
 			if err != nil {
 				return err
 			}
 		}
 		for i, cert := range certs.DB {
-			err := os.WriteFile(filepath.Join(s.path(cnst.VerityCertDir), fmt.Sprintf("PK%d.crt", i)), cert.Raw, 0644)
+			err := os.WriteFile(filepath.Join(s.path(cnst.VerityCertDir), fmt.Sprintf("DB%d.crt", i)), cert.Raw, 0644)
 			if err != nil {
 				return err
 			}
@@ -628,7 +628,7 @@ func (s *State) CopySysExtensionsDagStep(g *herd.Graph, opts ...herd.OpOption) e
 			}
 			// Try to load it and if it fails we remove it as it means its not signed
 			internalUtils.Log.Debug().Str("what", src).Msg("Loading sysextension")
-			//err = internalUtils.LoadSysExtensions()
+			err = internalUtils.LoadSysExtensions()
 			if err != nil {
 				internalUtils.Log.Err(err).Str("what", dest).Msg("Loading sysextension")
 				_ = os.Remove(dest)
