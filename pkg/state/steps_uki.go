@@ -485,7 +485,7 @@ func (s *State) UKIMountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
 func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpUkiInit,
 		herd.WeakDeps,
-		herd.WithWeakDeps(cnst.OpRootfsHook, cnst.OpInitramfsHook, cnst.OpWriteFstab, cnst.OpUkiLoadSysExtensions),
+		herd.WithWeakDeps(cnst.OpRootfsHook, cnst.OpInitramfsHook, cnst.OpWriteFstab),
 		herd.WithCallback(func(_ context.Context) error {
 			var err error
 
@@ -619,10 +619,21 @@ func (s *State) CopySysExtensionsDagStep(g *herd.Graph, opts ...herd.OpOption) e
 			internalUtils.Log.Debug().Msg("Not copying sysextensions as we think we are booting from removable media")
 			return nil
 		}
-		// mask systemd-sysext service as we manage it manually
-		output, err := internalUtils.CommandWithPath("ln -s  /dev/null /etc/systemd/system/systemd-sysext.service")
+		// make systemd-sysext timeout early otherwise a wrong sysext will block boot
+		err := os.MkdirAll(s.path("/etc/systemd/system/systemd-sysext.service.d"), 0755)
 		if err != nil {
-			internalUtils.Log.Err(err).Str("out", output).Msg("Masking systemd-sysext")
+			internalUtils.Log.Err(err).Msg("Creating systemd-sysext.service.d")
+			return err
+		}
+		err = os.WriteFile(s.path("/etc/systemd/system/systemd-sysext.service.d/timeout.conf"), []byte("[Service]\nTimeoutStartSec=10\n[Unit]JobRunningTimeoutSec=5\n"), 0644)
+		if err != nil {
+			internalUtils.Log.Err(err).Msg("Writing systemd-sysext.service.d/timeout.conf")
+			return err
+		}
+		// Reload systemd
+		output, err := internalUtils.CommandWithPath("systemctl daemon-reload")
+		if err != nil {
+			internalUtils.Log.Err(err).Str("out", output).Msg("Reloading systemd")
 			return err
 		}
 		// Copy the sys extensions to the rootfs

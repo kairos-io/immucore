@@ -67,11 +67,11 @@ func RegisterUKI(s *state.State, g *herd.Graph) error {
 	// always after cnst.OpMountBind stage so we have a persistent cnst.DestSysExtDir
 	s.LogIfError(s.CopySysExtensionsDagStep(g, herd.WithDeps(cnst.OpMountBind)), "copy sysextensions")
 
-	// run initramfs stage
-	s.LogIfError(s.InitramfsStageDagStep(g, herd.WeakDeps, herd.WithDeps(cnst.OpMountBind, cnst.OpUkiCopySysExtensions)), "uki initramfs")
-
 	// Now that we have everything mounted we can load all sysextension, the ones that we copied and the ones that are in the persistent
-	s.LogIfError(s.LoadSysExtensionsDagStep(g, herd.WithDeps(cnst.OpInitramfsHook)), "load sysextensions")
+	s.LogIfError(s.LoadSysExtensionsDagStep(g, herd.WithDeps(cnst.OpUkiCopySysExtensions)), "load sysextensions")
+
+	// run initramfs stage
+	s.LogIfError(s.InitramfsStageDagStep(g, herd.WeakDeps, herd.WithDeps(cnst.OpMountBind, cnst.OpUkiCopySysExtensions, cnst.OpUkiLoadSysExtensions)), "uki initramfs")
 
 	s.LogIfError(s.WriteFstabDagStep(g,
 		herd.WithDeps(cnst.OpLoadConfig, cnst.OpCustomMounts, cnst.OpMountBind, cnst.OpOverlayMount),
