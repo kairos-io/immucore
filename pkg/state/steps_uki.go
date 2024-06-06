@@ -2,7 +2,9 @@ package state
 
 import (
 	"context"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io/fs"
 	"os"
@@ -572,21 +574,39 @@ func (s *State) ExtractCerts(g *herd.Graph, opts ...herd.OpOption) error {
 		if err != nil {
 			return err
 		}
-		// Write all certs in x509 DER format to /run/verity.d/ for sysextensions to verify against
+		// Write all certs in x509 PEM format to /run/verity.d/ for sysextensions to verify against
 		for i, cert := range certs.PK {
-			err := os.WriteFile(filepath.Join(s.path(cnst.VerityCertDir), fmt.Sprintf("PK%d.crt", i)), cert.Raw, 0644)
+			publicKeyDer, _ := x509.MarshalPKIXPublicKey(cert.PublicKey)
+			publicKeyBlock := pem.Block{
+				Type:  "PUBLIC KEY",
+				Bytes: publicKeyDer,
+			}
+			publicKeyPem := pem.EncodeToMemory(&publicKeyBlock)
+			err := os.WriteFile(filepath.Join(s.path(cnst.VerityCertDir), fmt.Sprintf("PK%d.crt", i)), publicKeyPem, 0644)
 			if err != nil {
 				return err
 			}
 		}
 		for i, cert := range certs.KEK {
-			err := os.WriteFile(filepath.Join(s.path(cnst.VerityCertDir), fmt.Sprintf("KEK%d.crt", i)), cert.Raw, 0644)
+			publicKeyDer, _ := x509.MarshalPKIXPublicKey(cert.PublicKey)
+			publicKeyBlock := pem.Block{
+				Type:  "PUBLIC KEY",
+				Bytes: publicKeyDer,
+			}
+			publicKeyPem := pem.EncodeToMemory(&publicKeyBlock)
+			err := os.WriteFile(filepath.Join(s.path(cnst.VerityCertDir), fmt.Sprintf("KEK%d.crt", i)), publicKeyPem, 0644)
 			if err != nil {
 				return err
 			}
 		}
 		for i, cert := range certs.DB {
-			err := os.WriteFile(filepath.Join(s.path(cnst.VerityCertDir), fmt.Sprintf("DB%d.crt", i)), cert.Raw, 0644)
+			publicKeyDer, _ := x509.MarshalPKIXPublicKey(cert.PublicKey)
+			publicKeyBlock := pem.Block{
+				Type:  "PUBLIC KEY",
+				Bytes: publicKeyDer,
+			}
+			publicKeyPem := pem.EncodeToMemory(&publicKeyBlock)
+			err := os.WriteFile(filepath.Join(s.path(cnst.VerityCertDir), fmt.Sprintf("DB%d.crt", i)), publicKeyPem, 0644)
 			if err != nil {
 				return err
 			}
