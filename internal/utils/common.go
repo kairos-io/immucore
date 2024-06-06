@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"crypto/sha256"
 	"errors"
 	"fmt"
@@ -330,12 +331,23 @@ func Copy(src, dst string) error {
 }
 
 func LoadSysExtensions() error {
-	output, err := CommandWithPath("SYSTEMD_LOG_LEVEL=debug systemd-sysext refresh --image-policy=\"root=verity+signed+absent:usr=verity+signed+absent\"")
-	if err != nil || strings.Contains(output, "image does not match image policy") {
-		Log.Debug().Str("output", output).Msg("Could not load sys extensions")
-		return err
+	c := context.Background()
+	cc := time.After(10 * time.Second)
+	for {
+		select {
+		default:
+			output, err := CommandWithPath("SYSTEMD_LOG_LEVEL=debug systemd-sysext refresh --image-policy=\"root=verity+signed+absent:usr=verity+signed+absent\"")
+			if err != nil || strings.Contains(output, "image does not match image policy") {
+				Log.Debug().Str("output", output).Msg("Could not load sys extensions")
+				return err
+			}
+		case <-c.Done():
+			Log.Debug().Msg("context done")
+			return nil
+		case <-cc:
+			Log.Warn().Msg("timeout loading sys extensions")
+		}
 	}
-	return nil
 }
 
 func RemoveSysExtensions() error {

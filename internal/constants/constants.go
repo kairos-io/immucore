@@ -22,6 +22,7 @@ func GenericKernelDrivers() []string {
 		"ata_piix",
 		"cdrom",
 		"dm_mod",
+		"dm-verity",
 		"e1000",
 		"e1000e",
 		"ehci_hcd",
