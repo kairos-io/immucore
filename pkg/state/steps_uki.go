@@ -628,7 +628,7 @@ func (s *State) CopySysExtensionsDagStep(g *herd.Graph, opts ...herd.OpOption) e
 			}
 			// Try to load it and if it fails we remove it as it means its not signed
 			internalUtils.Log.Debug().Str("what", src).Msg("Loading sysextension")
-			err = internalUtils.LoadSysExtensions()
+			//err = internalUtils.LoadSysExtensions()
 			if err != nil {
 				internalUtils.Log.Err(err).Str("what", dest).Msg("Loading sysextension")
 				_ = os.Remove(dest)

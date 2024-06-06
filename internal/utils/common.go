@@ -341,6 +341,8 @@ func LoadSysExtensions() error {
 				Log.Debug().Str("output", output).Msg("Could not load sys extensions")
 				return err
 			}
+			c.Done()
+			return err
 		case <-c.Done():
 			Log.Debug().Msg("context done")
 			return nil
