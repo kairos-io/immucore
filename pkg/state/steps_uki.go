@@ -484,7 +484,7 @@ func (s *State) UKIMountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
 func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpUkiInit,
 		herd.WeakDeps,
-		herd.WithWeakDeps(cnst.OpRootfsHook, cnst.OpInitramfsHook, cnst.OpWriteFstab),
+		herd.WithWeakDeps(cnst.OpRootfsHook, cnst.OpInitramfsHook, cnst.OpWriteFstab, cnst.OpUkiLoadSysExtensions),
 		herd.WithCallback(func(_ context.Context) error {
 			var err error
 
@@ -596,7 +596,7 @@ func (s *State) ExtractCerts(g *herd.Graph, opts ...herd.OpOption) error {
 	}))...)
 }
 
-// CopySysExtensionsDagStep Copies extensions from the EFI partitions to the persistent one so they can be started
+// CopySysExtensionsDagStep Copies extensions from the EFI partitions to the persistent one so they can be started.
 func (s *State) CopySysExtensionsDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpUkiCopySysExtensions, append(opts, herd.WithCallback(func(_ context.Context) error {
 		// Copy the sys extensions to the rootfs
@@ -606,9 +606,11 @@ func (s *State) CopySysExtensionsDagStep(g *herd.Graph, opts ...herd.OpOption) e
 			return nil
 		}
 		if _, err := os.Stat(s.path(cnst.DestSysExtDir)); os.IsNotExist(err) {
-			internalUtils.Log.Debug().Str("dir", s.path(cnst.DestSysExtDir)).Msg("No sysextensions found")
-			return nil
+			_ = os.MkdirAll(s.path(cnst.DestSysExtDir), 0755)
 		}
+		// Run a defer at the end just in case we fail to load the sysextensions or return early, we dont want to
+		// leave stuff around
+		defer internalUtils.RemoveSysExtensions()
 		err := filepath.WalkDir(s.path(cnst.SourceSysExtDir), func(path string, d fs.DirEntry, err error) error {
 			if d.IsDir() {
 				return nil
@@ -620,11 +622,40 @@ func (s *State) CopySysExtensionsDagStep(g *herd.Graph, opts ...herd.OpOption) e
 			if err != nil {
 				internalUtils.Log.Err(err).Str("src", src).Str("dest", dest).Msg("Copying sysextension")
 			}
+			// Try to load it and if it fails we remove it as it means its not signed
+			internalUtils.Log.Debug().Str("what", src).Msg("Loading sysextension")
+			err = internalUtils.LoadSysExtensions()
+			if err != nil {
+				internalUtils.Log.Err(err).Str("what", dest).Msg("Loading sysextension")
+				_ = os.Remove(dest)
+				// return nil to continue walking
+				return nil
+			}
+			// unmerge everything before continuing
+			err = internalUtils.RemoveSysExtensions()
 			return err
 		})
 		if err != nil {
 			return err
 		}
 		return err
+	}))...)
+}
+
+// LoadSysExtensionsDagStep loads the sys extensions into the system.
+// If it fails it unmerges them and returns nil to not block booting....for now.
+func (s *State) LoadSysExtensionsDagStep(g *herd.Graph, opts ...herd.OpOption) error {
+	return g.Add(cnst.OpUkiLoadSysExtensions, append(opts, herd.WithCallback(func(_ context.Context) error {
+		// Load the sys extensions
+		err := internalUtils.LoadSysExtensions()
+		if err != nil {
+			internalUtils.Log.Err(err).Msg("Loading sys extensions")
+			err = internalUtils.RemoveSysExtensions()
+			if err != nil {
+				internalUtils.Log.Err(err).Msg("Removing sys extensions")
+			}
+		}
+		// we dont return an error yet
+		return nil
 	}))...)
 }

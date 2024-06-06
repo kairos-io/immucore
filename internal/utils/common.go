@@ -328,3 +328,21 @@ func Copy(dst, src string) error {
 	}
 	return nil
 }
+
+func LoadSysExtensions() error {
+	output, err := CommandWithPath("SYSTEMD_LOG_LEVEL=debug systemd-sysext refresh --image-policy=\"root=verity+signed+absent:usr=verity+signed+absent\"")
+	if err != nil || strings.Contains(output, "image does not match image policy") {
+		Log.Debug().Str("output", output).Msg("Could not load sys extensions")
+		return err
+	}
+	return nil
+}
+
+func RemoveSysExtensions() error {
+	output, err := CommandWithPath("SYSTEMD_LOG_LEVEL=debug systemd-sysext unmerge")
+	if err != nil {
+		Log.Debug().Str("output", output).Msg("Could not remove sys extensions")
+		return err
+	}
+	return nil
+}
