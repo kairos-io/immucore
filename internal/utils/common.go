@@ -346,6 +346,7 @@ func LoadSysExtensions() error {
 			return nil
 		case <-cc:
 			Log.Warn().Msg("timeout loading sys extensions")
+			return nil
 		}
 	}
 }

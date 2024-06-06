@@ -599,6 +599,10 @@ func (s *State) ExtractCerts(g *herd.Graph, opts ...herd.OpOption) error {
 // CopySysExtensionsDagStep Copies extensions from the EFI partitions to the persistent one so they can be started.
 func (s *State) CopySysExtensionsDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpUkiCopySysExtensions, append(opts, herd.WithCallback(func(_ context.Context) error {
+		if !state.EfiBootFromInstall(internalUtils.Log) {
+			internalUtils.Log.Debug().Msg("Not copying sysextensions as we think we are booting from removable media")
+			return nil
+		}
 		// Copy the sys extensions to the rootfs
 		// return if the source or dest dir is not there
 		if _, err := os.Stat(s.path(cnst.SourceSysExtDir)); os.IsNotExist(err) {
@@ -646,6 +650,10 @@ func (s *State) CopySysExtensionsDagStep(g *herd.Graph, opts ...herd.OpOption) e
 // If it fails it unmerges them and returns nil to not block booting....for now.
 func (s *State) LoadSysExtensionsDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpUkiLoadSysExtensions, append(opts, herd.WithCallback(func(_ context.Context) error {
+		if !state.EfiBootFromInstall(internalUtils.Log) {
+			internalUtils.Log.Debug().Msg("Not loading sysextensions as we think we are booting from removable media")
+			return nil
+		}
 		// Load the sys extensions
 		err := internalUtils.LoadSysExtensions()
 		if err != nil {
