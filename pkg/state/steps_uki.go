@@ -625,15 +625,15 @@ func (s *State) CopySysExtensionsDagStep(g *herd.Graph, opts ...herd.OpOption) e
 			internalUtils.Log.Err(err).Msg("Creating systemd-sysext.service.d")
 			return err
 		}
-		err = os.WriteFile(s.path("/etc/systemd/system/systemd-sysext.service.d/timeout.conf"), []byte("[Service]\nTimeoutStartSec=10\n[Unit]JobRunningTimeoutSec=5\n"), 0644)
+		err = os.WriteFile(s.path("/etc/systemd/system/systemd-sysext.service.d/timeout.conf"), []byte("[Service]\nTimeoutStartSec=10\n[Unit]\nJobRunningTimeoutSec=5\n"), 0644)
 		if err != nil {
 			internalUtils.Log.Err(err).Msg("Writing systemd-sysext.service.d/timeout.conf")
 			return err
 		}
-		// Reload systemd
-		output, err := internalUtils.CommandWithPath("systemctl daemon-reload")
+		// Write also the override for for the image policy
+		err = os.WriteFile(s.path("/etc/systemd/system/systemd-sysext.service.d/image-policy.conf"), []byte("[Service]\nExecStart=systemd-sysext refresh --image-policy=\"root=verity+signed+absent:usr=verity+signed+absent\"\nExecReload=systemd-sysext refresh --image-policy=\"root=verity+signed+absent:usr=verity+signed+absent\"\n"), 0644)
 		if err != nil {
-			internalUtils.Log.Err(err).Str("out", output).Msg("Reloading systemd")
+			internalUtils.Log.Err(err).Msg("Writing systemd-sysext.service.d/image-policy.conf")
 			return err
 		}
 		// Copy the sys extensions to the rootfs
@@ -684,7 +684,7 @@ func (s *State) CopySysExtensionsDagStep(g *herd.Graph, opts ...herd.OpOption) e
 func (s *State) LoadSysExtensionsDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpUkiLoadSysExtensions, append(opts, herd.WithCallback(func(_ context.Context) error {
 		if !state.EfiBootFromInstall(internalUtils.Log) {
-			internalUtils.Log.Debug().Msg("Not loading sysextensions as we think we are booting from removable media")
+			internalUtils.Log.Debug().Msg("Not loading sys extensions as we think we are booting from removable media")
 			return nil
 		}
 		// Load the sys extensions
