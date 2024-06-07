@@ -65,10 +65,8 @@ func RegisterUKI(s *state.State, g *herd.Graph) error {
 
 	// Copy any sysextensions found under cnst.SourceSysExtDir into cnst.DestSysExtDir so its loaded by systemd automatically on start
 	// always after cnst.OpMountBind stage so we have a persistent cnst.DestSysExtDir
+	// Note that the loading of the extensions is done by systemd with the systemd-sysext service
 	s.LogIfError(s.CopySysExtensionsDagStep(g, herd.WithDeps(cnst.OpMountBind)), "copy sysextensions")
-
-	// Now that we have everything mounted we can load all sysextension, the ones that we copied and the ones that are in the persistent
-	s.LogIfError(s.LoadSysExtensionsDagStep(g, herd.WithDeps(cnst.OpUkiCopySysExtensions)), "load sysextensions")
 
 	// run initramfs stage
 	s.LogIfError(s.InitramfsStageDagStep(g, herd.WeakDeps, herd.WithDeps(cnst.OpMountBind, cnst.OpUkiCopySysExtensions, cnst.OpUkiLoadSysExtensions)), "uki initramfs")

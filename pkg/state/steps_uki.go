@@ -645,58 +645,28 @@ func (s *State) CopySysExtensionsDagStep(g *herd.Graph, opts ...herd.OpOption) e
 		if _, err := os.Stat(s.path(cnst.DestSysExtDir)); os.IsNotExist(err) {
 			_ = os.MkdirAll(s.path(cnst.DestSysExtDir), 0755)
 		}
-		// Run a defer at the end just in case we fail to load the sysextensions or return early, we dont want to
-		// leave stuff around
-		defer internalUtils.RemoveSysExtensions()
 		err = filepath.WalkDir(s.path(cnst.SourceSysExtDir), func(path string, d fs.DirEntry, err error) error {
 			if d.IsDir() {
 				return nil
 			}
 			src := filepath.Join(cnst.SourceSysExtDir, d.Name())
 			dest := filepath.Join(cnst.DestSysExtDir, d.Name())
+
+			output, err := internalUtils.CommandWithPath(fmt.Sprintf("systemd-dissect --validate --image-policy=\"root=verity+signed+absent:usr=verity+signed+absent\" %s", src))
+			if err != nil {
+				// If the file didn't pass the validation, we don't copy it
+				internalUtils.Log.Warn().Str("src", src).Msg("Validating sysextension")
+				internalUtils.Log.Debug().Err(err).Str("src", src).Str("output", output).Msg("Validating sysextension")
+				return nil
+			}
 			// Copy the file to the sys-extensions directory
 			err = internalUtils.Copy(src, dest)
 			if err != nil {
 				internalUtils.Log.Err(err).Str("src", src).Str("dest", dest).Msg("Copying sysextension")
 			}
-			// Try to load it and if it fails we remove it as it means its not signed
-			internalUtils.Log.Debug().Str("what", src).Msg("Loading sysextension")
-			err = internalUtils.LoadSysExtensions()
-			if err != nil {
-				internalUtils.Log.Err(err).Str("what", dest).Msg("Loading sysextension")
-				_ = os.Remove(dest)
-				// return nil to continue walking
-				return nil
-			}
-			// unmerge everything before continuing
-			err = internalUtils.RemoveSysExtensions()
+
 			return err
 		})
-		if err != nil {
-			return err
-		}
 		return err
-	}))...)
-}
-
-// LoadSysExtensionsDagStep loads the sys extensions into the system.
-// If it fails it unmerges them and returns nil to not block booting....for now.
-func (s *State) LoadSysExtensionsDagStep(g *herd.Graph, opts ...herd.OpOption) error {
-	return g.Add(cnst.OpUkiLoadSysExtensions, append(opts, herd.WithCallback(func(_ context.Context) error {
-		if !state.EfiBootFromInstall(internalUtils.Log) {
-			internalUtils.Log.Debug().Msg("Not loading sys extensions as we think we are booting from removable media")
-			return nil
-		}
-		// Load the sys extensions
-		err := internalUtils.LoadSysExtensions()
-		if err != nil {
-			internalUtils.Log.Err(err).Msg("Loading sys extensions")
-			err = internalUtils.RemoveSysExtensions()
-			if err != nil {
-				internalUtils.Log.Err(err).Msg("Removing sys extensions")
-			}
-		}
-		// we dont return an error yet
-		return nil
 	}))...)
 }
