@@ -69,7 +69,7 @@ func RegisterUKI(s *state.State, g *herd.Graph) error {
 	s.LogIfError(s.CopySysExtensionsDagStep(g, herd.WithDeps(cnst.OpMountBind)), "copy sysextensions")
 
 	// run initramfs stage
-	s.LogIfError(s.InitramfsStageDagStep(g, herd.WeakDeps, herd.WithDeps(cnst.OpMountBind, cnst.OpUkiCopySysExtensions, cnst.OpUkiLoadSysExtensions)), "uki initramfs")
+	s.LogIfError(s.InitramfsStageDagStep(g, herd.WeakDeps, herd.WithDeps(cnst.OpMountBind, cnst.OpUkiCopySysExtensions)), "uki initramfs")
 
 	s.LogIfError(s.WriteFstabDagStep(g,
 		herd.WithDeps(cnst.OpLoadConfig, cnst.OpCustomMounts, cnst.OpMountBind, cnst.OpOverlayMount),

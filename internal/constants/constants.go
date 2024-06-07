@@ -99,7 +99,6 @@ const (
 	OpUkiMountLivecd       = "mount-livecd"
 	OpUkiExtractCerts      = "extract-certs"
 	OpUkiCopySysExtensions = "copy-sysextensions"
-	OpUkiLoadSysExtensions = "load-sysextensions"
 	UkiLivecdMountPoint    = "/run/initramfs/live"
 	UkiIsoBaseTree         = "/run/rootfsbase"
 	UkiIsoBootImage        = "efiboot.img"
