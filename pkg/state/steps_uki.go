@@ -620,20 +620,20 @@ func (s *State) CopySysExtensionsDagStep(g *herd.Graph, opts ...herd.OpOption) e
 			return nil
 		}
 		// make systemd-sysext timeout early otherwise a wrong sysext will block boot
-		err := os.MkdirAll(s.path("/etc/systemd/system/systemd-sysext.service.d"), 0755)
+		err := os.MkdirAll(s.path(cnst.SysextServiceDirOverride), 0755)
 		if err != nil {
-			internalUtils.Log.Err(err).Msg("Creating systemd-sysext.service.d")
+			internalUtils.Log.Err(err).Msgf("Creating %s", s.path(cnst.SysextServiceDirOverride))
 			return err
 		}
-		err = os.WriteFile(s.path("/etc/systemd/system/systemd-sysext.service.d/timeout.conf"), []byte("[Service]\nTimeoutStartSec=10\n[Unit]\nJobRunningTimeoutSec=5\n"), 0644)
+		err = os.WriteFile(s.path(filepath.Join(cnst.SysextServiceDirOverride, cnst.SysextTimeoutServiceFile)), []byte(cnst.SysextTimeoutOverride), 0644)
 		if err != nil {
-			internalUtils.Log.Err(err).Msg("Writing systemd-sysext.service.d/timeout.conf")
+			internalUtils.Log.Err(err).Msgf("Writing %s", filepath.Join(cnst.SysextServiceDirOverride, cnst.SysextTimeoutServiceFile))
 			return err
 		}
 		// Write also the override for for the image policy
-		err = os.WriteFile(s.path("/etc/systemd/system/systemd-sysext.service.d/image-policy.conf"), []byte("[Service]\nExecStart=systemd-sysext refresh --image-policy=\"root=verity+signed+absent:usr=verity+signed+absent\"\nExecReload=systemd-sysext refresh --image-policy=\"root=verity+signed+absent:usr=verity+signed+absent\"\n"), 0644)
+		err = os.WriteFile(s.path(filepath.Join(cnst.SysextServiceDirOverride, cnst.SysextImagePolicyServiceFile)), []byte(cnst.SysextImagePolicyOverride), 0644)
 		if err != nil {
-			internalUtils.Log.Err(err).Msg("Writing systemd-sysext.service.d/image-policy.conf")
+			internalUtils.Log.Err(err).Msgf("Writing %s", filepath.Join(cnst.SysextServiceDirOverride, cnst.SysextImagePolicyServiceFile))
 			return err
 		}
 		// Copy the sys extensions to the rootfs
@@ -652,10 +652,10 @@ func (s *State) CopySysExtensionsDagStep(g *herd.Graph, opts ...herd.OpOption) e
 			src := filepath.Join(cnst.SourceSysExtDir, d.Name())
 			dest := filepath.Join(cnst.DestSysExtDir, d.Name())
 
-			output, err := internalUtils.CommandWithPath(fmt.Sprintf("systemd-dissect --validate --image-policy=\"root=verity+signed+absent:usr=verity+signed+absent\" %s", src))
+			output, err := internalUtils.CommandWithPath(fmt.Sprintf("systemd-dissect --validate %s %s", cnst.SysextDefaultPolicy, src))
 			if err != nil {
 				// If the file didn't pass the validation, we don't copy it
-				internalUtils.Log.Warn().Str("src", src).Msg("Validating sysextension")
+				internalUtils.Log.Warn().Str("src", src).Msg("Sysextension does not pass validation")
 				internalUtils.Log.Debug().Err(err).Str("src", src).Str("output", output).Msg("Validating sysextension")
 				return nil
 			}
@@ -664,6 +664,7 @@ func (s *State) CopySysExtensionsDagStep(g *herd.Graph, opts ...herd.OpOption) e
 			if err != nil {
 				internalUtils.Log.Err(err).Str("src", src).Str("dest", dest).Msg("Copying sysextension")
 			}
+			internalUtils.Log.Debug().Str("src", src).Str("dest", dest).Msg("Copied sysextension")
 
 			return err
 		})
