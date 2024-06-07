@@ -645,28 +645,28 @@ func (s *State) CopySysExtensionsDagStep(g *herd.Graph, opts ...herd.OpOption) e
 		if _, err := os.Stat(s.path(cnst.DestSysExtDir)); os.IsNotExist(err) {
 			_ = os.MkdirAll(s.path(cnst.DestSysExtDir), 0755)
 		}
-		err = filepath.WalkDir(s.path(cnst.SourceSysExtDir), func(path string, d fs.DirEntry, err error) error {
+		err = filepath.WalkDir(s.path(cnst.SourceSysExtDir), func(_ string, d fs.DirEntry, err error) error {
 			if d.IsDir() {
 				return nil
 			}
 			src := filepath.Join(cnst.SourceSysExtDir, d.Name())
 			dest := filepath.Join(cnst.DestSysExtDir, d.Name())
 
-			output, err := internalUtils.CommandWithPath(fmt.Sprintf("systemd-dissect --validate %s %s", cnst.SysextDefaultPolicy, src))
-			if err != nil {
+			output, err2 := internalUtils.CommandWithPath(fmt.Sprintf("systemd-dissect --validate %s %s", cnst.SysextDefaultPolicy, src))
+			if err2 != nil {
 				// If the file didn't pass the validation, we don't copy it
 				internalUtils.Log.Warn().Str("src", src).Msg("Sysextension does not pass validation")
-				internalUtils.Log.Debug().Err(err).Str("src", src).Str("output", output).Msg("Validating sysextension")
+				internalUtils.Log.Debug().Err(err2).Str("src", src).Str("output", output).Msg("Validating sysextension")
 				return nil
 			}
 			// Copy the file to the sys-extensions directory
-			err = internalUtils.Copy(src, dest)
+			err2 = internalUtils.Copy(src, dest)
 			if err != nil {
-				internalUtils.Log.Err(err).Str("src", src).Str("dest", dest).Msg("Copying sysextension")
+				internalUtils.Log.Err(err2).Str("src", src).Str("dest", dest).Msg("Copying sysextension")
 			}
 			internalUtils.Log.Debug().Str("src", src).Str("dest", dest).Msg("Copied sysextension")
 
-			return err
+			return err2
 		})
 		return err
 	}))...)
