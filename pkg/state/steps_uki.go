@@ -619,39 +619,27 @@ func (s *State) CopySysExtensionsDagStep(g *herd.Graph, opts ...herd.OpOption) e
 			internalUtils.Log.Debug().Msg("Not copying sysextensions as we think we are booting from removable media")
 			return nil
 		}
-		// make systemd-sysext timeout early otherwise a wrong sysext will block boot
-		err := os.MkdirAll(s.path(cnst.SysextServiceDirOverride), 0755)
-		if err != nil {
-			internalUtils.Log.Err(err).Msgf("Creating %s", s.path(cnst.SysextServiceDirOverride))
-			return err
-		}
-		err = os.WriteFile(s.path(filepath.Join(cnst.SysextServiceDirOverride, cnst.SysextTimeoutServiceFile)), []byte(cnst.SysextTimeoutOverride), 0644)
-		if err != nil {
-			internalUtils.Log.Err(err).Msgf("Writing %s", filepath.Join(cnst.SysextServiceDirOverride, cnst.SysextTimeoutServiceFile))
-			return err
-		}
-		// Write also the override for for the image policy
-		err = os.WriteFile(s.path(filepath.Join(cnst.SysextServiceDirOverride, cnst.SysextImagePolicyServiceFile)), []byte(cnst.SysextImagePolicyOverride), 0644)
-		if err != nil {
-			internalUtils.Log.Err(err).Msgf("Writing %s", filepath.Join(cnst.SysextServiceDirOverride, cnst.SysextImagePolicyServiceFile))
-			return err
-		}
+
 		// Copy the sys extensions to the rootfs
+		// Remember that we use s.path for the destination as it adds the future /sysroot prefix
+		// But for source, we are in initramfs so it should be without the prefix
 		// return if the source or dest dir is not there
-		if _, err := os.Stat(s.path(cnst.SourceSysExtDir)); os.IsNotExist(err) {
-			internalUtils.Log.Debug().Str("dir", s.path(cnst.SourceSysExtDir)).Msg("No sysextensions found")
+		if _, err := os.Stat(cnst.SourceSysExtDir); os.IsNotExist(err) {
+			internalUtils.Log.Debug().Str("dir", cnst.SourceSysExtDir).Msg("No sysextensions found")
 			return nil
 		}
 		if _, err := os.Stat(s.path(cnst.DestSysExtDir)); os.IsNotExist(err) {
 			_ = os.MkdirAll(s.path(cnst.DestSysExtDir), 0755)
 		}
-		err = filepath.WalkDir(s.path(cnst.SourceSysExtDir), func(_ string, d fs.DirEntry, err error) error {
+		err := filepath.WalkDir(s.path(cnst.SourceSysExtDir), func(_ string, d fs.DirEntry, err error) error {
 			if d.IsDir() {
 				return nil
 			}
 			src := filepath.Join(cnst.SourceSysExtDir, d.Name())
-			dest := filepath.Join(cnst.DestSysExtDir, d.Name())
+			dest := s.path(filepath.Join(cnst.DestSysExtDir, d.Name()))
 
+			// TODO: Use the policy from the system config if exists, otherwise drop to default?
+			// This is to make it work also in non-uki envs where we might have a relaxed policy
 			output, err2 := internalUtils.CommandWithPath(fmt.Sprintf("systemd-dissect --validate %s %s", cnst.SysextDefaultPolicy, src))
 			if err2 != nil {
 				// If the file didn't pass the validation, we don't copy it
