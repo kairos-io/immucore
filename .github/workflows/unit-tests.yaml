@@ -18,6 +18,8 @@ jobs:
         with:
           fetch-depth: 0
       - uses: earthly/actions-setup@v1
+        with:
+          version: 0.8.12
       - name: Run Lint checks
         run: earthly +golint
   unit-tests:
