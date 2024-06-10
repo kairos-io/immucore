@@ -1,6 +1,8 @@
 package constants
 
-import "errors"
+import (
+	"errors"
+)
 
 func DefaultRWPaths() []string {
 	// Default RW_PATHS to mount if not override by the cos-layout.env file
@@ -22,6 +24,7 @@ func GenericKernelDrivers() []string {
 		"ata_piix",
 		"cdrom",
 		"dm_mod",
+		"dm-verity",
 		"e1000",
 		"e1000e",
 		"ehci_hcd",
@@ -96,6 +99,8 @@ const (
 	OpKcryptUpgrade        = "upgrade-kcrypt"
 	OpUkiKcrypt            = "uki-unlock"
 	OpUkiMountLivecd       = "mount-livecd"
+	OpUkiExtractCerts      = "extract-certs"
+	OpUkiCopySysExtensions = "copy-sysextensions"
 	UkiLivecdMountPoint    = "/run/initramfs/live"
 	UkiIsoBaseTree         = "/run/rootfsbase"
 	UkiIsoBootImage        = "efiboot.img"
@@ -109,4 +114,8 @@ const (
 	PathAppend             = "/usr/bin:/usr/sbin:/bin:/sbin"
 	PATH                   = "PATH"
 	DefaultPCR             = 11
+	SourceSysExtDir        = "/.extra/sysext/"
+	DestSysExtDir          = "/run/extensions"
+	VerityCertDir          = "/run/verity.d/"
+	SysextDefaultPolicy    = "--image-policy=\"root=verity+signed+absent:usr=verity+signed+absent\""
 )

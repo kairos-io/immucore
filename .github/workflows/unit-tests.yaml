@@ -18,6 +18,8 @@ jobs:
         with:
           fetch-depth: 0
       - uses: earthly/actions-setup@v1
+        with:
+          version: 0.8.12
       - name: Run Lint checks
         run: earthly +golint
   unit-tests:
@@ -32,6 +34,8 @@ jobs:
         with:
           fetch-depth: 0
       - uses: earthly/actions-setup@v1
+        with:
+          version: 0.8.12
       - name: Build
         run: earthly +build --GO_VERSION=${{ matrix.go-version }}
       - name: Run tests
