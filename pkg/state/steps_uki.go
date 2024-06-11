@@ -394,7 +394,15 @@ func (s *State) UKIUnlock(g *herd.Graph, opts ...herd.OpOption) error {
 		}
 		_ = os.Setenv("PATH", "/usr/bin:/usr/sbin:/bin:/sbin")
 		internalUtils.Log.Debug().Msg("Will now try to unlock partitions")
-		return kcrypt.UnlockAllWithLogger(true, internalUtils.Log)
+		err := kcrypt.UnlockAllWithLogger(true, internalUtils.Log)
+		if err != nil {
+			internalUtils.Log.Info().Msg(s.WriteDAG(g))
+			internalUtils.Log.Err(err).Msg("Unlocking partitions")
+			internalUtils.Log.Warn().Msg("Unlocking partitions failed, waiting 10 seconds and rebooting")
+			time.Sleep(10 * time.Second)
+			return syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART)
+		}
+		return nil
 	}))...)
 }
 
