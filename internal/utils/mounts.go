@@ -208,6 +208,15 @@ func MountBasic() {
 	if !IsMounted("/run") {
 		_ = Mount("tmpfs", "/run", "tmpfs", syscall.MS_NOSUID|syscall.MS_NODEV|syscall.MS_NOEXEC|syscall.MS_RELATIME, "mode=755")
 		_ = Mount("", "/run", "", syscall.MS_SHARED, "")
+		// Create some default dirs in /run
+		// Usually systemd-tmpfiles/tmpfilesd would create those but we don't have that here at this point
+		_ = os.MkdirAll("/run/lock", 0755)
+		// LVM would probably need this dir
+		_ = os.MkdirAll("/run/lock/lvm", 0755)
+		// /run/lock/subsys is used for serializing SysV service execution, and
+		// hence without use on SysV-less systems.
+		_ = os.MkdirAll("/run/lock/subsys", 0755)
+
 	}
 }
 
