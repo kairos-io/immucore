@@ -135,6 +135,26 @@ func GetTarget(dryRun bool) (string, string, error) {
 	return imgs[0], label, nil
 }
 
+// RebootOrWait will reboot the system or wait forever.
+// It will print the error message before rebooting/waiting
+// If the rd.immucore.rebootonfailure is set in the cmdline, it will reboot.
+// If not, it will wait forever.
+// If the error is not nil it will log it.
+func RebootOrWait(msg string, err error) {
+	if err != nil {
+		Log.Error().Err(err).Msg(msg)
+	}
+	if len(ReadCMDLineArg("rd.immucore.rebootonfailure")) > 0 {
+		Log.Warn().Msg(fmt.Sprintf("%s - Rebooting in 10 seconds", msg))
+		time.Sleep(10 * time.Second)
+		_ = syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART)
+	}
+	Log.Warn().Msg(fmt.Sprintf("%s - Halting boot", msg))
+	// Sleep forever.
+	// We dont want to exit and print panics or kernel panic, so we print our message and wait for the user to ctrl+alt+del
+	select {}
+}
+
 // DisableImmucore identifies if we need to be disabled
 // We disable if we boot from CD, netboot, squashfs recovery or have the rd.cos.disable stanza in cmdline.
 func DisableImmucore() bool {
