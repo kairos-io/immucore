@@ -149,7 +149,7 @@ func RebootOrWait(msg string, err error) {
 		time.Sleep(10 * time.Second)
 		_ = syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART)
 	}
-	Log.Warn().Msg(msg)
+	Log.Warn().Msg(fmt.Sprintf("%s - Halting boot", msg))
 	// Sleep forever.
 	// We dont want to exit and print panics or kernel panic, so we print our message and wait for the user to ctrl+alt+del
 	select {}
