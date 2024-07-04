@@ -9,6 +9,7 @@
     "every weekend"
   ],
   "timezone": "Europe/Brussels",
+  "reviewers": [ "team:maintainers" ],
   "postUpdateOptions": [
     "gomodTidy1.17"
   ],
