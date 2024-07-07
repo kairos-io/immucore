@@ -22,7 +22,7 @@ go-deps:
     FROM golang:$GO_VERSION
     WORKDIR /build
     COPY . .
-    RUN go mod tidy --compat=1.19
+    RUN go mod tidy --compat=1.20
     RUN go mod download
     RUN go mod verify
 
@@ -37,7 +37,7 @@ golint:
     FROM golangci/golangci-lint:$GOLINT_VERSION
     WORKDIR /build
     COPY . .
-    RUN go mod tidy --compat=1.19
+    RUN go mod tidy --compat=1.20
     RUN golangci-lint run -v
 
 build-immucore:
