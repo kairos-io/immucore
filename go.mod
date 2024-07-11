@@ -1,6 +1,8 @@
 module github.com/kairos-io/immucore
 
-go 1.19
+go 1.21
+
+toolchain go1.22.4
 
 replace (
 	github.com/onsi/ginkgo/v2 v2.17.1 => github.com/onsi/ginkgo/v2 v2.12.1
