@@ -10,11 +10,8 @@
   ],
   "timezone": "Europe/Brussels",
   "reviewers": [ "team:maintainers" ],
-  "postUpdateOptions": [
-    "gomodTidy1.17"
-  ],
   "constraints": {
-    "go": "1.19"
+    "go": "1.22"
   },
   "packageRules": [
     {

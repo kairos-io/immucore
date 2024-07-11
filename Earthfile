@@ -5,7 +5,7 @@ ARG OSBUILDER_IMAGE=quay.io/kairos/osbuilder-tools:$OSBUILDER_VERSION
 # renovate: datasource=docker depName=golangci/golangci-lint
 ARG GOLINT_VERSION=v1.59.1
 # renovate: datasource=docker depName=golang
-ARG GO_VERSION=1.20-bookworm
+ARG GO_VERSION=1.22-bookworm
 
 version:
     FROM +go-deps
@@ -22,7 +22,7 @@ go-deps:
     FROM golang:$GO_VERSION
     WORKDIR /build
     COPY . .
-    RUN go mod tidy --compat=1.19
+    RUN go mod tidy
     RUN go mod download
     RUN go mod verify
 
@@ -37,7 +37,7 @@ golint:
     FROM golangci/golangci-lint:$GOLINT_VERSION
     WORKDIR /build
     COPY . .
-    RUN go mod tidy --compat=1.19
+    RUN go mod tidy
     RUN golangci-lint run -v
 
 build-immucore:
