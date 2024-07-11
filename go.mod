@@ -1,8 +1,8 @@
 module github.com/kairos-io/immucore
 
-go 1.21
+go 1.22
 
-toolchain go1.22.4
+toolchain go1.22.5
 
 replace (
 	github.com/onsi/ginkgo/v2 v2.17.1 => github.com/onsi/ginkgo/v2 v2.12.1
@@ -33,7 +33,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 )
 
-require github.com/google/go-tpm v0.9.0
+require github.com/google/go-tpm v0.9.1
 
 require (
 	atomicgo.dev/cursor v0.1.3 // indirect
