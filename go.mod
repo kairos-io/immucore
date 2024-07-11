@@ -22,7 +22,7 @@ require (
 	github.com/kairos-io/kcrypt v0.11.3
 	github.com/moby/sys/mountinfo v0.7.1
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
-	github.com/mudler/yip v1.9.0
+	github.com/mudler/yip v1.9.2
 	github.com/onsi/ginkgo/v2 v2.17.1
 	github.com/onsi/gomega v1.33.0
 	github.com/rs/zerolog v1.33.0
@@ -114,7 +114,7 @@ require (
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/moby v24.0.9+incompatible // indirect
 	github.com/moby/sys/sequential v0.5.0 // indirect
-	github.com/mudler/entities v0.0.0-20240625130751-3d7f84082f3a // indirect
+	github.com/mudler/entities v0.8.0 // indirect
 	github.com/mudler/go-pluggable v0.0.0-20230126220627-7710299a0ae5 // indirect
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
@@ -143,7 +143,7 @@ require (
 	github.com/skeema/knownhosts v1.2.2 // indirect
 	github.com/spf13/afero v1.9.3 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
-	github.com/tredoe/osutil/v2 v2.0.0-rc.16 // indirect
+	github.com/tredoe/osutil v1.5.0 // indirect
 	github.com/ulikunitz/xz v0.5.11 // indirect
 	github.com/vbatts/tar-split v0.11.3 // indirect
 	github.com/vishvananda/netlink v1.2.1-beta.2 // indirect
