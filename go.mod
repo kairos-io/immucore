@@ -20,7 +20,7 @@ require (
 	github.com/kairos-io/kcrypt v0.12.2
 	github.com/moby/sys/mountinfo v0.7.2
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
-	github.com/mudler/yip v1.9.3
+	github.com/mudler/yip v1.9.4
 	github.com/onsi/ginkgo/v2 v2.19.1
 	github.com/onsi/gomega v1.34.1
 	github.com/rs/zerolog v1.33.0
@@ -79,7 +79,6 @@ require (
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
-	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -111,7 +110,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
-	github.com/moby/moby v24.0.9+incompatible // indirect
+	github.com/moby/moby v27.1.1+incompatible // indirect
 	github.com/moby/sys/sequential v0.5.0 // indirect
 	github.com/mudler/entities v0.8.1 // indirect
 	github.com/mudler/go-pluggable v0.0.0-20230126220627-7710299a0ae5 // indirect
