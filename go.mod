@@ -1,6 +1,6 @@
 module github.com/kairos-io/immucore
 
-go 1.22.5
+go 1.23.1
 
 replace (
 	github.com/onsi/ginkgo/v2 v2.17.1 => github.com/onsi/ginkgo/v2 v2.12.1
@@ -110,7 +110,6 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
-	github.com/moby/moby v27.1.1+incompatible // indirect
 	github.com/moby/sys/sequential v0.5.0 // indirect
 	github.com/moby/sys/userns v0.1.0 // indirect
 	github.com/mudler/entities v0.8.1 // indirect
