@@ -14,13 +14,13 @@ require (
 	github.com/foxboron/go-uefi v0.0.0-20240805124652-e2076f0e58ca
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/jaypipes/ghw v0.12.0
+	github.com/jaypipes/ghw v0.13.0
 	github.com/joho/godotenv v1.5.1
-	github.com/kairos-io/kairos-sdk v0.4.2
+	github.com/kairos-io/kairos-sdk v0.4.6
 	github.com/kairos-io/kcrypt v0.12.2
 	github.com/moby/sys/mountinfo v0.7.2
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
-	github.com/mudler/yip v1.9.4
+	github.com/mudler/yip v1.10.0
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.2
 	github.com/rs/zerolog v1.33.0
@@ -65,7 +65,7 @@ require (
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/cli v27.1.1+incompatible // indirect
 	github.com/docker/distribution v2.8.2+incompatible // indirect
-	github.com/docker/docker v27.2.0+incompatible // indirect
+	github.com/docker/docker v27.3.1+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.7.0 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
@@ -95,7 +95,7 @@ require (
 	github.com/imdario/mergo v0.3.15 // indirect
 	github.com/itchyny/gojq v0.12.16 // indirect
 	github.com/itchyny/timefmt-go v0.1.6 // indirect
-	github.com/jaypipes/pcidb v1.0.0 // indirect
+	github.com/jaypipes/pcidb v1.0.1 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jzelinskie/whirlpool v0.0.0-20201016144138-0675e54bb004 // indirect
 	github.com/kendru/darwin/go/depgraph v0.0.0-20221105232959-877d6a81060c // indirect
@@ -151,7 +151,7 @@ require (
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
-	github.com/zcalusic/sysinfo v1.1.0 // indirect
+	github.com/zcalusic/sysinfo v1.1.2 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.45.0 // indirect
 	go.opentelemetry.io/otel v1.21.0 // indirect
