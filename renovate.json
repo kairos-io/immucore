@@ -10,9 +10,6 @@
   ],
   "timezone": "Europe/Brussels",
   "reviewers": [ "team:maintainers" ],
-  "constraints": {
-    "go": "1.22"
-  },
   "packageRules": [
     {
       "matchUpdateTypes": ["patch"],
