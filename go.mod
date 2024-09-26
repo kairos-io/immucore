@@ -14,7 +14,7 @@ require (
 	github.com/foxboron/go-uefi v0.0.0-20240805124652-e2076f0e58ca
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/jaypipes/ghw v0.12.0
+	github.com/jaypipes/ghw v0.13.0
 	github.com/joho/godotenv v1.5.1
 	github.com/kairos-io/kairos-sdk v0.4.2
 	github.com/kairos-io/kcrypt v0.12.2
@@ -95,7 +95,7 @@ require (
 	github.com/imdario/mergo v0.3.15 // indirect
 	github.com/itchyny/gojq v0.12.16 // indirect
 	github.com/itchyny/timefmt-go v0.1.6 // indirect
-	github.com/jaypipes/pcidb v1.0.0 // indirect
+	github.com/jaypipes/pcidb v1.0.1 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jzelinskie/whirlpool v0.0.0-20201016144138-0675e54bb004 // indirect
 	github.com/kendru/darwin/go/depgraph v0.0.0-20221105232959-877d6a81060c // indirect
