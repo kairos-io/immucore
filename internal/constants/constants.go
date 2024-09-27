@@ -39,6 +39,7 @@ func GenericKernelDrivers() []string {
 		"libahcpi-platform",
 		"libata",
 		"loop",
+		"mmc_block", // mmc block device support
 		"nls_cp437",
 		"nls_iso8859_1",
 		"nvme",
@@ -50,6 +51,7 @@ func GenericKernelDrivers() []string {
 		"pata_acpi",
 		"scsi_mod",
 		"sd_mod",
+		"sdhci-pci", // some mmc devices seems to use this like the raxda x4
 		"simpledrm",
 		"squashfs",
 		"sr_mod",
