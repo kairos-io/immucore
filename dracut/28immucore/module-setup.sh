@@ -1,17 +1,18 @@
 #!/bin/bash
 
-# called by dracut
+# check() is called by dracut to evaluate the inclusion of a dracut module in the initramfs.
+# we always want to have this module so we return 0
 check() {
     return 0
 }
 
-# called by dracut 
+# The function depends() should echo all other dracut module names the module depends on
 depends() {
     echo rootfs-block dm fs-lib lvm
     return 0
 }
 
-# called by dracut
+# In installkernel() all kernel related files should be installed
 installkernel() {
     instmods overlay
 }
@@ -28,7 +29,7 @@ inst_check_multiple() {
 }
 
 
-# called by dracut
+# The install() function is called to install everything non-kernel related.
 install() {
     declare moddir=${moddir}
     declare systemdutildir=${systemdutildir}
