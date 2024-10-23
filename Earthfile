@@ -1,6 +1,6 @@
 VERSION 0.6
 # renovate: datasource=docker depName=quay.io/kairos/osbuilder-tools versioning=semver-coerced
-ARG OSBUILDER_VERSION=v0.400.2
+ARG OSBUILDER_VERSION=v0.400.3
 ARG OSBUILDER_IMAGE=quay.io/kairos/osbuilder-tools:$OSBUILDER_VERSION
 # renovate: datasource=docker depName=golangci/golangci-lint
 ARG GOLINT_VERSION=v1.61.0
