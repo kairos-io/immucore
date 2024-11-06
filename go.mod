@@ -21,7 +21,7 @@ require (
 	github.com/moby/sys/mountinfo v0.7.2
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
 	github.com/mudler/yip v1.12.0
-	github.com/onsi/ginkgo/v2 v2.20.2
+	github.com/onsi/ginkgo/v2 v2.21.0
 	github.com/onsi/gomega v1.35.1
 	github.com/rs/zerolog v1.33.0
 	github.com/spectrocloud-labs/herd v0.4.2
@@ -86,7 +86,7 @@ require (
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/go-containerregistry v0.20.2 // indirect
-	github.com/google/pprof v0.0.0-20240827171923-fa2c70bbbfe5 // indirect
+	github.com/google/pprof v0.0.0-20241029153458-d1b30febd7db // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gookit/color v1.5.3 // indirect
@@ -164,7 +164,7 @@ require (
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/term v0.25.0 // indirect
 	golang.org/x/text v0.19.0 // indirect
-	golang.org/x/tools v0.24.0 // indirect
+	golang.org/x/tools v0.26.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231212172506-995d672761c0 // indirect
 	google.golang.org/grpc v1.59.0 // indirect
 	google.golang.org/protobuf v1.35.1 // indirect
