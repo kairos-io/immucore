@@ -9,7 +9,7 @@ replace (
 
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
-	github.com/containerd/containerd v1.7.23
+	github.com/containerd/containerd v1.7.24
 	github.com/deniswernert/go-fstab v0.0.0-20141204152952-eb4090f26517
 	github.com/foxboron/go-uefi v0.0.0-20241017190036-fab4fdf2f2f3
 	github.com/gofrs/uuid v4.4.0+incompatible
