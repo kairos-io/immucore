@@ -88,6 +88,7 @@ func ReadEnv(file string) (map[string]string, error) {
 // CreateIfNotExists will check if a path exists and create it if needed.
 func CreateIfNotExists(path string) error {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
+		Log.Debug().Str("what", path).Msg("Creating dir")
 		return os.MkdirAll(path, os.ModePerm)
 	}
 

@@ -40,6 +40,8 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 	err = g.Add(cnst.OpMountState,
 		herd.WithCallback(
 			func(_ context.Context) error {
+				c, _ := internalUtils.CommandWithPath("stat /sysroot")
+				internalUtils.Log.Info().Str("path", c).Msg("Sysroot status")
 				fstab, err := op.MountOPWithFstab(
 					internalUtils.GetState(),
 					s.path("/run/initramfs/cos-state"),
@@ -63,6 +65,8 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 		herd.WithDeps(cnst.OpMountState),
 		herd.WithCallback(
 			func(_ context.Context) error {
+				c, _ := internalUtils.CommandWithPath("stat /sysroot")
+				internalUtils.Log.Info().Str("path", c).Msg("Sysroot status")
 				// Check if loop device is mounted already
 				if internalUtils.IsMounted(s.TargetDevice) {
 					internalUtils.Log.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetDevice", s.TargetDevice).Msg("Not mounting loop, already mounted")
@@ -91,6 +95,8 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 		herd.WithDeps(cnst.OpDiscoverState),
 		herd.WithCallback(
 			func(_ context.Context) error {
+				c, _ := internalUtils.CommandWithPath("stat /sysroot")
+				internalUtils.Log.Info().Str("path", c).Msg("Sysroot status")
 				fstab, err := op.MountOPWithFstab(
 					s.TargetDevice,
 					s.Rootdir,
