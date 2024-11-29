@@ -103,6 +103,8 @@ func (s *State) InitramfsStageDagStep(g *herd.Graph, opts ...herd.OpOption) erro
 // If its uki we don't symlink as we already have everything in the sysroot.
 func (s *State) RunStageOp(stage string) func(context.Context) error {
 	return func(_ context.Context) error {
+		c, _ := internalUtils.CommandWithPath("stat /sysroot")
+		internalUtils.Log.Info().Str("path", c).Msg("Sysroot status before running stage")
 		switch stage {
 		case "rootfs":
 			if !internalUtils.IsUKI() {
@@ -131,6 +133,8 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 			if e != nil {
 				internalUtils.Log.Err(e).Msg("Writing log for rootfs stage")
 			}
+			c, _ := internalUtils.CommandWithPath("stat /sysroot")
+			internalUtils.Log.Info().Str("path", c).Msg("Sysroot status after running stage")
 			return err
 		case "initramfs":
 			// Not sure if it will work under UKI where the s.Rootdir is the current root already
@@ -146,6 +150,8 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 				if e != nil {
 					internalUtils.Log.Err(e).Msg("Writing log for initramfs stage")
 				}
+				c, _ := internalUtils.CommandWithPath("stat /sysroot")
+				internalUtils.Log.Info().Str("path", c).Msg("Sysroot status after running stage")
 				return err
 			} else {
 				chroot := internalUtils.NewChroot(s.Rootdir)
@@ -160,6 +166,8 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 					if e != nil {
 						internalUtils.Log.Err(e).Msg("Writing log for initramfs stage")
 					}
+					c, _ := internalUtils.CommandWithPath("stat /sysroot")
+					internalUtils.Log.Info().Str("path", c).Msg("Sysroot status after running stage")
 					return err
 				})
 			}

@@ -71,6 +71,8 @@ func main() {
 
 		err = g.Run(context.Background())
 		utils.Log.Info().Msg(st.WriteDAG(g))
+		x, _ := utils.CommandWithPath("stat /sysroot")
+		utils.Log.Info().Str("path", x).Msg("Sysroot status after dag")
 		return err
 	}
 	app.Flags = []cli.Flag{

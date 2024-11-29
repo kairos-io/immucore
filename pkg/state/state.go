@@ -51,6 +51,8 @@ func (s *State) path(p ...string) string {
 func (s *State) WriteFstab() func(context.Context) error {
 	return func(ctx context.Context) error {
 		// Create the file first, override if something is there, we don't care, we are on initramfs
+		c, _ := internalUtils.CommandWithPath("stat /sysroot")
+		internalUtils.Log.Info().Str("path", c).Msg("Sysroot status before fstab")
 		fstabFile := s.path("/etc/fstab")
 		f, err := os.Create(fstabFile)
 		if err != nil {
@@ -74,6 +76,8 @@ func (s *State) WriteFstab() func(context.Context) error {
 				_ = f.Close()
 			}
 		}
+		c, _ = internalUtils.CommandWithPath("stat /sysroot")
+		internalUtils.Log.Info().Str("path", c).Msg("Sysroot status after fstab")
 		return nil
 	}
 }
