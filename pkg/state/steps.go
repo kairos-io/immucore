@@ -47,7 +47,7 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 					s.path("/run/initramfs/cos-state"),
 					internalUtils.DiskFSType(internalUtils.GetState()),
 					[]string{
-						s.RootMountMode,
+						"rw",
 					}, 60*time.Second)
 				for _, f := range fstab {
 					s.fstabs = append(s.fstabs, f)
@@ -106,7 +106,7 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 					s.Rootdir,
 					"ext4", // TODO: Get this just in time? Currently if using DiskFSType is run immediately which is bad because its not mounted
 					[]string{
-						s.RootMountMode,
+						"rw",
 						"suid",
 						"dev",
 						"exec",
