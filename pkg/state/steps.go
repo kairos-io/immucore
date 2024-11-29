@@ -52,6 +52,8 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 				for _, f := range fstab {
 					s.fstabs = append(s.fstabs, f)
 				}
+				c, _ = internalUtils.CommandWithPath("stat /sysroot")
+				internalUtils.Log.Info().Str("path", c).Msg("Sysroot status")
 				return err
 			},
 		),
@@ -83,6 +85,8 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 				sh, _ := utils.SH("udevadm trigger")
 				internalUtils.Log.Debug().Str("output", sh).Msg("udevadm trigger")
 				internalUtils.Log.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetDevice", s.TargetDevice).Msg("mount done")
+				c, _ = internalUtils.CommandWithPath("stat /sysroot")
+				internalUtils.Log.Info().Str("path", c).Msg("Sysroot status")
 				return err
 			},
 		))
@@ -111,6 +115,8 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 				for _, f := range fstab {
 					s.fstabs = append(s.fstabs, f)
 				}
+				c, _ = internalUtils.CommandWithPath("stat /sysroot")
+				internalUtils.Log.Info().Str("path", c).Msg("Sysroot status")
 				return err
 			},
 		),
@@ -187,6 +193,8 @@ func (s *State) RunKcrypt(g *herd.Graph, opts ...herd.OpOption) error {
 // As those old installs have an old agent the only way to do it is during the first boot after the upgrade to the newest immucore.
 func (s *State) RunKcryptUpgrade(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpKcryptUpgrade, append(opts, herd.WithCallback(func(_ context.Context) error {
+		c, _ := internalUtils.CommandWithPath("stat /sysroot")
+		internalUtils.Log.Info().Str("path", c).Msg("Sysroot status")
 		return internalUtils.UpgradeKcryptPartitions()
 	}))...)
 }

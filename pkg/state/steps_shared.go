@@ -175,6 +175,8 @@ func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, opts ...herd.OpOption) error
 	return g.Add(cnst.OpLoadConfig,
 		append(opts, herd.WithDeps(cnst.OpRootfsHook),
 			herd.WithCallback(func(_ context.Context) error {
+				c, _ := internalUtils.CommandWithPath("stat /sysroot")
+				internalUtils.Log.Info().Str("path", c).Msg("Sysroot status before loading env")
 				if s.CustomMounts == nil {
 					s.CustomMounts = map[string]string{}
 				}
@@ -227,6 +229,9 @@ func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, opts ...herd.OpOption) error
 					addLine(internalUtils.ParseMount(v))
 				}
 
+				c, _ = internalUtils.CommandWithPath("stat /sysroot")
+				internalUtils.Log.Info().Str("path", c).Msg("Sysroot status after loading env")
+
 				return nil
 			}))...)
 }
@@ -273,6 +278,8 @@ func (s *State) MountBaseOverlayDagStep(g *herd.Graph, opts ...herd.OpOption) er
 		append(opts, herd.WithDeps(cnst.OpLoadConfig),
 			herd.WithCallback(
 				func(_ context.Context) error {
+					c, _ := internalUtils.CommandWithPath("stat /sysroot")
+					internalUtils.Log.Info().Str("path", c).Msg("Sysroot status before mounting base overlay")
 					operation, err := op.BaseOverlay(schema.Overlay{
 						Base:        "/run/overlay",
 						BackingBase: s.OverlayBase,
@@ -290,7 +297,8 @@ func (s *State) MountBaseOverlayDagStep(g *herd.Graph, opts ...herd.OpOption) er
 					if err2 != nil && errors.Is(err2, cnst.ErrAlreadyMounted) {
 						return nil
 					}
-
+					c, _ = internalUtils.CommandWithPath("stat /sysroot")
+					internalUtils.Log.Info().Str("path", c).Msg("Sysroot status after mounting base overlay")
 					return err2
 				},
 			),
@@ -372,6 +380,8 @@ func (s *State) MountCustomBindsDagStep(g *herd.Graph, opts ...herd.OpOption) er
 		append(opts, herd.WithDeps(cnst.OpOverlayMount, cnst.OpCustomMounts, cnst.OpLoadConfig),
 			herd.WithCallback(
 				func(_ context.Context) error {
+					c, _ := internalUtils.CommandWithPath("stat /sysroot")
+					internalUtils.Log.Info().Str("path", c).Msg("Sysroot status before mounting binds")
 					var err *multierror.Error
 					internalUtils.Log.Debug().Strs("mounts", s.BindMounts).Msg("Mounting binds")
 
@@ -391,6 +401,8 @@ func (s *State) MountCustomBindsDagStep(g *herd.Graph, opts ...herd.OpOption) er
 						internalUtils.Log.Debug().Str("what", p).Msg("Bind mount end")
 					}
 					internalUtils.Log.Warn().Err(err.ErrorOrNil()).Send()
+					c, _ = internalUtils.CommandWithPath("stat /sysroot")
+					internalUtils.Log.Info().Str("path", c).Msg("Sysroot status after mounting binds")
 					return err.ErrorOrNil()
 				},
 			),
