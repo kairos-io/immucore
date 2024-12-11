@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 
 	"github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/immucore/internal/version"
@@ -22,6 +23,16 @@ func main() {
 	app.Action = func(c *cli.Context) (err error) {
 		var targetDevice, targetImage string
 		var st *state.State
+
+		//utils.DropToEmergencyShell()
+		cmd := exec.Command("/usr/lib/systemd/systemd-sulogin-shell", "emergency")
+		//cmd := exec.Command("systemctl", "emergency")
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			fmt.Printf("err = %+v\n", err.Error())
+			fmt.Printf("string(out) = %+v\n", string(out))
+			os.Exit(1)
+		}
 
 		utils.MountBasic()
 		utils.SetLogger()
