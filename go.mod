@@ -31,7 +31,7 @@ require (
 )
 
 require (
-	github.com/containerd/containerd v1.7.24
+	github.com/containerd/containerd v1.7.25
 	github.com/google/go-tpm v0.9.3
 )
 
