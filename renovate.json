@@ -1,7 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:base"
+    "config:recommended"
   ],
   "schedule": [
     "after 11pm every weekday",
@@ -9,15 +9,20 @@
     "every weekend"
   ],
   "timezone": "Europe/Brussels",
-  "reviewers": [ "team:maintainers" ],
+  "reviewers": [
+    "team:maintainers"
+  ],
   "packageRules": [
     {
-      "matchUpdateTypes": ["patch"],
+      "matchUpdateTypes": [
+        "patch"
+      ],
       "automerge": true
     }
   ],
-  "regexManagers": [
+  "customManagers": [
     {
+      "customType": "regex",
       "fileMatch": [
         "^Earthfile$"
       ],
