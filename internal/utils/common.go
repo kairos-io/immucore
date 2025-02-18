@@ -351,7 +351,7 @@ func Copy(src, dst string) error {
 	return nil
 }
 
-// GetSecureboot checks if secureboot is enabled in the system by checking the expected efivar
+// GetSecureboot checks if secureboot is enabled in the system by checking the expected efivar.
 func GetSecureboot() bool {
 	// /sys/firmware/efi/efivars/ is the path to the efivars
 	// Secureboot is the VAR name
