@@ -390,7 +390,7 @@ func (s *State) UKIUnlock(g *herd.Graph, opts ...herd.OpOption) error {
 		}
 		_ = os.Setenv("PATH", "/usr/bin:/usr/sbin:/bin:/sbin")
 		internalUtils.Log.Debug().Msg("Will now try to unlock partitions")
-		err := kcrypt.UnlockAllWithLogger(true, internalUtils.Log)
+		err := kcrypt.UnlockAllWithLogger(true, internalUtils.KLog)
 		if err != nil {
 			internalUtils.RebootOrWait("Unlocking partitions failed", err)
 		}

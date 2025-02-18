@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"github.com/kairos-io/kairos-sdk/types"
 	"io"
 	"os"
 	"path/filepath"
@@ -13,6 +14,9 @@ import (
 
 var Log zerolog.Logger
 var logFile *os.File
+
+// KLog is the generic KairosLogger that we pass to kcrypt calls
+var KLog types.KairosLogger
 
 func CloseLogFiles() {
 	logFile.Close()
@@ -41,6 +45,8 @@ func SetLogger() {
 		level = zerolog.DebugLevel
 	}
 	Log = zerolog.New(multi).With().Timestamp().Logger().Level(level)
+	KLog = types.NewNullLogger()
+	KLog.Logger = Log
 }
 
 // MiddleLog implements the bridge between zerolog and the logger.Interface that yip needs.

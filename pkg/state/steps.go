@@ -172,7 +172,7 @@ func (s *State) LVMActivation(g *herd.Graph) error {
 func (s *State) RunKcrypt(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpKcryptUnlock, append(opts, herd.WithCallback(func(_ context.Context) error {
 		internalUtils.Log.Debug().Msg("Unlocking with kcrypt")
-		return kcrypt.UnlockAllWithLogger(false, internalUtils.Log)
+		return kcrypt.UnlockAllWithLogger(false, internalUtils.KLog)
 	}))...)
 }
 
