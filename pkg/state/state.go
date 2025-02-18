@@ -56,7 +56,7 @@ func (s *State) WriteFstab() func(context.Context) error {
 		if err != nil {
 			return err
 		}
-		f.Close()
+		_ = f.Close()
 		for _, fst := range s.fstabs {
 			internalUtils.Log.Debug().Str("what", fst.String()).Msg("Adding line to fstab")
 			select {
