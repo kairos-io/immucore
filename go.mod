@@ -10,7 +10,7 @@ replace (
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/deniswernert/go-fstab v0.0.0-20141204152952-eb4090f26517
-	github.com/foxboron/go-uefi v0.0.0-20241219185318-19dc140271bf
+	github.com/foxboron/go-uefi v0.0.0-20250207204325-69fb7dba244f
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jaypipes/ghw v0.13.0

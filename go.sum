@@ -189,6 +189,8 @@ github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2
 github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
 github.com/foxboron/go-uefi v0.0.0-20241219185318-19dc140271bf h1:eKPYdh9Dq7P/Tc6GRt4HqqsVK8b2vt0IGP+xmZ8dMjo=
 github.com/foxboron/go-uefi v0.0.0-20241219185318-19dc140271bf/go.mod h1:q85c4IRlhhwdRJgGIUWrisDjU8dgcMj8dnXZCXo3hus=
+github.com/foxboron/go-uefi v0.0.0-20250207204325-69fb7dba244f h1:SGo7y1xmmGWiQzp7QU3ueehmdMVkjj9Yyo1IDEuHbYw=
+github.com/foxboron/go-uefi v0.0.0-20250207204325-69fb7dba244f/go.mod h1:q85c4IRlhhwdRJgGIUWrisDjU8dgcMj8dnXZCXo3hus=
 github.com/frankban/quicktest v1.14.3 h1:FJKSZTDHjyhriyC81FLQ0LY93eSai0ZyR/ZIkd3ZUKE=
 github.com/frankban/quicktest v1.14.3/go.mod h1:mgiwOwqx65TmIk1wJ6Q7wvnVMocbUorkibMOrVTHZps=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
