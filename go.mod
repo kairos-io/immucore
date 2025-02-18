@@ -1,17 +1,13 @@
 module github.com/kairos-io/immucore
 
-go 1.23.1
-
-replace (
-	github.com/onsi/ginkgo/v2 v2.17.1 => github.com/onsi/ginkgo/v2 v2.12.1
-	github.com/onsi/gomega v1.33.0 => github.com/onsi/gomega v1.30.0
-)
+go 1.24
 
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
+	github.com/containerd/containerd v1.7.25
 	github.com/deniswernert/go-fstab v0.0.0-20141204152952-eb4090f26517
-	github.com/foxboron/go-uefi v0.0.0-20241219185318-19dc140271bf
 	github.com/gofrs/uuid v4.4.0+incompatible
+	github.com/google/go-tpm v0.9.3
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jaypipes/ghw v0.13.0
 	github.com/joho/godotenv v1.5.1
@@ -26,13 +22,8 @@ require (
 	github.com/spectrocloud-labs/herd v0.4.2
 	github.com/twpayne/go-vfs/v4 v4.3.0 // v5 requires a bump to go1.20
 	github.com/urfave/cli/v2 v2.27.5
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1
-)
-
-require (
-	github.com/containerd/containerd v1.7.25
-	github.com/google/go-tpm v0.9.3
 )
 
 require (
@@ -78,6 +69,7 @@ require (
 	github.com/elliotwutingfeng/asciiset v0.0.0-20230602022725-51bbb787efab // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
+	github.com/foxboron/go-uefi v0.0.0-20241017190036-fab4fdf2f2f3 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.6.1 // indirect
 	github.com/go-git/go-git/v5 v5.13.1 // indirect
