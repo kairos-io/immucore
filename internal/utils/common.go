@@ -1,9 +1,7 @@
 package utils
 
 import (
-	"bytes"
 	"crypto/sha256"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -349,32 +347,4 @@ func Copy(src, dst string) error {
 		return err
 	}
 	return nil
-}
-
-// GetSecureboot checks if secureboot is enabled in the system by checking the expected efivar.
-func GetSecureboot() bool {
-	// /sys/firmware/efi/efivars/ is the path to the efivars
-	// Secureboot is the VAR name
-	// 8be4df61-93ca-11d2-aa0d-00e098032b8c is the Global EFI Variable GUID, set by the UEFI spec
-	// See page 82 of https://uefi.org/sites/default/files/resources/UEFI_Spec_2_9_2021_03_18.pdf
-	SecureBootEfiVar := "/sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c"
-	f, err := os.Open(SecureBootEfiVar)
-	if err != nil {
-		return false
-	}
-	defer f.Close()
-	// We just read it in Binary
-	var buf []byte
-	if err := binary.Read(f, binary.LittleEndian, &buf); err != nil {
-		return false
-	}
-	data := bytes.NewBuffer(buf)
-	// We just read the first byte
-	b, _ := data.ReadByte()
-	// If it's 1, it's enabled
-	if b == 1 {
-		return true
-	}
-	// Otherwise is disabled
-	return false
 }

@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/foxboron/go-uefi/efi"
 	"github.com/hashicorp/go-multierror"
 	cnst "github.com/kairos-io/immucore/internal/constants"
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
@@ -158,7 +159,7 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 				}
 
 				// Now that we have all the mounts, check if we got secureboot enabled
-				if !internalUtils.GetSecureboot() && len(internalUtils.ReadCMDLineArg("rd.immucore.securebootdisabled")) == 0 {
+				if !efi.GetSecureBoot() && len(internalUtils.ReadCMDLineArg("rd.immucore.securebootdisabled")) == 0 {
 					internalUtils.RebootOrWait("Secure boot is not enabled", nil)
 				}
 				return err
