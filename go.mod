@@ -22,10 +22,12 @@ require (
 	github.com/rs/zerolog v1.34.0
 	github.com/spectrocloud-labs/herd v0.4.2
 	github.com/twpayne/go-vfs/v4 v4.3.0 // v5 requires a bump to go1.20
-	github.com/urfave/cli/v2 v2.27.6
+	github.com/urfave/cli/v3 v3.1.1
 	golang.org/x/sys v0.31.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1
 )
+
+require github.com/urfave/cli/v2 v2.27.6
 
 require (
 	atomicgo.dev/cursor v0.2.0 // indirect
