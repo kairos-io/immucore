@@ -57,6 +57,9 @@ func RegisterNormalBoot(s *state.State, g *herd.Graph) error {
 	// Depends on mount binds as that usually mounts COS_PERSISTENT
 	s.LogIfError(s.MountCustomBindsDagStep(g), "custom binds mount")
 
+	//
+	s.LogIfError(s.EnableSysExtensions(g, herd.WithWeakDeps(cnst.OpMountBind)), "enable sysextensions")
+
 	// Write fstab file
 	s.LogIfError(s.WriteFstabDagStep(g,
 		herd.WithDeps(cnst.OpMountRoot, cnst.OpDiscoverState, cnst.OpLoadConfig),

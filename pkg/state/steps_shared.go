@@ -397,6 +397,88 @@ func (s *State) MountCustomBindsDagStep(g *herd.Graph, opts ...herd.OpOption) er
 		)...)
 }
 
+// EnableSysExtensions softlinks extensions for the running state from /var/lib/kairos/extensions/$STATE to /run/extensions.
+// So when initramfs stage runs and enables systemd-sysext it can load the extensions for a given bootentry.
+func (s *State) EnableSysExtensions(g *herd.Graph, opts ...herd.OpOption) error {
+	return g.Add(cnst.OpUkiCopySysExtensions, append(opts, herd.WithCallback(func(_ context.Context) error {
+		// If uki and we are not booting from install media then do nothing
+		if internalUtils.IsUKI() {
+			if !state.EfiBootFromInstall(internalUtils.Log) {
+				internalUtils.Log.Debug().Msg("Not copying sysextensions as we think we are booting from removable media")
+				return nil
+			}
+		}
+
+		// Not that while we are using the source the /sysroot by using s.path
+		// the destination dir is actually /run/extensions without any sysroot path appended
+		// This is because after initramfs finishes it will be moved into the final sysroot automatically
+		// and the one under /sysroot/run will be shadowed
+		// create the /run/extensions dir if it does not exist
+		if _, err := os.Stat(cnst.DestSysExtDir); os.IsNotExist(err) {
+			err = os.MkdirAll(cnst.DestSysExtDir, 0755)
+			if err != nil {
+				internalUtils.Log.Err(err).Msg("Creating sysext dir")
+				return err
+			}
+		}
+
+		// At this point the extensions dir should be available
+		r, err := state.NewRuntimeWithLogger(internalUtils.Log)
+		if err != nil {
+			return err
+		}
+		var dir string
+
+		switch r.BootState {
+		case state.Active:
+			dir = fmt.Sprintf("%s/%s", cnst.SourceSysExtDir, "active")
+		case state.Passive:
+			dir = fmt.Sprintf("%s/%s", cnst.SourceSysExtDir, "passive")
+		case state.Recovery:
+			dir = fmt.Sprintf("%s/%s", cnst.SourceSysExtDir, "recovery")
+		default:
+			internalUtils.Log.Debug().Str("state", string(r.BootState)).Msg("Not copying sysextensions as we are not in a state that we know off")
+			return nil
+
+		}
+		// move to use dir with the full path from here so its simpler
+		entries, err := os.ReadDir(s.path(dir))
+		// We don't care if the dir does not exist
+		if err != nil && !os.IsNotExist(err) {
+			return nil
+		}
+
+		// If we wanted to use a common dir for extensions used for both entries, here we would do something like:
+		// commonEntries, _ := os.ReadDir(s.path(fmt.Sprintf("%s/%s", cnst.SourceSysExtDir, "common")))
+		// entries = append(entries, commonEntries...)
+
+		for _, entry := range entries {
+			if !entry.IsDir() && filepath.Ext(entry.Name()) == ".raw" {
+				// If the file is a raw file, lets softlink it
+				if internalUtils.IsUKI() {
+					// Verify the signature
+					output, err := internalUtils.CommandWithPath(fmt.Sprintf("systemd-dissect --validate %s %s", cnst.SysextDefaultPolicy, s.path(filepath.Join(dir, entry.Name()))))
+					if err != nil {
+						// If the file didn't pass the validation, we don't copy it
+						internalUtils.Log.Warn().Str("src", s.path(filepath.Join(dir, entry.Name()))).Msg("Sysextension does not pass validation")
+						internalUtils.Log.Debug().Err(err).Str("src", s.path(filepath.Join(dir, entry.Name()))).Str("output", output).Msg("Validating sysextension")
+						continue
+					}
+				}
+				// it has to link to the final dir after initramfs, so we avoid setting s.path here for the target
+				err = os.Symlink(filepath.Join(dir, entry.Name()), filepath.Join(cnst.DestSysExtDir, entry.Name()))
+				if err != nil {
+					internalUtils.Log.Err(err).Msg("Creating symlink")
+					return err
+				}
+				internalUtils.Log.Debug().Str("what", entry.Name()).Msg("Enabled sysextension")
+			}
+		}
+
+		return nil
+	}))...)
+}
+
 // WriteFstabDagStep will add writing the final fstab file with all the mounts
 // Depends on everything but weak, so it will still try to write.
 func (s *State) WriteFstabDagStep(g *herd.Graph, opts ...herd.OpOption) error {

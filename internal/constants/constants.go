@@ -102,7 +102,7 @@ const (
 	OpUkiKcrypt            = "uki-unlock"
 	OpUkiMountLivecd       = "mount-livecd"
 	OpUkiExtractCerts      = "extract-certs"
-	OpUkiCopySysExtensions = "copy-sysextensions"
+	OpUkiCopySysExtensions = "enable-sysextensions"
 	UkiLivecdMountPoint    = "/run/initramfs/live"
 	UkiIsoBaseTree         = "/run/rootfsbase"
 	UkiIsoBootImage        = "efiboot.img"
@@ -116,7 +116,7 @@ const (
 	PathAppend             = "/usr/bin:/usr/sbin:/bin:/sbin"
 	PATH                   = "PATH"
 	DefaultPCR             = 11
-	SourceSysExtDir        = "/.extra/sysext/"
+	SourceSysExtDir        = "/var/lib/kairos/extensions/"
 	DestSysExtDir          = "/run/extensions"
 	VerityCertDir          = "/run/verity.d/"
 	SysextDefaultPolicy    = "--image-policy=\"root=verity+signed+absent:usr=verity+signed+absent\""
