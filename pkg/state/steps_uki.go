@@ -561,10 +561,10 @@ func (s *State) UKIMountESPPartition(g *herd.Graph, opts ...herd.OpOption) error
 	}))...)
 }
 
-// ExtractCerts extracts the public keys from the EFI variables and writes them to /run/verity.d .
+// ExtractCerts extracts the public keys from the EFI variables and writes them to `/run/verity.d`.
 // This is used by the sysextensions to verify the signatures of the images
 // TODO: A public cert could be provided in the config that its used for this, so we should
-// expand this in the future to also extract that cert during boot from the config into the /run/verity.d
+// expand this in the future to also extract that cert during boot from the config into the /run/verity.d.
 func (s *State) ExtractCerts(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpUkiExtractCerts, append(opts, herd.WithCallback(func(_ context.Context) error {
 		// Get all the full certs
@@ -616,7 +616,7 @@ func (s *State) ExtractCerts(g *herd.Graph, opts ...herd.OpOption) error {
 	}))...)
 }
 
-// MigrateSysExt is a workaround for upgrades from 3.3.x to >= 3.4.x .
+// MigrateSysExt is a workaround for upgrades from `3.3.x` to `>= 3.4.x`.
 // In 3.3.x we had the extensions in the EFI dir directly, under /efi/EFI/kairos/{active,passive}.efi.extra.d/
 // In 3.4.x we moved them to /var/lib/kairos/extensions/ for generic and for enabled ones to /var/lib/kairos/extensions/{active,passive}/
 // This is a workaround to move the extensions from the old location to the new one to help with upgrades
@@ -624,7 +624,7 @@ func (s *State) ExtractCerts(g *herd.Graph, opts ...herd.OpOption) error {
 // Check both active and passive dirs
 // If something is found, move it to the new location at /var/lib/kairos/extensions/
 // Enable it by creating a softlink from /var/lib/kairos/extensions/{active,passive}/EXTENSION to /var/lib/kairos/extensions/EXTENSION
-// Remove it from the old location
+// Remove it from the old location.
 func (s *State) MigrateSysExt(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpUkiTransitionSysext, append(opts, herd.WithCallback(func(_ context.Context) error {
 		if !state.EfiBootFromInstall(internalUtils.Log) {
