@@ -63,7 +63,7 @@ func RegisterUKI(s *state.State, g *herd.Graph) error {
 	// Depends on mount binds as that usually mounts COS_PERSISTENT
 	s.LogIfError(s.MountCustomBindsDagStep(g, herd.WeakDeps), "custom binds mount")
 
-	s.LogIfError(s.TransitionSysext(g, herd.WithWeakDeps(cnst.OpMountBind)), "uki transition sysextensions")
+	s.LogIfError(s.MigrateSysExt(g, herd.WithWeakDeps(cnst.OpMountBind)), "uki transition sysextensions")
 	// Copy any sysextensions found under cnst.SourceSysExtDir into cnst.DestSysExtDir so its loaded by systemd automatically on start
 	// always after cnst.OpMountBind stage so we have a persistent cnst.DestSysExtDir
 	// Note that the loading of the extensions is done by systemd with the systemd-sysext service

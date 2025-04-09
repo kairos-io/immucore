@@ -561,7 +561,7 @@ func (s *State) UKIMountESPPartition(g *herd.Graph, opts ...herd.OpOption) error
 	}))...)
 }
 
-// ExtractCerts extracts the public keys from the EFI variables and writes them to /run/verity.d
+// ExtractCerts extracts the public keys from the EFI variables and writes them to /run/verity.d .
 // This is used by the sysextensions to verify the signatures of the images
 // TODO: A public cert could be provided in the config that its used for this, so we should
 // expand this in the future to also extract that cert during boot from the config into the /run/verity.d
@@ -616,7 +616,7 @@ func (s *State) ExtractCerts(g *herd.Graph, opts ...herd.OpOption) error {
 	}))...)
 }
 
-// TransitionSysext is a workaround for upgrades from 3.3.x to 3.4.x
+// MigrateSysExt is a workaround for upgrades from 3.3.x to >= 3.4.x .
 // In 3.3.x we had the extensions in the EFI dir directly, under /efi/EFI/kairos/{active,passive}.efi.extra.d/
 // In 3.4.x we moved them to /var/lib/kairos/extensions/ for generic and for enabled ones to /var/lib/kairos/extensions/{active,passive}/
 // This is a workaround to move the extensions from the old location to the new one to help with upgrades
@@ -625,7 +625,7 @@ func (s *State) ExtractCerts(g *herd.Graph, opts ...herd.OpOption) error {
 // If something is found, move it to the new location at /var/lib/kairos/extensions/
 // Enable it by creating a softlink from /var/lib/kairos/extensions/{active,passive}/EXTENSION to /var/lib/kairos/extensions/EXTENSION
 // Remove it from the old location
-func (s *State) TransitionSysext(g *herd.Graph, opts ...herd.OpOption) error {
+func (s *State) MigrateSysExt(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpUkiTransitionSysext, append(opts, herd.WithCallback(func(_ context.Context) error {
 		if !state.EfiBootFromInstall(internalUtils.Log) {
 			internalUtils.Log.Debug().Msg("Not transitioning sysext as we think we are booting from removable media")
@@ -647,21 +647,21 @@ func (s *State) TransitionSysext(g *herd.Graph, opts ...herd.OpOption) error {
 			return err
 		}
 		// We need to remount it as RO after we are done
-		defer func(source string, target string, fstype string, flags uintptr, data string) {
-			err := syscall.Mount(source, target, fstype, flags, data)
+		defer func() {
+			err := syscall.Mount(cnst.EfiDir, cnst.EfiDir, cnst.UkiDefaultEfiimgFsType, syscall.MS_REMOUNT|syscall.MS_RDONLY, "")
 			if err != nil {
 				internalUtils.Log.Err(err).Msg("Mounting EFI partition as RO")
 			} else {
 				internalUtils.Log.Debug().Msg("Remounting EFI partition as RO")
 			}
-		}(cnst.EfiDir, cnst.EfiDir, cnst.UkiDefaultEfiimgFsType, syscall.MS_REMOUNT|syscall.MS_RDONLY, "")
+		}()
 
 		for _, bootState := range []string{"active", "passive"} {
-			dir := s.path(fmt.Sprintf("/efi/EFI/kairos/%s.efi.extra.d/", bootState))
-			internalUtils.Log.Debug().Str("dir", dir).Msg("Checking for sysextensions")
+			sourceDir := s.path(fmt.Sprintf("/efi/EFI/kairos/%s.efi.extra.d/", bootState))
+			internalUtils.Log.Debug().Str("dir", sourceDir).Msg("Checking for sysextensions")
 			targetDir := s.path(fmt.Sprintf("/var/lib/kairos/extensions/%s", bootState))
-			if _, err := os.Stat(dir); os.IsNotExist(err) {
-				internalUtils.Log.Debug().Str("dir", dir).Msg("No sysextensions found")
+			if _, err := os.Stat(sourceDir); os.IsNotExist(err) {
+				internalUtils.Log.Debug().Str("dir", sourceDir).Msg("No sysextensions found")
 				continue
 			}
 			// Create target dirs as well
@@ -672,7 +672,7 @@ func (s *State) TransitionSysext(g *herd.Graph, opts ...herd.OpOption) error {
 				}
 			}
 			// Move the files over to the main extensions dir
-			files, err := os.ReadDir(dir)
+			files, err := os.ReadDir(sourceDir)
 			if err != nil {
 				internalUtils.Log.Err(err).Msg("Reading dir")
 				continue
@@ -682,7 +682,7 @@ func (s *State) TransitionSysext(g *herd.Graph, opts ...herd.OpOption) error {
 					// Skip directories
 					continue
 				}
-				source := filepath.Join(dir, file.Name())
+				source := filepath.Join(sourceDir, file.Name())
 				target := filepath.Join(s.path("/var/lib/kairos/extensions"), file.Name())
 				// Copy the file to the main extensions dir
 				internalUtils.Log.Debug().Str("source", source).Str("target", target).Msg("Moving sysextension")
