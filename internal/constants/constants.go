@@ -102,6 +102,7 @@ const (
 	OpUkiKcrypt            = "uki-unlock"
 	OpUkiMountLivecd       = "mount-livecd"
 	OpUkiExtractCerts      = "extract-certs"
+	OpUkiTransitionSysext  = "uki-transition-sysext"
 	OpUkiCopySysExtensions = "enable-sysextensions"
 	UkiLivecdMountPoint    = "/run/initramfs/live"
 	UkiIsoBaseTree         = "/run/rootfsbase"
@@ -120,4 +121,5 @@ const (
 	DestSysExtDir          = "/run/extensions"
 	VerityCertDir          = "/run/verity.d/"
 	SysextDefaultPolicy    = "--image-policy=\"root=verity+signed+absent:usr=verity+signed+absent\""
+	EfiDir                 = "/efi"
 )
