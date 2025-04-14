@@ -465,7 +465,6 @@ func (s *State) EnableSysExtensions(g *herd.Graph, opts ...herd.OpOption) error 
 						continue
 					}
 				}
-				// it has to link to the final dir after initramfs, so we avoid setting s.path here for the target
 				// Check if it already exists with the same name
 				// This is because as we have the common dir, there could be a point in which the common dir and the
 				// specific boot state dir have the same file, and we dont want to fail at this point, just warn and continue
@@ -474,6 +473,7 @@ func (s *State) EnableSysExtensions(g *herd.Graph, opts ...herd.OpOption) error 
 					internalUtils.Log.Warn().Str("file", filepath.Join(cnst.DestSysExtDir, entry.Name())).Msg("Skipping sysextension as its already enabled")
 					continue
 				}
+				// it has to link to the final dir after initramfs, so we avoid setting s.path here for the target
 				err = os.Symlink(filepath.Join(dir, entry.Name()), filepath.Join(cnst.DestSysExtDir, entry.Name()))
 				if err != nil {
 					internalUtils.Log.Err(err).Msg("Creating symlink")
