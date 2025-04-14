@@ -448,9 +448,9 @@ func (s *State) EnableSysExtensions(g *herd.Graph, opts ...herd.OpOption) error 
 			return nil
 		}
 
-		// If we wanted to use a common dir for extensions used for both entries, here we would do something like:
-		// commonEntries, _ := os.ReadDir(s.path(fmt.Sprintf("%s/%s", cnst.SourceSysExtDir, "common")))
-		// entries = append(entries, commonEntries...)
+		// Common dir is always there for all states no matter what
+		commonEntries, _ := os.ReadDir(s.path(fmt.Sprintf("%s/%s", cnst.SourceSysExtDir, "common")))
+		entries = append(entries, commonEntries...)
 
 		for _, entry := range entries {
 			if !entry.IsDir() && filepath.Ext(entry.Name()) == ".raw" {
@@ -464,6 +464,14 @@ func (s *State) EnableSysExtensions(g *herd.Graph, opts ...herd.OpOption) error 
 						internalUtils.Log.Debug().Err(err).Str("src", s.path(filepath.Join(dir, entry.Name()))).Str("output", output).Msg("Validating sysextension")
 						continue
 					}
+				}
+				// Check if it already exists with the same name
+				// This is because as we have the common dir, there could be a point in which the common dir and the
+				// specific boot state dir have the same file, and we dont want to fail at this point, just warn and continue
+				if _, err := os.Stat(filepath.Join(cnst.DestSysExtDir, entry.Name())); !os.IsNotExist(err) {
+					// If it exists, we can just skip it
+					internalUtils.Log.Warn().Str("file", filepath.Join(cnst.DestSysExtDir, entry.Name())).Msg("Skipping sysextension as its already enabled")
+					continue
 				}
 				// it has to link to the final dir after initramfs, so we avoid setting s.path here for the target
 				err = os.Symlink(filepath.Join(dir, entry.Name()), filepath.Join(cnst.DestSysExtDir, entry.Name()))
