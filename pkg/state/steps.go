@@ -11,8 +11,8 @@ import (
 	cnst "github.com/kairos-io/immucore/internal/constants"
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/immucore/pkg/op"
+	"github.com/kairos-io/kairos-sdk/kcrypt"
 	"github.com/kairos-io/kairos-sdk/utils"
-	kcrypt "github.com/kairos-io/kcrypt/pkg/lib"
 	"github.com/spectrocloud-labs/herd"
 )
 
@@ -172,7 +172,7 @@ func (s *State) LVMActivation(g *herd.Graph) error {
 func (s *State) RunKcrypt(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpKcryptUnlock, append(opts, herd.WithCallback(func(_ context.Context) error {
 		internalUtils.Log.Debug().Msg("Unlocking with kcrypt")
-		return kcrypt.UnlockAllWithLogger(false, internalUtils.KLog)
+		return kcrypt.UnlockAll(false, internalUtils.KLog)
 	}))...)
 }
 

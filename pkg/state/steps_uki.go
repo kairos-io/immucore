@@ -17,9 +17,9 @@ import (
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/immucore/pkg/op"
 	"github.com/kairos-io/immucore/pkg/schema"
+	"github.com/kairos-io/kairos-sdk/kcrypt"
 	"github.com/kairos-io/kairos-sdk/signatures"
 	"github.com/kairos-io/kairos-sdk/state"
-	kcrypt "github.com/kairos-io/kcrypt/pkg/lib"
 	"github.com/mudler/go-kdetect"
 	"github.com/spectrocloud-labs/herd"
 )
@@ -390,7 +390,7 @@ func (s *State) UKIUnlock(g *herd.Graph, opts ...herd.OpOption) error {
 		}
 		_ = os.Setenv("PATH", "/usr/bin:/usr/sbin:/bin:/sbin")
 		internalUtils.Log.Debug().Msg("Will now try to unlock partitions")
-		err := kcrypt.UnlockAllWithLogger(true, internalUtils.KLog)
+		err := kcrypt.UnlockAll(true, internalUtils.KLog)
 		if err != nil {
 			internalUtils.RebootOrWait("Unlocking partitions failed", err)
 		}
