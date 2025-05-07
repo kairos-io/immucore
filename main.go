@@ -30,7 +30,7 @@ func main() {
 		defer func() {
 			if r := recover(); r != nil {
 				utils.Log.Error().Interface("panic", r).Msg("Recovered from panic")
-				utils.DropToEmergencyShell()
+				utils.DropToShellIfEnabled()
 			}
 		}()
 
