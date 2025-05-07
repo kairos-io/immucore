@@ -26,6 +26,14 @@ func main() {
 		utils.MountBasic()
 		utils.SetLogger()
 
+		// Add panic recovery
+		defer func() {
+			if r := recover(); r != nil {
+				utils.Log.Error().Interface("panic", r).Msg("Recovered from panic")
+				utils.DropToShellIfEnabled()
+			}
+		}()
+
 		v := version.Get()
 		utils.Log.Info().Str("commit", v.GitCommit).Str("compiled with", v.GoVersion).Str("version", v.Version).Msg("Immucore")
 
@@ -36,6 +44,8 @@ func main() {
 		// Get targets and state
 		targetImage, targetDevice, err = utils.GetTarget(c.Bool("dry-run"))
 		if err != nil {
+			utils.Log.Error().Err(err).Msg("Failed to get target")
+			utils.DropToEmergencyShell()
 			return err
 		}
 
@@ -59,6 +69,8 @@ func main() {
 		}
 
 		if err != nil {
+			utils.Log.Error().Err(err).Msg("Failed to register boot type")
+			utils.DropToEmergencyShell()
 			return err
 		}
 
@@ -70,6 +82,10 @@ func main() {
 		}
 
 		err = g.Run(context.Background())
+		if err != nil {
+			utils.Log.Error().Err(err).Msg("Failed to run DAG")
+			utils.DropToEmergencyShell()
+		}
 		utils.Log.Info().Msg(st.WriteDAG(g))
 		return err
 	}

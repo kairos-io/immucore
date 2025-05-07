@@ -2,11 +2,12 @@ package utils
 
 import (
 	"fmt"
-	"github.com/kairos-io/kairos-sdk/types"
 	"io"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/kairos-io/kairos-sdk/types"
 
 	"github.com/kairos-io/immucore/internal/constants"
 	"github.com/rs/zerolog"
@@ -32,9 +33,11 @@ func SetLogger() {
 		loggers = append(loggers, zerolog.ConsoleWriter{Out: logFile, TimeFormat: time.RFC3339, NoColor: true})
 	}
 
-	loggers = append(loggers, zerolog.NewConsoleWriter(func(w *zerolog.ConsoleWriter) {
-		w.TimeFormat = time.RFC3339
-	}))
+	// Write to console
+	console, err := os.OpenFile("/dev/console", os.O_WRONLY, 0)
+	if err == nil {
+		loggers = append(loggers, zerolog.ConsoleWriter{Out: console, TimeFormat: time.RFC3339, NoColor: true})
+	}
 
 	multi := zerolog.MultiLevelWriter(loggers...)
 	level = zerolog.InfoLevel

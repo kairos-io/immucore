@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -18,6 +20,11 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/kairos-io/immucore/internal/constants"
 	"github.com/kairos-io/kairos-sdk/state"
+)
+
+var (
+	shouldDropToShellOnce sync.Once
+	shouldDropToShellVal  bool
 )
 
 // BootStateToLabelDevice lets us know the device we need to mount sysroot on based on labels.
@@ -266,6 +273,25 @@ func GetHostProcCmdline() string {
 	return proc
 }
 
+// ShouldDropToShell checks if we should drop to shell on failure based on cmdline.
+// The result is memoized after first check.
+func ShouldDropToShell() bool {
+	shouldDropToShellOnce.Do(func() {
+		cmdline, _ := os.ReadFile(GetHostProcCmdline())
+		shouldDropToShellVal = bytes.Contains(cmdline, []byte("rd.immucore.shell-on-failure"))
+	})
+	return shouldDropToShellVal
+}
+
+// DropToShellIfEnabled drops to an emergency shell if rd.immucore.shell-on-failure is set in cmdline.
+// Otherwise returns to let normal error handling continue.
+func DropToShellIfEnabled() {
+	if ShouldDropToShell() {
+		DropToEmergencyShell()
+	}
+}
+
+// DropToEmergencyShell drops to an emergency shell.
 func DropToEmergencyShell() {
 	env := os.Environ()
 	// try to extract any existing path from the environment
