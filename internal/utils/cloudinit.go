@@ -1,10 +1,9 @@
 package utils
 
 import (
-	"bytes"
+	"errors"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/kairos-io/immucore/internal/constants"
@@ -13,7 +12,6 @@ import (
 	"github.com/mudler/yip/pkg/logger"
 	"github.com/mudler/yip/pkg/plugins"
 	"github.com/mudler/yip/pkg/schema"
-	"github.com/rs/zerolog"
 	"github.com/twpayne/go-vfs/v4"
 	"gopkg.in/yaml.v3"
 )
@@ -51,23 +49,12 @@ func NewYipExecutor(l logger.Interface) executor.Executor {
 	return exec
 }
 
-func RunStage(stage string) (bytes.Buffer, error) {
+func RunStage(stage string) error {
 	var allErrors, err error
 	var cmdLineYipURI string
-	var buffer bytes.Buffer
-	var level zerolog.Level
 
-	// Specific log here so it writes to a buffer and we can return that as output
-	level = zerolog.InfoLevel
-	// Set debug level
-	debug := len(ReadCMDLineArg("rd.immucore.debug")) > 0
-	debugFromEnv := os.Getenv("IMMUCORE_DEBUG") != ""
-	if debug || debugFromEnv {
-		level = zerolog.DebugLevel
-	}
-	log := MiddleLog{zerolog.New(zerolog.ConsoleWriter{Out: &buffer, TimeFormat: time.RFC3339, NoColor: true}).With().Timestamp().Logger().Level(level)}
 	// Set debug logger
-	yip := NewYipExecutor(log)
+	yip := NewYipExecutor(KLog)
 	c := ImmucoreConsole{}
 
 	stageBefore := fmt.Sprintf("%s.before", stage)
@@ -117,11 +104,12 @@ func RunStage(stage string) (bytes.Buffer, error) {
 	yip.Modifier(nil)
 
 	// Not doing anything with the errors yet, need to know which ones are permissible (no metadata, marshall errors, etc..)
-	return buffer, nil
+	return nil
 }
 
 func onlyYAMLPartialErrors(er error) bool {
-	if merr, ok := er.(*multierror.Error); ok {
+	var merr *multierror.Error
+	if errors.As(er, &merr) {
 		for _, e := range merr.Errors {
 			// Skip partial unmarshalling errors
 			// TypeError is throwed when it is possible to read the yaml partially

@@ -12,7 +12,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jaypipes/ghw v0.16.0
 	github.com/joho/godotenv v1.5.1
-	github.com/kairos-io/kairos-sdk v0.9.2
+	github.com/kairos-io/kairos-sdk v0.9.3-0.20250512144624-753978ec1584
 	github.com/moby/sys/mountinfo v0.7.2
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
 	github.com/mudler/yip v1.16.0
@@ -22,7 +22,6 @@ require (
 	github.com/spectrocloud-labs/herd v0.4.2
 	github.com/twpayne/go-vfs/v4 v4.3.0 // v5 requires a bump to go1.20
 	github.com/urfave/cli/v2 v2.27.6
-	golang.org/x/sys v0.32.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -153,12 +152,13 @@ require (
 	go.opentelemetry.io/otel/metric v1.34.0 // indirect
 	go.opentelemetry.io/otel/trace v1.34.0 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
-	golang.org/x/crypto v0.36.0 // indirect
-	golang.org/x/net v0.38.0 // indirect
-	golang.org/x/sync v0.12.0 // indirect
-	golang.org/x/term v0.30.0 // indirect
-	golang.org/x/text v0.23.0 // indirect
-	golang.org/x/tools v0.31.0 // indirect
+	golang.org/x/crypto v0.38.0 // indirect
+	golang.org/x/net v0.40.0 // indirect
+	golang.org/x/sync v0.14.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/term v0.32.0 // indirect
+	golang.org/x/text v0.25.0 // indirect
+	golang.org/x/tools v0.33.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250212204824-5a70512c5d8b // indirect
 	google.golang.org/grpc v1.70.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
