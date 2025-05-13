@@ -64,10 +64,10 @@ func IsMounted(dev string) bool {
 // Does NOT need to be mounted
 // Needs full path so either /dev/sda1 or /dev/disk/by-{label,uuid}/{label,uuid} .
 func DiskFSType(s string) string {
-	Log.Debug().Str("device", s).Msg("Getting disk type for device")
+	KLog.Logger.Debug().Str("device", s).Msg("Getting disk type for device")
 	out, e := CommandWithPath(fmt.Sprintf("blkid %s -s TYPE -o value", s))
 	if e != nil {
-		Log.Debug().Err(e).Msg("blkid")
+		KLog.Logger.Debug().Err(e).Msg("blkid")
 	}
 	out = strings.Trim(strings.Trim(out, " "), "\n")
 	blkidVersion, _ := CommandWithPath("blkid --help")
@@ -75,19 +75,19 @@ func DiskFSType(s string) string {
 		// BusyBox blkid returns the whole thing ¬_¬
 		splitted := strings.Fields(out)
 		if len(splitted) == 0 {
-			Log.Debug().Str("what", out).Msg("blkid output")
+			KLog.Logger.Debug().Str("what", out).Msg("blkid output")
 			return "ext4"
 		}
 		typeFs := splitted[len(splitted)-1]
 		typeFsSplitted := strings.Split(typeFs, "=")
 		if len(typeFsSplitted) < 1 {
-			Log.Debug().Str("what", typeFs).Msg("typeFs split")
+			KLog.Logger.Debug().Str("what", typeFs).Msg("typeFs split")
 			return "ext4"
 		}
 		finalFS := typeFsSplitted[1]
 		out = strings.TrimSpace(strings.Trim(finalFS, "\""))
 	}
-	Log.Debug().Str("what", s).Str("type", out).Msg("Partition FS type")
+	KLog.Logger.Debug().Str("what", s).Str("type", out).Msg("Partition FS type")
 	return out
 }
 
@@ -141,7 +141,7 @@ func CleanSysrootForFstab(path string) string {
 	if cleaned == "" {
 		cleaned = "/"
 	}
-	Log.Debug().Str("old", path).Str("new", cleaned).Msg("Cleaning for sysroot")
+	KLog.Logger.Debug().Str("old", path).Str("new", cleaned).Msg("Cleaning for sysroot")
 	return cleaned
 }
 
@@ -186,10 +186,10 @@ func Fsck(device string) error {
 		args = append(args, "-n")
 	}
 	cmd := strings.Join(args, " ")
-	Log.Debug().Str("cmd", cmd).Msg("fsck command")
+	KLog.Logger.Debug().Str("cmd", cmd).Msg("fsck command")
 	out, e := CommandWithPath(cmd)
 	if e != nil {
-		Log.Debug().Err(e).Str("out", out).Str("what", device).Msg("fsck")
+		KLog.Logger.Debug().Err(e).Str("out", out).Str("what", device).Msg("fsck")
 	}
 	return e
 }
@@ -197,7 +197,7 @@ func Fsck(device string) error {
 // MountBasic will mount /proc and /run
 // For now proc is needed to read the cmdline fully in uki mode
 // in normal modes this should already be done by the initramfs process, so we can skip this.
-// /run is needed to start logging from the start.
+// /run is needed to start KLog.Loggerging from the start.
 func MountBasic() {
 	_ = os.MkdirAll("/proc", 0755)
 	if !IsMounted("/proc") {
@@ -289,9 +289,9 @@ func GetOemLabel() string {
 		return oemLabel
 	}
 	// We could not get it from the cmdline so get it from the runtime
-	runtime, err := state.NewRuntimeWithLogger(Log)
+	runtime, err := state.NewRuntimeWithLogger(KLog.Logger)
 	if err != nil {
-		Log.Debug().Err(err).Msg("runtime")
+		KLog.Logger.Debug().Err(err).Msg("runtime")
 		return ""
 	}
 	return runtime.OEM.FilesystemLabel
@@ -303,9 +303,9 @@ func ActivateLVM() error {
 	// This would be the same as passing rd.lvm.conf=0 in cmdline but rather do it here than add an extra option to cmdline
 	_, _ = CommandWithPath("rm /etc/lvm/lvm.conf")
 	out, err := CommandWithPath("lvm vgchange --refresh --sysinit")
-	Log.Debug().Str("out", out).Msg("vgchange")
+	KLog.Logger.Debug().Str("out", out).Msg("vgchange")
 	if err != nil {
-		Log.Err(err).Msg("vgchange")
+		KLog.Logger.Err(err).Msg("vgchange")
 	}
 
 	_, _ = CommandWithPath("udevadm --trigger")
@@ -315,7 +315,7 @@ func ActivateLVM() error {
 // Force flushing the data to disk.
 func Sync() {
 	// wrapper isn't necessary, but leaving it here in case
-	// we want to add more logic in the future.
+	// we want to add more KLog.Loggeric in the future.
 	syscall.Sync()
 }
 

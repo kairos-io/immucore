@@ -6,7 +6,6 @@ import (
 	"github.com/kairos-io/immucore/internal/constants"
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
 	"github.com/moby/sys/mountinfo"
-	"github.com/rs/zerolog"
 )
 
 type MountOperation struct {
@@ -21,12 +20,7 @@ func (m MountOperation) Run() error {
 	defer internalUtils.Sync()
 
 	// Add context to sublogger
-	l := internalUtils.Log.With().Str("what", m.MountOption.Source).Str("where", m.Target).Str("type", m.MountOption.Type).Strs("options", m.MountOption.Options).Logger()
-	// Not sure why this defaults to debuglevel when creating a sublogger, so make sure we set it properly
-	debug := len(internalUtils.ReadCMDLineArg("rd.immucore.debug")) > 0
-	if debug {
-		l = l.Level(zerolog.DebugLevel)
-	}
+	l := internalUtils.KLog.With().Str("what", m.MountOption.Source).Str("where", m.Target).Str("type", m.MountOption.Type).Strs("options", m.MountOption.Options).Logger()
 
 	if m.PrepareCallback != nil {
 		if err := m.PrepareCallback(); err != nil {

@@ -140,20 +140,20 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 				} {
 					e := os.MkdirAll(dir, perm)
 					if e != nil {
-						internalUtils.Log.Err(e).Str("dir", dir).Interface("permissions", perm).Msg("Creating dir")
+						internalUtils.KLog.Logger.Err(e).Str("dir", dir).Interface("permissions", perm).Msg("Creating dir")
 					}
 				}
 				for _, m := range mounts {
 					e := os.MkdirAll(m.where, 0755)
 					if e != nil {
 						err = multierror.Append(err, e)
-						internalUtils.Log.Err(e).Msg("Creating dir")
+						internalUtils.KLog.Logger.Err(e).Msg("Creating dir")
 					}
 
 					e = internalUtils.Mount(m.what, m.where, m.fs, m.flags, m.data)
 					if e != nil {
 						err = multierror.Append(err, e)
-						internalUtils.Log.Err(e).Str("what", m.what).Str("where", m.where).Str("type", m.fs).Msg("Mounting")
+						internalUtils.KLog.Logger.Err(e).Str("what", m.what).Str("where", m.where).Str("type", m.fs).Msg("Mounting")
 					}
 				}
 
@@ -177,25 +177,25 @@ func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
 			var err error
 			// Create the new sysroot and move to it
 			// We need the sysroot to NOT be of type rootfs, otherwise kubernetes stuff doesnt really work
-			internalUtils.Log.Debug().Str("what", s.path(cnst.UkiSysrootDir)).Msg("Creating sysroot dir")
+			internalUtils.KLog.Logger.Debug().Str("what", s.path(cnst.UkiSysrootDir)).Msg("Creating sysroot dir")
 			err = os.MkdirAll(s.path(cnst.UkiSysrootDir), 0755) // #nosec G301 -- Sysroot needs to be 755 to be world readable
 			if err != nil {
-				internalUtils.Log.Err(err).Msg("creating sysroot dir")
+				internalUtils.KLog.Logger.Err(err).Msg("creating sysroot dir")
 				internalUtils.DropToEmergencyShell()
 			}
 
 			// Mount a tmpfs under sysroot
-			internalUtils.Log.Debug().Msg("Mounting tmpfs on sysroot")
+			internalUtils.KLog.Logger.Debug().Msg("Mounting tmpfs on sysroot")
 			err = internalUtils.Mount("tmpfs", s.path(cnst.UkiSysrootDir), "tmpfs", 0, "")
 			if err != nil {
-				internalUtils.Log.Err(err).Msg("mounting tmpfs on sysroot")
+				internalUtils.KLog.Logger.Err(err).Msg("mounting tmpfs on sysroot")
 				internalUtils.DropToEmergencyShell()
 			}
 
 			// Move all the dirs in root FS that are not a mountpoint to the new root via cp -R
 			rootDirs, err := os.ReadDir(s.Rootdir)
 			if err != nil {
-				internalUtils.Log.Err(err).Msg("reading rootdir content")
+				internalUtils.KLog.Logger.Err(err).Msg("reading rootdir content")
 			}
 
 			var mountPoints []string
@@ -216,22 +216,22 @@ func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
 					}
 					// If the directory has the same device as its parent, it's not a mount point.
 					if fileInfo.Sys().(*syscall.Stat_t).Dev == parentInfo.Sys().(*syscall.Stat_t).Dev {
-						internalUtils.Log.Debug().Str("what", path).Msg("simple directory")
+						internalUtils.KLog.Logger.Debug().Str("what", path).Msg("simple directory")
 						err = os.MkdirAll(filepath.Join(s.path(cnst.UkiSysrootDir), path), fileInfo.Mode())
 						if err != nil {
-							internalUtils.Log.Err(err).Str("what", filepath.Join(s.path(cnst.UkiSysrootDir), path)).Msg("mkdir")
+							internalUtils.KLog.Logger.Err(err).Str("what", filepath.Join(s.path(cnst.UkiSysrootDir), path)).Msg("mkdir")
 							return err
 						}
 
 						// Copy it over
 						out, err := internalUtils.CommandWithPath(fmt.Sprintf("cp -a %s %s", s.path(path), s.path(cnst.UkiSysrootDir)))
 						if err != nil {
-							internalUtils.Log.Err(err).Str("out", out).Str("what", s.path(path)).Str("where", s.path(cnst.UkiSysrootDir)).Msg("copying dir into sysroot")
+							internalUtils.KLog.Logger.Err(err).Str("out", out).Str("what", s.path(path)).Str("where", s.path(cnst.UkiSysrootDir)).Msg("copying dir into sysroot")
 						}
 						continue
 					}
 
-					internalUtils.Log.Debug().Str("what", path).Msg("mount point")
+					internalUtils.KLog.Logger.Debug().Str("what", path).Msg("mount point")
 					mountPoints = append(mountPoints, s.path(path))
 
 					continue
@@ -249,16 +249,16 @@ func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
 					symlinkPath := s.path(filepath.Join(cnst.UkiSysrootDir, file.Name()))
 					err = os.Symlink(target, symlinkPath)
 					if err != nil {
-						internalUtils.Log.Err(err).Str("from", target).Str("to", symlinkPath).Msg("Symlink")
+						internalUtils.KLog.Logger.Err(err).Str("from", target).Str("to", symlinkPath).Msg("Symlink")
 						internalUtils.DropToEmergencyShell()
 					}
-					internalUtils.Log.Debug().Str("from", target).Str("to", symlinkPath).Msg("Symlinked file")
+					internalUtils.KLog.Logger.Debug().Str("from", target).Str("to", symlinkPath).Msg("Symlinked file")
 				} else {
 					// If its a file in the root dir just copy it over
 					content, _ := os.ReadFile(s.path(file.Name()))
 					newFilePath := s.path(filepath.Join(cnst.UkiSysrootDir, file.Name()))
 					_ = os.WriteFile(newFilePath, content, info.Mode())
-					internalUtils.Log.Debug().Str("from", s.path(file.Name())).Str("to", newFilePath).Msg("Copied file")
+					internalUtils.KLog.Logger.Debug().Str("from", s.path(file.Name())).Str("to", newFilePath).Msg("Copied file")
 				}
 			}
 
@@ -268,52 +268,52 @@ func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
 				if _, err := os.Stat(newDir); err != nil {
 					err = os.MkdirAll(newDir, 0755)
 					if err != nil {
-						internalUtils.Log.Err(err).Str("what", newDir).Msg("mkdir")
+						internalUtils.KLog.Logger.Err(err).Str("what", newDir).Msg("mkdir")
 					}
 				}
 
 				err = internalUtils.Mount(d, newDir, "", syscall.MS_MOVE, "")
 				if err != nil {
-					internalUtils.Log.Err(err).Str("what", d).Str("where", newDir).Msg("move mount")
+					internalUtils.KLog.Logger.Err(err).Str("what", d).Str("where", newDir).Msg("move mount")
 					continue
 				}
-				internalUtils.Log.Debug().Str("from", d).Str("to", newDir).Msg("Mount moved")
+				internalUtils.KLog.Logger.Debug().Str("from", d).Str("to", newDir).Msg("Mount moved")
 			}
 
-			internalUtils.Log.Debug().Str("to", s.path(cnst.UkiSysrootDir)).Msg("Changing dir")
+			internalUtils.KLog.Logger.Debug().Str("to", s.path(cnst.UkiSysrootDir)).Msg("Changing dir")
 			if err = syscall.Chdir(s.path(cnst.UkiSysrootDir)); err != nil {
-				internalUtils.Log.Err(err).Msg("chdir")
+				internalUtils.KLog.Logger.Err(err).Msg("chdir")
 				internalUtils.DropToEmergencyShell()
 			}
 
-			internalUtils.Log.Debug().Str("what", s.path(cnst.UkiSysrootDir)).Str("where", "/").Msg("Moving mount")
+			internalUtils.KLog.Logger.Debug().Str("what", s.path(cnst.UkiSysrootDir)).Str("where", "/").Msg("Moving mount")
 			if err = internalUtils.Mount(s.path(cnst.UkiSysrootDir), "/", "", syscall.MS_MOVE, ""); err != nil {
-				internalUtils.Log.Err(err).Msg("mount move")
+				internalUtils.KLog.Logger.Err(err).Msg("mount move")
 				internalUtils.DropToEmergencyShell()
 			}
 
-			internalUtils.Log.Debug().Str("to", ".").Msg("Chrooting")
+			internalUtils.KLog.Logger.Debug().Str("to", ".").Msg("Chrooting")
 			if err = syscall.Chroot("."); err != nil {
-				internalUtils.Log.Err(err).Msg("chroot")
+				internalUtils.KLog.Logger.Err(err).Msg("chroot")
 				internalUtils.DropToEmergencyShell()
 			}
 
 			ext := "enter-initrd"
 			pcrErr := UKIExtendPCR(ext)
 			if pcrErr != nil {
-				internalUtils.Log.Err(pcrErr).Str("ext", ext).Msg("extend-pcr")
+				internalUtils.KLog.Logger.Err(pcrErr).Str("ext", ext).Msg("extend-pcr")
 			}
 
 			pcrErr = os.MkdirAll("/run/systemd", 0755) // #nosec G301 -- Original dir has this permissions
 			if pcrErr != nil {
-				internalUtils.Log.Err(pcrErr).Msg("Creating /run/systemd dir")
+				internalUtils.KLog.Logger.Err(pcrErr).Msg("Creating /run/systemd dir")
 			}
 			// This dir is created by systemd-stub and passed to the kernel as a cpio archive
 			// that gets mounted in the initial ramdisk where we run immucore from
 			// It contains the tpm public key and signatures of the current uki
 			out, pcrErr := internalUtils.CommandWithPath("cp /.extra/* /run/systemd/")
 			if pcrErr != nil {
-				internalUtils.Log.Err(pcrErr).Str("out", out).Msg("Copying extra files")
+				internalUtils.KLog.Logger.Err(pcrErr).Str("out", out).Msg("Copying extra files")
 			}
 			return err
 		}))
@@ -332,22 +332,22 @@ func (s *State) UKIUdevDaemon(g *herd.Graph) error {
 			}
 			cmd := fmt.Sprintf("%s --daemon", udevBin)
 			out, err := internalUtils.CommandWithPath(cmd)
-			internalUtils.Log.Debug().Str("out", out).Str("cmd", cmd).Msg("Udev daemon")
+			internalUtils.KLog.Logger.Debug().Str("out", out).Str("cmd", cmd).Msg("Udev daemon")
 			if err != nil {
-				internalUtils.Log.Err(err).Msg("Udev daemon")
+				internalUtils.KLog.Logger.Err(err).Msg("Udev daemon")
 				return err
 			}
 			out, err = internalUtils.CommandWithPath("udevadm trigger")
-			internalUtils.Log.Debug().Str("out", out).Msg("Udev trigger")
+			internalUtils.KLog.Logger.Debug().Str("out", out).Msg("Udev trigger")
 			if err != nil {
-				internalUtils.Log.Err(err).Msg("Udev trigger")
+				internalUtils.KLog.Logger.Err(err).Msg("Udev trigger")
 				return err
 			}
 
 			out, err = internalUtils.CommandWithPath("udevadm settle")
-			internalUtils.Log.Debug().Str("out", out).Msg("Udev settle")
+			internalUtils.KLog.Logger.Debug().Str("out", out).Msg("Udev settle")
 			if err != nil {
-				internalUtils.Log.Err(err).Msg("Udev settle")
+				internalUtils.KLog.Logger.Err(err).Msg("Udev settle")
 				return err
 			}
 			return nil
@@ -364,15 +364,15 @@ func (s *State) UKILoadKernelModules(g *herd.Graph) error {
 		herd.WithCallback(func(_ context.Context) error {
 			drivers, err := kdetect.ProbeKernelModules("")
 			if err != nil {
-				internalUtils.Log.Err(err).Msg("Detecting needed modules")
+				internalUtils.KLog.Logger.Err(err).Msg("Detecting needed modules")
 			}
 			drivers = append(drivers, cnst.GenericKernelDrivers()...)
-			internalUtils.Log.Debug().Strs("drivers", drivers).Msg("Detecting needed modules")
+			internalUtils.KLog.Logger.Debug().Strs("drivers", drivers).Msg("Detecting needed modules")
 			for _, driver := range drivers {
 				cmd := fmt.Sprintf("modprobe %s", driver)
 				out, err := internalUtils.CommandWithPath(cmd)
 				if err != nil {
-					internalUtils.Log.Debug().Err(err).Str("out", out).Msg("modprobe")
+					internalUtils.KLog.Logger.Debug().Err(err).Str("out", out).Msg("modprobe")
 				}
 			}
 			return nil
@@ -384,12 +384,12 @@ func (s *State) UKILoadKernelModules(g *herd.Graph) error {
 func (s *State) UKIUnlock(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpUkiKcrypt, append(opts, herd.WithCallback(func(_ context.Context) error {
 		// Set full path on uki to get all the binaries
-		if !state.EfiBootFromInstall(internalUtils.Log) {
-			internalUtils.Log.Debug().Msg("Not unlocking disks as we think we are booting from removable media")
+		if !state.EfiBootFromInstall(internalUtils.KLog.Logger) {
+			internalUtils.KLog.Logger.Debug().Msg("Not unlocking disks as we think we are booting from removable media")
 			return nil
 		}
 		_ = os.Setenv("PATH", "/usr/bin:/usr/sbin:/bin:/sbin")
-		internalUtils.Log.Debug().Msg("Will now try to unlock partitions")
+		internalUtils.KLog.Logger.Debug().Msg("Will now try to unlock partitions")
 		err := kcrypt.UnlockAll(true, internalUtils.KLog)
 		if err != nil {
 			internalUtils.RebootOrWait("Unlocking partitions failed", err)
@@ -403,19 +403,19 @@ func (s *State) UKIUnlock(g *herd.Graph, opts ...herd.OpOption) error {
 func (s *State) UKIMountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpUkiMountLivecd, append(opts, herd.WithCallback(func(_ context.Context) error {
 		// If we are booting from Install Media
-		if state.EfiBootFromInstall(internalUtils.Log) {
-			internalUtils.Log.Debug().Msg("Not mounting livecd as we think we are booting from removable media")
+		if state.EfiBootFromInstall(internalUtils.KLog.Logger) {
+			internalUtils.KLog.Logger.Debug().Msg("Not mounting livecd as we think we are booting from removable media")
 			return nil
 		}
 
 		err := os.MkdirAll(s.path(cnst.UkiLivecdMountPoint), 0755)
 		if err != nil {
-			internalUtils.Log.Err(err).Msg(fmt.Sprintf("Creating %s", cnst.UkiLivecdMountPoint))
+			internalUtils.KLog.Logger.Err(err).Msg(fmt.Sprintf("Creating %s", cnst.UkiLivecdMountPoint))
 			return err
 		}
 		err = os.MkdirAll(s.path(cnst.UkiIsoBaseTree), 0755)
 		if err != nil {
-			internalUtils.Log.Err(err).Msg(fmt.Sprintf("Creating %s", cnst.UkiIsoBaseTree))
+			internalUtils.KLog.Logger.Err(err).Msg(fmt.Sprintf("Creating %s", cnst.UkiIsoBaseTree))
 			return nil
 		}
 
@@ -432,9 +432,9 @@ func (s *State) UKIMountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
 				break
 			}
 
-			internalUtils.Log.Debug().Msg(fmt.Sprintf("No media with label found at %s", cnst.UkiLivecdPath))
+			internalUtils.KLog.Logger.Debug().Msg(fmt.Sprintf("No media with label found at %s", cnst.UkiLivecdPath))
 			out, _ := internalUtils.CommandWithPath("ls -ltra /dev/disk/by-label/")
-			internalUtils.Log.Debug().Str("out", out).Msg("contents of /dev/disk/by-label/")
+			internalUtils.KLog.Logger.Debug().Str("out", out).Msg("contents of /dev/disk/by-label/")
 			time.Sleep(time.Duration(i) * time.Second)
 		}
 
@@ -444,7 +444,7 @@ func (s *State) UKIMountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
 			if err == nil {
 				cdrom = cnst.UkiDefaultcdrom
 			} else {
-				internalUtils.Log.Debug().Msg(fmt.Sprintf("No media found at %s", cnst.UkiDefaultcdrom))
+				internalUtils.KLog.Logger.Debug().Msg(fmt.Sprintf("No media found at %s", cnst.UkiDefaultcdrom))
 			}
 		}
 
@@ -452,10 +452,10 @@ func (s *State) UKIMountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
 		if cdrom != "" {
 			err = internalUtils.Mount(cdrom, s.path(cnst.UkiLivecdMountPoint), cnst.UkiDefaultcdromFsType, syscall.MS_RDONLY, "")
 			if err != nil {
-				internalUtils.Log.Err(err).Msg(fmt.Sprintf("Mounting %s", cdrom))
+				internalUtils.KLog.Logger.Err(err).Msg(fmt.Sprintf("Mounting %s", cdrom))
 				return err
 			}
-			internalUtils.Log.Debug().Msg(fmt.Sprintf("Mounted %s", cdrom))
+			internalUtils.KLog.Logger.Debug().Msg(fmt.Sprintf("Mounted %s", cdrom))
 
 			// This needs the loop module to be inserted in the kernel!
 			cmd := fmt.Sprintf("losetup --show -f %s", s.path(filepath.Join(cnst.UkiLivecdMountPoint, cnst.UkiIsoBootImage)))
@@ -463,18 +463,18 @@ func (s *State) UKIMountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
 			loop := strings.TrimSpace(out)
 
 			if err != nil || loop == "" {
-				internalUtils.Log.Err(err).Str("out", out).Msg(cmd)
+				internalUtils.KLog.Logger.Err(err).Str("out", out).Msg(cmd)
 				return err
 			}
 
 			err = internalUtils.Mount(loop, s.path(cnst.UkiIsoBaseTree), cnst.UkiDefaultEfiimgFsType, syscall.MS_RDONLY, "")
 			if err != nil {
-				internalUtils.Log.Err(err).Msg(fmt.Sprintf("Mounting %s into %s", loop, s.path(cnst.UkiIsoBaseTree)))
+				internalUtils.KLog.Logger.Err(err).Msg(fmt.Sprintf("Mounting %s into %s", loop, s.path(cnst.UkiIsoBaseTree)))
 				return err
 			}
 			return nil
 		}
-		internalUtils.Log.Debug().Msg("No livecd/install media found")
+		internalUtils.KLog.Logger.Debug().Msg("No livecd/install media found")
 		return nil
 	}))...)
 }
@@ -492,19 +492,19 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 			ext := "leave-initrd"
 			err = UKIExtendPCR(ext)
 			if err != nil {
-				internalUtils.Log.Err(err).Str("ext", ext).Msg("extend-pcr")
+				internalUtils.KLog.Logger.Err(err).Str("ext", ext).Msg("extend-pcr")
 				internalUtils.DropToEmergencyShell()
 			}
 
-			internalUtils.Log.Debug().Str("what", s.path(s.Rootdir)).Msg("Mount / RO")
+			internalUtils.KLog.Logger.Debug().Str("what", s.path(s.Rootdir)).Msg("Mount / RO")
 			if err = internalUtils.Mount("", s.path(s.Rootdir), "", syscall.MS_REMOUNT|syscall.MS_RDONLY, "ro"); err != nil {
-				internalUtils.Log.Err(err).Msg("Mount / RO")
+				internalUtils.KLog.Logger.Err(err).Msg("Mount / RO")
 				internalUtils.DropToEmergencyShell()
 			}
 
 			// Print dag before exit, otherwise its never printed as we never exit the program
-			internalUtils.Log.Info().Msg(s.WriteDAG(g))
-			internalUtils.Log.Debug().Msg("Executing init callback!")
+			internalUtils.KLog.Logger.Info().Msg(s.WriteDAG(g))
+			internalUtils.KLog.Logger.Debug().Msg("Executing init callback!")
 			if err := syscall.Exec("/sbin/init", []string{"/sbin/init"}, os.Environ()); err != nil {
 				internalUtils.DropToEmergencyShell()
 			}
@@ -516,15 +516,15 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 // Doesnt matter if it fails, its just for niceness.
 func (s *State) UKIMountESPPartition(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add("mount-esp", append(opts, herd.WithCallback(func(_ context.Context) error {
-		if !state.EfiBootFromInstall(internalUtils.Log) {
-			internalUtils.Log.Debug().Msg("Not mounting ESP as we think we are booting from removable media")
+		if !state.EfiBootFromInstall(internalUtils.KLog.Logger) {
+			internalUtils.KLog.Logger.Debug().Msg("Not mounting ESP as we think we are booting from removable media")
 			return nil
 		}
 		cmd := "lsblk -J -o NAME,PARTTYPE"
 		out, err := internalUtils.CommandWithPath(cmd)
-		internalUtils.Log.Debug().Str("out", out).Str("cmd", cmd).Msg("ESP")
+		internalUtils.KLog.Logger.Debug().Str("out", out).Str("cmd", cmd).Msg("ESP")
 		if err != nil {
-			internalUtils.Log.Err(err).Msg("ESP")
+			internalUtils.KLog.Logger.Err(err).Msg("ESP")
 			return nil
 		}
 
@@ -627,8 +627,8 @@ func (s *State) ExtractCerts(g *herd.Graph, opts ...herd.OpOption) error {
 // Remove it from the old location.
 func (s *State) MigrateSysExt(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpUkiTransitionSysext, append(opts, herd.WithCallback(func(_ context.Context) error {
-		if !state.EfiBootFromInstall(internalUtils.Log) {
-			internalUtils.Log.Debug().Msg("Not transitioning sysext as we think we are booting from removable media")
+		if !state.EfiBootFromInstall(internalUtils.KLog.Logger) {
+			internalUtils.KLog.Logger.Debug().Msg("Not transitioning sysext as we think we are booting from removable media")
 			return nil
 		}
 
@@ -643,25 +643,25 @@ func (s *State) MigrateSysExt(g *herd.Graph, opts ...herd.OpOption) error {
 		// We have to remount the EFI partition as RW to be able to move the files
 		err := syscall.Mount(cnst.EfiDir, cnst.EfiDir, cnst.UkiDefaultEfiimgFsType, syscall.MS_REMOUNT, "rw")
 		if err != nil {
-			internalUtils.Log.Err(err).Msg("Mounting EFI partition")
+			internalUtils.KLog.Logger.Err(err).Msg("Mounting EFI partition")
 			return err
 		}
 		// We need to remount it as RO after we are done
 		defer func() {
 			err := syscall.Mount(cnst.EfiDir, cnst.EfiDir, cnst.UkiDefaultEfiimgFsType, syscall.MS_REMOUNT|syscall.MS_RDONLY, "")
 			if err != nil {
-				internalUtils.Log.Err(err).Msg("Mounting EFI partition as RO")
+				internalUtils.KLog.Logger.Err(err).Msg("Mounting EFI partition as RO")
 			} else {
-				internalUtils.Log.Debug().Msg("Remounting EFI partition as RO")
+				internalUtils.KLog.Logger.Debug().Msg("Remounting EFI partition as RO")
 			}
 		}()
 
 		for _, bootState := range []string{"active", "passive"} {
 			sourceDir := s.path(fmt.Sprintf("/efi/EFI/kairos/%s.efi.extra.d/", bootState))
-			internalUtils.Log.Debug().Str("dir", sourceDir).Msg("Checking for sysextensions")
+			internalUtils.KLog.Logger.Debug().Str("dir", sourceDir).Msg("Checking for sysextensions")
 			targetDir := s.path(fmt.Sprintf("/var/lib/kairos/extensions/%s", bootState))
 			if _, err := os.Stat(sourceDir); os.IsNotExist(err) {
-				internalUtils.Log.Debug().Str("dir", sourceDir).Msg("No sysextensions found")
+				internalUtils.KLog.Logger.Debug().Str("dir", sourceDir).Msg("No sysextensions found")
 				continue
 			}
 			// Create target dirs as well
@@ -674,7 +674,7 @@ func (s *State) MigrateSysExt(g *herd.Graph, opts ...herd.OpOption) error {
 			// Move the files over to the main extensions dir
 			files, err := os.ReadDir(sourceDir)
 			if err != nil {
-				internalUtils.Log.Err(err).Msg("Reading dir")
+				internalUtils.KLog.Logger.Err(err).Msg("Reading dir")
 				continue
 			}
 			for _, file := range files {
@@ -685,28 +685,28 @@ func (s *State) MigrateSysExt(g *herd.Graph, opts ...herd.OpOption) error {
 				source := filepath.Join(sourceDir, file.Name())
 				target := filepath.Join(s.path("/var/lib/kairos/extensions"), file.Name())
 				// Copy the file to the main extensions dir
-				internalUtils.Log.Debug().Str("source", source).Str("target", target).Msg("Moving sysextension")
+				internalUtils.KLog.Logger.Debug().Str("source", source).Str("target", target).Msg("Moving sysextension")
 				err = internalUtils.Copy(source, target)
 				if err != nil {
-					internalUtils.Log.Err(err).Str("source", source).Str("target", target).Msg("Moving sysextension")
+					internalUtils.KLog.Logger.Err(err).Str("source", source).Str("target", target).Msg("Moving sysextension")
 					continue
 				}
-				internalUtils.Log.Debug().Str("source", source).Str("target", target).Msg("Moved sysextension")
+				internalUtils.KLog.Logger.Debug().Str("source", source).Str("target", target).Msg("Moved sysextension")
 
-				internalUtils.Log.Debug().Str("target", target).Str("to", s.path(filepath.Join("/var/lib/kairos/extensions", bootState, file.Name()))).Msg("Creating symlink")
+				internalUtils.KLog.Logger.Debug().Str("target", target).Str("to", s.path(filepath.Join("/var/lib/kairos/extensions", bootState, file.Name()))).Msg("Creating symlink")
 				// Create a symlink to the new location
 				err = os.Symlink(target, s.path(filepath.Join("/var/lib/kairos/extensions", bootState, file.Name())))
 				if err != nil {
-					internalUtils.Log.Err(err).Str("target", target).Str("to", s.path(filepath.Join("/var/lib/kairos/extensions", bootState, file.Name()))).Msg("Creating symlink")
+					internalUtils.KLog.Logger.Err(err).Str("target", target).Str("to", s.path(filepath.Join("/var/lib/kairos/extensions", bootState, file.Name()))).Msg("Creating symlink")
 					continue
 				}
 				// If no errors at this point, remove the original sysext
 				err = os.Remove(source)
 				if err != nil {
-					internalUtils.Log.Err(err).Str("source", source).Msg("Removing old sysext")
+					internalUtils.KLog.Logger.Err(err).Str("source", source).Msg("Removing old sysext")
 					continue
 				}
-				internalUtils.Log.Debug().Str("source", source).Msg("Done sysext")
+				internalUtils.KLog.Logger.Debug().Str("source", source).Msg("Done sysext")
 			}
 		}
 		return nil

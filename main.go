@@ -27,10 +27,10 @@ func main() {
 		utils.SetLogger()
 
 		v := version.Get()
-		utils.Log.Info().Str("commit", v.GitCommit).Str("compiled with", v.GoVersion).Str("version", v.Version).Msg("Immucore")
+		utils.KLog.Logger.Info().Str("commit", v.GitCommit).Str("compiled_with", v.GoVersion).Str("version", v.Version).Msg("Immucore")
 
 		cmdline, _ := os.ReadFile(utils.GetHostProcCmdline())
-		utils.Log.Debug().Str("content", string(cmdline)).Msg("cmdline")
+		utils.KLog.Logger.Debug().Str("content", string(cmdline)).Msg("cmdline")
 		g := herd.DAG(herd.EnableInit)
 
 		// Get targets and state
@@ -48,13 +48,13 @@ func main() {
 		}
 
 		if utils.DisableImmucore() {
-			utils.Log.Info().Msg("Stanza rd.cos.disable/rd.immucore.disable on the cmdline or booting from CDROM/Netboot/Squash recovery. Disabling immucore.")
+			utils.KLog.Logger.Info().Msg("Stanza rd.cos.disable/rd.immucore.disable on the cmdline or booting from CDROM/Netboot/Squash recovery. Disabling immucore.")
 			err = dag.RegisterLiveMedia(st, g)
 		} else if utils.IsUKI() {
-			utils.Log.Info().Msg("UKI booting!")
+			utils.KLog.Logger.Info().Msg("UKI booting!")
 			err = dag.RegisterUKI(st, g)
 		} else {
-			utils.Log.Info().Msg("Booting on active/passive/recovery.")
+			utils.KLog.Logger.Info().Msg("Booting on active/passive/recovery.")
 			err = dag.RegisterNormalBoot(st, g)
 		}
 
@@ -62,7 +62,7 @@ func main() {
 			return err
 		}
 
-		utils.Log.Info().Msg(st.WriteDAG(g))
+		utils.KLog.Logger.Info().Msg(st.WriteDAG(g))
 
 		// Once we print the dag we can exit already
 		if c.Bool("dry-run") {
@@ -70,7 +70,7 @@ func main() {
 		}
 
 		err = g.Run(context.Background())
-		utils.Log.Info().Msg(st.WriteDAG(g))
+		utils.KLog.Logger.Info().Msg(st.WriteDAG(g))
 		return err
 	}
 	app.Flags = []cli.Flag{
@@ -85,7 +85,7 @@ func main() {
 			Action: func(_ *cli.Context) error {
 				utils.SetLogger()
 				v := version.Get()
-				utils.Log.Info().Str("commit", v.GitCommit).Str("compiled with", v.GoVersion).Str("version", v.Version).Msg("Immucore")
+				utils.KLog.Logger.Info().Str("commit", v.GitCommit).Str("compiled_with", v.GoVersion).Str("version", v.Version).Msg("Immucore")
 				return nil
 			},
 		},

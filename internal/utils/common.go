@@ -22,7 +22,7 @@ import (
 
 // BootStateToLabelDevice lets us know the device we need to mount sysroot on based on labels.
 func BootStateToLabelDevice() string {
-	runtime, err := state.NewRuntimeWithLogger(Log)
+	runtime, err := state.NewRuntimeWithLogger(KLog.Logger)
 	if err != nil {
 		return ""
 	}
@@ -126,12 +126,12 @@ func GetTarget(dryRun bool) (string, string, error) {
 	// If no image just panic here, we cannot longer continue
 	if len(imgs) == 0 {
 		msg := "could not get the image name from cmdline (i.e. cos-img/filename=/cOS/active.img)"
-		Log.Error().Msg(msg)
+		KLog.Logger.Error().Msg(msg)
 		return "", "", errors.New(msg)
 	}
 
-	Log.Debug().Str("what", imgs[0]).Msg("Target device")
-	Log.Debug().Str("what", label).Msg("Target label")
+	KLog.Logger.Debug().Str("what", imgs[0]).Msg("Target device")
+	KLog.Logger.Debug().Str("what", label).Msg("Target label")
 	return imgs[0], label, nil
 }
 
@@ -142,14 +142,14 @@ func GetTarget(dryRun bool) (string, string, error) {
 // If the error is not nil it will log it.
 func RebootOrWait(msg string, err error) {
 	if err != nil {
-		Log.Error().Err(err).Msg(msg)
+		KLog.Logger.Error().Err(err).Msg(msg)
 	}
 	if len(ReadCMDLineArg("rd.immucore.rebootonfailure")) > 0 {
-		Log.Warn().Msg(fmt.Sprintf("%s - Rebooting in 10 seconds", msg))
+		KLog.Logger.Warn().Msg(fmt.Sprintf("%s - Rebooting in 10 seconds", msg))
 		time.Sleep(10 * time.Second)
 		_ = syscall.Reboot(syscall.LINUX_REBOOT_CMD_RESTART)
 	}
-	Log.Warn().Msg(fmt.Sprintf("%s - Halting boot", msg))
+	KLog.Logger.Warn().Msg(fmt.Sprintf("%s - Halting boot", msg))
 	// Sleep forever.
 	// We dont want to exit and print panics or kernel panic, so we print our message and wait for the user to ctrl+alt+del
 	select {}
@@ -169,7 +169,7 @@ func DisableImmucore() bool {
 // RootRW tells us if the mode to mount root.
 func RootRW() string {
 	if len(ReadCMDLineArg("rd.cos.debugrw")) > 0 || len(ReadCMDLineArg("rd.immucore.debugrw")) > 0 {
-		Log.Warn().Msg("Mounting root as RW")
+		KLog.Logger.Warn().Msg("Mounting root as RW")
 		return "rw"
 	}
 	return "ro"
@@ -182,7 +182,7 @@ func GetState() string {
 
 	err := retry.Do(
 		func() error {
-			r, err := state.NewRuntimeWithLogger(Log)
+			r, err := state.NewRuntimeWithLogger(KLog.Logger)
 			if err != nil {
 				return err
 			}
@@ -200,21 +200,21 @@ func GetState() string {
 		retry.Attempts(10),
 		retry.DelayType(retry.FixedDelay),
 		retry.OnRetry(func(n uint, _ error) {
-			Log.Debug().Uint("try", n).Msg("Cannot get state label, retrying")
+			KLog.Logger.Debug().Uint("try", n).Msg("Cannot get state label, retrying")
 		}),
 	)
 	if err != nil {
-		Log.Panic().Err(err).Msg("Could not get state label")
+		KLog.Logger.Panic().Err(err).Msg("Could not get state label")
 	}
 
-	Log.Debug().Str("what", label).Msg("Get state label")
+	KLog.Logger.Debug().Str("what", label).Msg("Get state label")
 	return filepath.Join("/dev/disk/by-label/", label)
 }
 
 func IsUKI() bool {
 	cmdline, err := os.ReadFile(GetHostProcCmdline())
 	if err != nil {
-		Log.Warn().Err(err).Msg("Error reading /proc/cmdline file " + err.Error())
+		KLog.Logger.Warn().Err(err).Msg("Error reading /proc/cmdline file " + err.Error())
 		return false
 	}
 
@@ -281,7 +281,7 @@ func DropToEmergencyShell() {
 		if err := syscall.Exec("/bin/sh", []string{"/bin/sh"}, env); err != nil {
 			if err := syscall.Exec("/sysroot/bin/bash", []string{"/sysroot/bin/bash"}, env); err != nil {
 				if err := syscall.Exec("/sysroot/bin/sh", []string{"/sysroot/bin/sh"}, env); err != nil {
-					Log.Fatal().Msg("Could not drop to emergency shell")
+					KLog.Logger.Fatal().Msg("Could not drop to emergency shell")
 				}
 			}
 		}

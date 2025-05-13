@@ -58,7 +58,7 @@ func (s *State) WriteFstab() func(context.Context) error {
 		}
 		_ = f.Close()
 		for _, fst := range s.fstabs {
-			internalUtils.Log.Debug().Str("what", fst.String()).Msg("Adding line to fstab")
+			internalUtils.KLog.Logger.Debug().Str("what", fst.String()).Msg("Adding line to fstab")
 			select {
 			case <-ctx.Done():
 			default:
@@ -97,7 +97,7 @@ func (s *State) WriteDAG(g *herd.Graph) (out string) {
 // Context can be empty.
 func (s *State) LogIfError(e error, msgContext string) {
 	if e != nil {
-		internalUtils.Log.Err(e).Msg(msgContext)
+		internalUtils.KLog.Logger.Err(e).Msg(msgContext)
 	}
 }
 
@@ -106,7 +106,7 @@ func (s *State) LogIfError(e error, msgContext string) {
 // Will also return the error.
 func (s *State) LogIfErrorAndReturn(e error, msgContext string) error {
 	if e != nil {
-		internalUtils.Log.Err(e).Msg(msgContext)
+		internalUtils.KLog.Logger.Err(e).Msg(msgContext)
 	}
 	return e
 }
@@ -116,8 +116,8 @@ func (s *State) LogIfErrorAndReturn(e error, msgContext string) error {
 // Will also panic.
 func (s *State) LogIfErrorAndPanic(e error, msgContext string) {
 	if e != nil {
-		internalUtils.Log.Err(e).Msg(msgContext)
-		internalUtils.Log.Fatal().Msg(e.Error())
+		internalUtils.KLog.Logger.Err(e).Msg(msgContext)
+		internalUtils.KLog.Logger.Fatal().Msg(e.Error())
 	}
 }
 
@@ -127,7 +127,7 @@ func (s *State) AddToFstab(tmpFstab *fstab.Mount) {
 	found := false
 	for _, f := range s.fstabs {
 		if f.Spec == tmpFstab.Spec {
-			internalUtils.Log.Debug().Interface("existing", f).Interface("duplicated", tmpFstab).Msg("Duplicated fstab entry found, not adding")
+			internalUtils.KLog.Logger.Debug().Interface("existing", f).Interface("duplicated", tmpFstab).Msg("Duplicated fstab entry found, not adding")
 			found = true
 		}
 	}

@@ -28,19 +28,19 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 		herd.WithCallback(func(_ context.Context) error {
 			var sentinel string
 
-			internalUtils.Log.Debug().Msg("Will now create /run/cos is not exists")
+			internalUtils.KLog.Logger.Debug().Msg("Will now create /run/cos is not exists")
 			err := internalUtils.CreateIfNotExists("/run/cos/")
 			if err != nil {
-				internalUtils.Log.Err(err).Msg("failed to create /run/cos")
+				internalUtils.KLog.Logger.Err(err).Msg("failed to create /run/cos")
 				return err
 			}
 
-			internalUtils.Log.Debug().Msg("Will now create the runtime object")
-			runtime, err := state.NewRuntimeWithLogger(internalUtils.Log)
+			internalUtils.KLog.Logger.Debug().Msg("Will now create the runtime object")
+			runtime, err := state.NewRuntimeWithLogger(internalUtils.KLog.Logger)
 			if err != nil {
 				return err
 			}
-			internalUtils.Log.Debug().Msg("Bootstate: " + string(runtime.BootState))
+			internalUtils.KLog.Logger.Debug().Msg("Bootstate: " + string(runtime.BootState))
 
 			switch runtime.BootState {
 			case state.Active:
@@ -57,9 +57,9 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 				sentinel = string(state.Unknown)
 			}
 
-			internalUtils.Log.Debug().Str("BootState", string(runtime.BootState)).Msg("The BootState was")
+			internalUtils.KLog.Logger.Debug().Str("BootState", string(runtime.BootState)).Msg("The BootState was")
 
-			internalUtils.Log.Info().Str("to", sentinel).Msg("Setting sentinel file")
+			internalUtils.KLog.Logger.Info().Str("to", sentinel).Msg("Setting sentinel file")
 			err = os.WriteFile(filepath.Join("/run/cos/", sentinel), []byte("1"), os.ModePerm)
 			if err != nil {
 				return err
@@ -70,14 +70,14 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 			if strings.Contains(string(cmdline), "rd.immucore.uki") {
 				state.DetectUKIboot(string(cmdline))
 				// sentinel for uki mode
-				if state.EfiBootFromInstall(internalUtils.Log) {
-					internalUtils.Log.Info().Str("to", "uki_boot_mode").Msg("Setting sentinel file")
+				if state.EfiBootFromInstall(internalUtils.KLog.Logger) {
+					internalUtils.KLog.Logger.Info().Str("to", "uki_boot_mode").Msg("Setting sentinel file")
 					err = os.WriteFile("/run/cos/uki_boot_mode", []byte("1"), os.ModePerm)
 					if err != nil {
 						return err
 					}
 				} else {
-					internalUtils.Log.Info().Str("to", "uki_install_mode").Msg("Setting sentinel file")
+					internalUtils.KLog.Logger.Info().Str("to", "uki_install_mode").Msg("Setting sentinel file")
 					err := os.WriteFile("/run/cos/uki_install_mode", []byte("1"), os.ModePerm)
 					if err != nil {
 						return err
@@ -109,58 +109,31 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 				if _, err := os.Stat("/system"); os.IsNotExist(err) {
 					err = os.Symlink("/sysroot/system", "/system")
 					if err != nil {
-						internalUtils.Log.Err(err).Msg("creating symlink")
+						internalUtils.KLog.Logger.Err(err).Msg("creating symlink")
 					}
 				}
 				if _, err := os.Stat("/oem"); os.IsNotExist(err) {
 					err = os.Symlink("/sysroot/oem", "/oem")
 					if err != nil {
-						internalUtils.Log.Err(err).Msg("creating symlink")
+						internalUtils.KLog.Logger.Err(err).Msg("creating symlink")
 					}
 				}
 			}
 
-			internalUtils.Log.Info().Msg("Running rootfs stage")
-			output, _ := internalUtils.RunStage("rootfs")
-			internalUtils.Log.Debug().Msg(output.String())
-			err := internalUtils.CreateIfNotExists(cnst.LogDir)
-			if err != nil {
-				return err
-			}
-			e := os.WriteFile(filepath.Join(cnst.LogDir, "rootfs_stage.log"), output.Bytes(), os.ModePerm)
-			if e != nil {
-				internalUtils.Log.Err(e).Msg("Writing log for rootfs stage")
-			}
-			return err
+			internalUtils.KLog.Logger.Info().Msg("Running rootfs stage")
+			_ = internalUtils.RunStage("rootfs")
+			return nil
 		case "initramfs":
 			// Not sure if it will work under UKI where the s.Rootdir is the current root already
-			internalUtils.Log.Info().Msg("Running initramfs stage")
+			internalUtils.KLog.Logger.Info().Msg("Running initramfs stage")
 			if internalUtils.IsUKI() {
-				output, _ := internalUtils.RunStage("initramfs")
-				internalUtils.Log.Debug().Msg(output.String())
-				err := internalUtils.CreateIfNotExists(cnst.LogDir)
-				if err != nil {
-					return err
-				}
-				e := os.WriteFile(filepath.Join(cnst.LogDir, "initramfs_stage.log"), output.Bytes(), os.ModePerm)
-				if e != nil {
-					internalUtils.Log.Err(e).Msg("Writing log for initramfs stage")
-				}
-				return err
+				_ = internalUtils.RunStage("initramfs")
+				return nil
 			} else {
 				chroot := internalUtils.NewChroot(s.Rootdir)
 				return chroot.RunCallback(func() error {
-					output, _ := internalUtils.RunStage("initramfs")
-					internalUtils.Log.Debug().Msg(output.String())
-					err := internalUtils.CreateIfNotExists(cnst.LogDir)
-					if err != nil {
-						return err
-					}
-					e := os.WriteFile(filepath.Join(cnst.LogDir, "initramfs_stage.log"), output.Bytes(), os.ModePerm)
-					if e != nil {
-						internalUtils.Log.Err(e).Msg("Writing log for initramfs stage")
-					}
-					return err
+					_ = internalUtils.RunStage("initramfs")
+					return nil
 				})
 			}
 
@@ -181,7 +154,7 @@ func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, opts ...herd.OpOption) error
 
 				env, err := internalUtils.ReadEnv("/run/cos/cos-layout.env")
 				if err != nil {
-					internalUtils.Log.Err(err).Msg("Reading env")
+					internalUtils.KLog.Logger.Err(err).Msg("Reading env")
 					return err
 				}
 				// populate from env here
@@ -236,13 +209,13 @@ func (s *State) MountOemDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpMountOEM,
 		append(opts,
 			herd.WithCallback(func(ctx context.Context) error {
-				runtime, _ := state.NewRuntimeWithLogger(internalUtils.Log)
+				runtime, _ := state.NewRuntimeWithLogger(internalUtils.KLog.Logger)
 				if runtime.BootState == state.LiveCD {
-					internalUtils.Log.Debug().Msg("Livecd mode detected, won't mount OEM")
+					internalUtils.KLog.Logger.Debug().Msg("Livecd mode detected, won't mount OEM")
 					return nil
 				}
 				if internalUtils.GetOemLabel() == "" {
-					internalUtils.Log.Debug().Msg("OEM label from cmdline empty, won't mount OEM")
+					internalUtils.KLog.Logger.Debug().Msg("OEM label from cmdline empty, won't mount OEM")
 					return nil
 				}
 				op := func(_ context.Context) error {
@@ -304,19 +277,19 @@ func (s *State) MountCustomOverlayDagStep(g *herd.Graph, opts ...herd.OpOption) 
 			herd.WithCallback(
 				func(_ context.Context) error {
 					var multierr *multierror.Error
-					internalUtils.Log.Debug().Strs("dirs", s.OverlayDirs).Msg("Mounting overlays")
+					internalUtils.KLog.Logger.Debug().Strs("dirs", s.OverlayDirs).Msg("Mounting overlays")
 					for _, p := range s.OverlayDirs {
-						internalUtils.Log.Debug().Str("what", p).Msg("Overlay mount start")
+						internalUtils.KLog.Logger.Debug().Str("what", p).Msg("Overlay mount start")
 						op := op.MountWithBaseOverlay(p, s.Rootdir, "/run/overlay")
 						err := op.Run()
 						// Append to errors only if it's not an already mounted error
 						if err != nil && !errors.Is(err, cnst.ErrAlreadyMounted) {
-							internalUtils.Log.Err(err).Msg("overlay mount")
+							internalUtils.KLog.Logger.Err(err).Msg("overlay mount")
 							multierr = multierror.Append(multierr, err)
 							continue
 						}
 						s.fstabs = append(s.fstabs, &op.FstabEntry)
-						internalUtils.Log.Debug().Str("what", p).Msg("Overlay mount done")
+						internalUtils.KLog.Logger.Debug().Str("what", p).Msg("Overlay mount done")
 					}
 					return multierr.ErrorOrNil()
 				},
@@ -329,10 +302,10 @@ func (s *State) MountCustomMountsDagStep(g *herd.Graph, opts ...herd.OpOption) e
 	return g.Add(cnst.OpCustomMounts, append(opts, herd.WithDeps(cnst.OpLoadConfig),
 		herd.WithCallback(func(_ context.Context) error {
 			var err *multierror.Error
-			internalUtils.Log.Debug().Interface("mounts", s.CustomMounts).Msg("Mounting custom mounts")
+			internalUtils.KLog.Logger.Debug().Interface("mounts", s.CustomMounts).Msg("Mounting custom mounts")
 
 			for what, where := range s.CustomMounts {
-				internalUtils.Log.Debug().Str("what", what).Str("where", where).Msg("Custom mount start")
+				internalUtils.KLog.Logger.Debug().Str("what", what).Str("where", where).Msg("Custom mount start")
 				// TODO: scan for the custom mount disk to know the underlying fs and set it proper
 				fstype := "ext4"
 				mountOptions := []string{"ro"}
@@ -356,9 +329,9 @@ func (s *State) MountCustomMountsDagStep(g *herd.Graph, opts ...herd.OpOption) e
 				if err2 != nil && !strings.Contains(what, "COS_OEM") {
 					err = multierror.Append(err, err2)
 				}
-				internalUtils.Log.Debug().Str("what", what).Str("where", where).Msg("Custom mount done")
+				internalUtils.KLog.Logger.Debug().Str("what", what).Str("where", where).Msg("Custom mount done")
 			}
-			internalUtils.Log.Warn().Err(err.ErrorOrNil()).Send()
+			internalUtils.KLog.Logger.Warn().Err(err.ErrorOrNil()).Send()
 
 			return err.ErrorOrNil()
 		}),
@@ -373,10 +346,10 @@ func (s *State) MountCustomBindsDagStep(g *herd.Graph, opts ...herd.OpOption) er
 			herd.WithCallback(
 				func(_ context.Context) error {
 					var err *multierror.Error
-					internalUtils.Log.Debug().Strs("mounts", s.BindMounts).Msg("Mounting binds")
+					internalUtils.KLog.Logger.Debug().Strs("mounts", s.BindMounts).Msg("Mounting binds")
 
 					for _, p := range s.SortedBindMounts() {
-						internalUtils.Log.Debug().Str("what", p).Msg("Bind mount start")
+						internalUtils.KLog.Logger.Debug().Str("what", p).Msg("Bind mount start")
 						op := op.MountBind(p, s.Rootdir, s.StateDir)
 						err2 := op.Run()
 						if err2 == nil {
@@ -385,12 +358,12 @@ func (s *State) MountCustomBindsDagStep(g *herd.Graph, opts ...herd.OpOption) er
 						}
 						// Append to errors only if it's not an already mounted error
 						if err2 != nil && !errors.Is(err2, cnst.ErrAlreadyMounted) {
-							internalUtils.Log.Err(err2).Send()
+							internalUtils.KLog.Logger.Err(err2).Send()
 							err = multierror.Append(err, err2)
 						}
-						internalUtils.Log.Debug().Str("what", p).Msg("Bind mount end")
+						internalUtils.KLog.Logger.Debug().Str("what", p).Msg("Bind mount end")
 					}
-					internalUtils.Log.Warn().Err(err.ErrorOrNil()).Send()
+					internalUtils.KLog.Logger.Warn().Err(err.ErrorOrNil()).Send()
 					return err.ErrorOrNil()
 				},
 			),
@@ -403,8 +376,8 @@ func (s *State) EnableSysExtensions(g *herd.Graph, opts ...herd.OpOption) error 
 	return g.Add(cnst.OpUkiCopySysExtensions, append(opts, herd.WithCallback(func(_ context.Context) error {
 		// If uki and we are not booting from install media then do nothing
 		if internalUtils.IsUKI() {
-			if !state.EfiBootFromInstall(internalUtils.Log) {
-				internalUtils.Log.Debug().Msg("Not copying sysextensions as we think we are booting from removable media")
+			if !state.EfiBootFromInstall(internalUtils.KLog.Logger) {
+				internalUtils.KLog.Logger.Debug().Msg("Not copying sysextensions as we think we are booting from removable media")
 				return nil
 			}
 		}
@@ -417,13 +390,13 @@ func (s *State) EnableSysExtensions(g *herd.Graph, opts ...herd.OpOption) error 
 		if _, err := os.Stat(cnst.DestSysExtDir); os.IsNotExist(err) {
 			err = os.MkdirAll(cnst.DestSysExtDir, 0755)
 			if err != nil {
-				internalUtils.Log.Err(err).Msg("Creating sysext dir")
+				internalUtils.KLog.Logger.Err(err).Msg("Creating sysext dir")
 				return err
 			}
 		}
 
 		// At this point the extensions dir should be available
-		r, err := state.NewRuntimeWithLogger(internalUtils.Log)
+		r, err := state.NewRuntimeWithLogger(internalUtils.KLog.Logger)
 		if err != nil {
 			return err
 		}
@@ -437,7 +410,7 @@ func (s *State) EnableSysExtensions(g *herd.Graph, opts ...herd.OpOption) error 
 		case state.Recovery:
 			dir = fmt.Sprintf("%s/%s", cnst.SourceSysExtDir, "recovery")
 		default:
-			internalUtils.Log.Debug().Str("state", string(r.BootState)).Msg("Not copying sysextensions as we are not in a state that we know off")
+			internalUtils.KLog.Logger.Debug().Str("state", string(r.BootState)).Msg("Not copying sysextensions as we are not in a state that we know off")
 			return nil
 
 		}
@@ -460,8 +433,8 @@ func (s *State) EnableSysExtensions(g *herd.Graph, opts ...herd.OpOption) error 
 					output, err := internalUtils.CommandWithPath(fmt.Sprintf("systemd-dissect --validate %s %s", cnst.SysextDefaultPolicy, s.path(filepath.Join(dir, entry.Name()))))
 					if err != nil {
 						// If the file didn't pass the validation, we don't copy it
-						internalUtils.Log.Warn().Str("src", s.path(filepath.Join(dir, entry.Name()))).Msg("Sysextension does not pass validation")
-						internalUtils.Log.Debug().Err(err).Str("src", s.path(filepath.Join(dir, entry.Name()))).Str("output", output).Msg("Validating sysextension")
+						internalUtils.KLog.Logger.Warn().Str("src", s.path(filepath.Join(dir, entry.Name()))).Msg("Sysextension does not pass validation")
+						internalUtils.KLog.Logger.Debug().Err(err).Str("src", s.path(filepath.Join(dir, entry.Name()))).Str("output", output).Msg("Validating sysextension")
 						continue
 					}
 				}
@@ -470,16 +443,16 @@ func (s *State) EnableSysExtensions(g *herd.Graph, opts ...herd.OpOption) error 
 				// specific boot state dir have the same file, and we dont want to fail at this point, just warn and continue
 				if _, err := os.Stat(filepath.Join(cnst.DestSysExtDir, entry.Name())); !os.IsNotExist(err) {
 					// If it exists, we can just skip it
-					internalUtils.Log.Warn().Str("file", filepath.Join(cnst.DestSysExtDir, entry.Name())).Msg("Skipping sysextension as its already enabled")
+					internalUtils.KLog.Logger.Warn().Str("file", filepath.Join(cnst.DestSysExtDir, entry.Name())).Msg("Skipping sysextension as its already enabled")
 					continue
 				}
 				// it has to link to the final dir after initramfs, so we avoid setting s.path here for the target
 				err = os.Symlink(filepath.Join(dir, entry.Name()), filepath.Join(cnst.DestSysExtDir, entry.Name()))
 				if err != nil {
-					internalUtils.Log.Err(err).Msg("Creating symlink")
+					internalUtils.KLog.Logger.Err(err).Msg("Creating symlink")
 					return err
 				}
-				internalUtils.Log.Debug().Str("what", entry.Name()).Msg("Enabled sysextension")
+				internalUtils.KLog.Logger.Debug().Str("what", entry.Name()).Msg("Enabled sysextension")
 			}
 		}
 

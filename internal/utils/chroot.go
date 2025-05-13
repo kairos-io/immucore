@@ -56,13 +56,13 @@ func (c *Chroot) Prepare() error {
 		mountPoint := filepath.Join(c.path, mnt)
 		if _, err := os.Stat(mnt); os.IsNotExist(err) {
 			// Source doesnt exist, skip it
-			Log.Debug().Str("what", mnt).Msg("Source does not exists, not mounting in chroot")
+			KLog.Logger.Debug().Str("what", mnt).Msg("Source does not exists, not mounting in chroot")
 			continue
 		}
 
 		err = CreateIfNotExists(mountPoint)
 		if err != nil {
-			Log.Err(err).Str("what", mountPoint).Msg("Creating dir")
+			KLog.Logger.Err(err).Str("what", mountPoint).Msg("Creating dir")
 			return err
 		}
 		// Don't mount /sys, /dev or /run as MS_REC as this brings a lot of submounts for cgroups and such and those are not needed
@@ -76,13 +76,13 @@ func (c *Chroot) Prepare() error {
 		}
 
 		if err != nil {
-			Log.Err(err).Str("where", mountPoint).Str("what", mnt).Msg("Mounting chroot bind")
+			KLog.Logger.Err(err).Str("where", mountPoint).Str("what", mnt).Msg("Mounting chroot bind")
 			return err
 		}
 		// "remount" with private so unmount events do not propagate
 		err = Mount("", mountPoint, "", syscall.MS_PRIVATE, "")
 		if err != nil {
-			Log.Err(err).Str("where", mountPoint).Str("what", mnt).Msg("Mounting chroot bind")
+			KLog.Logger.Err(err).Str("where", mountPoint).Str("what", mnt).Msg("Mounting chroot bind")
 			return err
 		}
 		c.activeMounts = append(c.activeMounts, mountPoint)
@@ -94,16 +94,16 @@ func (c *Chroot) Prepare() error {
 // Close will unmount all active mounts created in Prepare on reverse order.
 func (c *Chroot) Close() error {
 	failures := []string{}
-	Log.Debug().Strs("activeMounts", c.activeMounts).Msg("Closing chroot")
+	KLog.Logger.Debug().Strs("activeMounts", c.activeMounts).Msg("Closing chroot")
 	// Something mounts this due to selinux, so we need to try to manually unmount and ignore any errors
 	_ = syscall.Unmount(filepath.Join(c.path, "/sys/fs/selinux"), 0)
 	for len(c.activeMounts) > 0 {
 		curr := c.activeMounts[len(c.activeMounts)-1]
-		Log.Debug().Str("what", curr).Msg("Unmounting from chroot")
+		KLog.Logger.Debug().Str("what", curr).Msg("Unmounting from chroot")
 		c.activeMounts = c.activeMounts[:len(c.activeMounts)-1]
 		err := syscall.Unmount(curr, 0)
 		if err != nil {
-			Log.Err(err).Str("what", curr).Msg("Error unmounting")
+			KLog.Logger.Err(err).Str("what", curr).Msg("Error unmounting")
 			failures = append(failures, curr)
 		}
 	}
@@ -122,7 +122,7 @@ func (c *Chroot) RunCallback(callback func() error) (err error) {
 	// Store current path
 	currentPath, err = os.Getwd()
 	if err != nil {
-		Log.Err(err).Msg("Failed to get current path")
+		KLog.Logger.Err(err).Msg("Failed to get current path")
 		return err
 	}
 	defer func() {
@@ -135,7 +135,7 @@ func (c *Chroot) RunCallback(callback func() error) (err error) {
 	// Store current root
 	oldRootF, err = os.Open("/")
 	if err != nil {
-		Log.Err(err).Msg("Can't open current root")
+		KLog.Logger.Err(err).Msg("Can't open current root")
 		return err
 	}
 	defer oldRootF.Close()
@@ -143,7 +143,7 @@ func (c *Chroot) RunCallback(callback func() error) (err error) {
 	if len(c.activeMounts) == 0 {
 		err = c.Prepare()
 		if err != nil {
-			Log.Err(err).Msg("Can't mount default mounts")
+			KLog.Logger.Err(err).Msg("Can't mount default mounts")
 			return err
 		}
 		defer func(c *Chroot) {
@@ -153,13 +153,13 @@ func (c *Chroot) RunCallback(callback func() error) (err error) {
 	// Change to new dir before running chroot!
 	err = syscall.Chdir(c.path)
 	if err != nil {
-		Log.Err(err).Str("path", c.path).Msg("Can't chdir")
+		KLog.Logger.Err(err).Str("path", c.path).Msg("Can't chdir")
 		return err
 	}
 
 	err = syscall.Chroot(c.path)
 	if err != nil {
-		Log.Err(err).Str("path", c.path).Msg("Can't chroot")
+		KLog.Logger.Err(err).Str("path", c.path).Msg("Can't chroot")
 		return err
 	}
 
@@ -167,14 +167,14 @@ func (c *Chroot) RunCallback(callback func() error) (err error) {
 	defer func() {
 		tmpErr := oldRootF.Chdir()
 		if tmpErr != nil {
-			Log.Err(tmpErr).Str("path", oldRootF.Name()).Msg("Can't change to old root dir")
+			KLog.Logger.Err(tmpErr).Str("path", oldRootF.Name()).Msg("Can't change to old root dir")
 			if err == nil {
 				err = tmpErr
 			}
 		} else {
 			tmpErr = syscall.Chroot(".")
 			if tmpErr != nil {
-				Log.Err(tmpErr).Str("path", oldRootF.Name()).Msg("Can't chroot back to old root")
+				KLog.Logger.Err(tmpErr).Str("path", oldRootF.Name()).Msg("Can't chroot back to old root")
 				if err == nil {
 					err = tmpErr
 				}
@@ -197,7 +197,7 @@ func (c *Chroot) Run(command string) (string, error) {
 	}
 	err = c.RunCallback(callback)
 	if err != nil {
-		Log.Err(err).Str("cmd", command).Msg("Cant run command on chroot")
+		KLog.Logger.Err(err).Str("cmd", command).Msg("Cant run command on chroot")
 	}
 	return string(out), err
 }

@@ -55,7 +55,7 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 		),
 	)
 	if err != nil {
-		internalUtils.Log.Err(err).Send()
+		internalUtils.KLog.Logger.Err(err).Send()
 	}
 
 	// 2 - mount the image as a loop device
@@ -65,7 +65,7 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 			func(_ context.Context) error {
 				// Check if loop device is mounted already
 				if internalUtils.IsMounted(s.TargetDevice) {
-					internalUtils.Log.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetDevice", s.TargetDevice).Msg("Not mounting loop, already mounted")
+					internalUtils.KLog.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetDevice", s.TargetDevice).Msg("Not mounting loop, already mounted")
 					return nil
 				}
 				_ = internalUtils.Fsck(s.path("/run/initramfs/cos-state", s.TargetImage))
@@ -77,13 +77,13 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 				// But on other it seems like it won't trigger which causes the sysroot to not be mounted as we cant find
 				// the block device by the target label. Make sure we run this after mounting so we refresh the devices.
 				sh, _ := utils.SH("udevadm trigger")
-				internalUtils.Log.Debug().Str("output", sh).Msg("udevadm trigger")
-				internalUtils.Log.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetDevice", s.TargetDevice).Msg("mount done")
+				internalUtils.KLog.Logger.Debug().Str("output", sh).Msg("udevadm trigger")
+				internalUtils.KLog.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetDevice", s.TargetDevice).Msg("mount done")
 				return err
 			},
 		))
 	if err != nil {
-		internalUtils.Log.Err(err).Send()
+		internalUtils.KLog.Logger.Err(err).Send()
 	}
 
 	// 3 - Mount the labels as Rootdir
@@ -110,7 +110,7 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 		),
 	)
 	if err != nil {
-		internalUtils.Log.Err(err).Send()
+		internalUtils.KLog.Logger.Err(err).Send()
 	}
 	return err
 }
@@ -129,7 +129,7 @@ func (s *State) WaitForSysrootDagStep(g *herd.Graph) error {
 				}
 			}
 
-			internalUtils.Log.Debug().Str("timeout", timeout.String()).Msg("Waiting for sysroot")
+			internalUtils.KLog.Logger.Debug().Str("timeout", timeout.String()).Msg("Waiting for sysroot")
 
 			cc := time.After(timeout)
 			for {
@@ -138,22 +138,22 @@ func (s *State) WaitForSysrootDagStep(g *herd.Graph) error {
 					time.Sleep(2 * time.Second)
 					_, err := os.Stat(s.Rootdir)
 					if err != nil {
-						internalUtils.Log.Debug().Str("what", s.Rootdir).Msg("Checking path existence")
+						internalUtils.KLog.Logger.Debug().Str("what", s.Rootdir).Msg("Checking path existence")
 						continue
 					}
 					_, err = os.Stat(filepath.Join(s.Rootdir, "system"))
 					if err != nil {
-						internalUtils.Log.Debug().Str("what", filepath.Join(s.Rootdir, "system")).Msg("Checking path existence")
+						internalUtils.KLog.Logger.Debug().Str("what", filepath.Join(s.Rootdir, "system")).Msg("Checking path existence")
 						continue
 					}
 					return nil
 				case <-ctx.Done():
 					e := fmt.Errorf("context canceled")
-					internalUtils.Log.Err(e).Str("what", s.Rootdir).Msg("filepath check canceled")
+					internalUtils.KLog.Logger.Err(e).Str("what", s.Rootdir).Msg("filepath check canceled")
 					return e
 				case <-cc:
 					e := fmt.Errorf("timeout exhausted")
-					internalUtils.Log.Err(e).Str("what", s.Rootdir).Msg("filepath check timeout")
+					internalUtils.KLog.Logger.Err(e).Str("what", s.Rootdir).Msg("filepath check timeout")
 					return e
 				}
 			}
@@ -171,7 +171,7 @@ func (s *State) LVMActivation(g *herd.Graph) error {
 // Requires sysroot to be mounted as the kcrypt-challenger binary is not injected in the initramfs.
 func (s *State) RunKcrypt(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpKcryptUnlock, append(opts, herd.WithCallback(func(_ context.Context) error {
-		internalUtils.Log.Debug().Msg("Unlocking with kcrypt")
+		internalUtils.KLog.Logger.Debug().Msg("Unlocking with kcrypt")
 		return kcrypt.UnlockAll(false, internalUtils.KLog)
 	}))...)
 }

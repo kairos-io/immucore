@@ -17,7 +17,7 @@ import (
 // returns the fstab entries created and an error if any.
 func MountOPWithFstab(what, where, t string, options []string, timeout time.Duration) (schema.FsTabs, error) {
 	var fstab schema.FsTabs
-	l := internalUtils.Log.With().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Logger()
+	l := internalUtils.KLog.With().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Logger()
 	// Not sure why this defaults to debuglevel when creating a sublogger, so make sure we set it properly
 	debug := len(internalUtils.ReadCMDLineArg("rd.immucore.debug")) > 0
 	if debug {
