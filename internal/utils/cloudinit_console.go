@@ -38,7 +38,7 @@ func (s ImmucoreConsole) RunTemplate(st []string, template string) error {
 	for _, svc := range st {
 		out, err := s.Run(fmt.Sprintf(template, svc))
 		if err != nil {
-			Log.Debug().Str("output", out).Msg("Run template")
+			KLog.Logger.Debug().Str("output", out).Msg("Run template")
 			errs = multierror.Append(errs, err)
 			continue
 		}
