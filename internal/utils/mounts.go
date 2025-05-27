@@ -7,7 +7,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/containerd/containerd/mount"
+	"github.com/containerd/containerd/v2/core/mount"
 	"github.com/deniswernert/go-fstab"
 	"github.com/kairos-io/kairos-sdk/state"
 )

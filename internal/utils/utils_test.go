@@ -1,7 +1,7 @@
 package utils_test
 
 import (
-	"github.com/containerd/containerd/mount"
+	"github.com/containerd/containerd/v2/core/mount"
 	"github.com/jaypipes/ghw/pkg/block"
 	"github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/immucore/tests/mocks"

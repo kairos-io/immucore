@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/containerd/containerd/mount"
+	"github.com/containerd/containerd/v2/core/mount"
 	"github.com/kairos-io/immucore/internal/constants"
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/immucore/pkg/schema"
