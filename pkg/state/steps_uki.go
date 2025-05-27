@@ -362,6 +362,8 @@ func (s *State) UKILoadKernelModules(g *herd.Graph) error {
 	return g.Add(cnst.OpUkiKernelModules,
 		herd.WithDeps(cnst.OpUkiBaseMounts, cnst.OpUkiPivotToSysroot),
 		herd.WithCallback(func(_ context.Context) error {
+			// Run depmod to ensure all modules are loaded and modules.dep updated
+			_, _ = internalUtils.CommandWithPath("depmod -a")
 			drivers, err := kdetect.ProbeKernelModules("")
 			if err != nil {
 				internalUtils.KLog.Logger.Err(err).Msg("Detecting needed modules")

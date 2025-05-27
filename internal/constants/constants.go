@@ -70,6 +70,10 @@ func GenericKernelDrivers() []string {
 		"virtio_scsi",
 		"xhci_hcd",
 		"xhci_pci",
+		"nfit",      // For http boot NFIT memory mapping
+		"libnvdimm", // For http boot NFIT memory mapping
+		"nd_pmem",   // For http boot NFIT memory mapping
+		"dax_pmem",  // For http boot NFIT memory mapping
 	}
 }
 
