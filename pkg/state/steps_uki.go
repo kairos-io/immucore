@@ -498,17 +498,27 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 				internalUtils.DropToEmergencyShell()
 			}
 
+			// Print dag before exit, otherwise its never printed as we never exit the program
+			internalUtils.KLog.Logger.Info().Msg(s.WriteDAG(g))
+
 			internalUtils.KLog.Logger.Debug().Str("what", s.path(s.Rootdir)).Msg("Mount / RO")
+			// Close the logger before we remount the rootfs to not leave open file descriptors
+			internalUtils.KLog.Close()
 			if err = internalUtils.Mount("", s.path(s.Rootdir), "", syscall.MS_REMOUNT|syscall.MS_RDONLY, "ro"); err != nil {
+				internalUtils.SetLogger() // Set the logger again as we closed it
 				internalUtils.KLog.Logger.Err(err).Msg("Mount / RO")
 				internalUtils.DropToEmergencyShell()
 			}
 
-			// Print dag before exit, otherwise its never printed as we never exit the program
-			internalUtils.KLog.Logger.Info().Msg(s.WriteDAG(g))
+			internalUtils.SetLogger() // Set the logger again as we closed it
 			internalUtils.KLog.Logger.Debug().Msg("Executing init callback!")
 			if err := syscall.Exec("/sbin/init", []string{"/sbin/init"}, os.Environ()); err != nil {
-				internalUtils.DropToEmergencyShell()
+				// Try under bin
+				internalUtils.KLog.Logger.Warn().Err(err).Msg("Executing init failed, trying /bin/init")
+				if err = syscall.Exec("/bin/init", []string{"/bin/init"}, os.Environ()); err != nil {
+					internalUtils.KLog.Logger.Error().Err(err).Msg("Executing init failed, dropping to emergency shell")
+					internalUtils.DropToEmergencyShell()
+				}
 			}
 			return nil
 		}))
