@@ -170,6 +170,18 @@ func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, opts ...herd.OpOption) error
 				s.BindMounts = strings.Split(env["PERSISTENT_STATE_PATHS"], " ")
 				// Add custom bind mounts
 				s.BindMounts = append(s.BindMounts, strings.Split(env["CUSTOM_BIND_MOUNTS"], " ")...)
+
+				// Same but with distro specific ones
+				specificEnv, err := internalUtils.ReadEnv("/run/cos/extra-layout.env")
+				if err != nil && os.IsNotExist(err) {
+					// Just log the error, we don't care if it does not exist
+					internalUtils.KLog.Logger.Debug().Msg("No extra env from /run/cos/extra-layout.env")
+				} else {
+					// If the specific env has PERSISTENT_STATE_PATHS, we append it to the BindMounts
+					internalUtils.KLog.Logger.Debug().Str("specific_env", specificEnv["PERSISTENT_STATE_PATHS"]).Msg("Reading specific env for persistent state paths")
+					s.BindMounts = append(s.BindMounts, internalUtils.CleanupSlice(strings.Split(specificEnv["PERSISTENT_STATE_PATHS"], " "))...)
+				}
+
 				// Remove any duplicates
 				s.BindMounts = internalUtils.UniqueSlice(internalUtils.CleanupSlice(s.BindMounts))
 
