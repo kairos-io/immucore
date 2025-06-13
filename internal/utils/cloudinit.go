@@ -9,52 +9,17 @@ import (
 	"github.com/kairos-io/immucore/internal/constants"
 	"github.com/mudler/yip/pkg/console"
 	"github.com/mudler/yip/pkg/executor"
-	"github.com/mudler/yip/pkg/logger"
-	"github.com/mudler/yip/pkg/plugins"
 	"github.com/mudler/yip/pkg/schema"
 	"github.com/twpayne/go-vfs/v4"
 	"gopkg.in/yaml.v3"
 )
-
-func NewYipExecutor(l logger.Interface) executor.Executor {
-	exec := executor.NewExecutor(
-		executor.WithLogger(l),
-		executor.WithConditionals(
-			plugins.NodeConditional,
-			plugins.IfConditional,
-		),
-		executor.WithPlugins(
-			// Note, the plugin execution order depends on the order passed here
-			plugins.DNS,
-			plugins.Download,
-			plugins.Git,
-			plugins.Entities,
-			plugins.EnsureDirectories,
-			plugins.EnsureFiles,
-			plugins.Commands,
-			plugins.DeleteEntities,
-			plugins.Hostname,
-			plugins.Sysctl,
-			plugins.User,
-			plugins.SSH,
-			plugins.LoadModules,
-			plugins.Timesyncd,
-			plugins.Systemctl,
-			plugins.Environment,
-			plugins.SystemdFirstboot,
-			plugins.DataSources,
-			plugins.Layout,
-		),
-	)
-	return exec
-}
 
 func RunStage(stage string) error {
 	var allErrors, err error
 	var cmdLineYipURI string
 
 	// Set debug logger
-	yip := NewYipExecutor(KLog)
+	yip := executor.NewExecutor(executor.WithLogger(KLog))
 	c := ImmucoreConsole{}
 
 	stageBefore := fmt.Sprintf("%s.before", stage)
