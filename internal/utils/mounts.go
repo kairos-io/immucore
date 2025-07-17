@@ -93,7 +93,16 @@ func DiskFSType(s string) string {
 
 // SyncState will rsync source into destination. Useful for Bind mounts.
 func SyncState(src, dst string) error {
-	_, err := CommandWithPath(fmt.Sprintf("rsync -aqAX %s %s", src, dst))
+	rsyncChecksum := len(ReadCMDLineArg("rd.immucore.checksumrsync")) > 0
+	cmd := "rsync -aAX -v --progress --stats"
+
+	// Set the rsync options based on the cmdline, this sets checksum to validate files but it can be very slow!
+	if rsyncChecksum {
+		cmd += " --checksum"
+	}
+	
+	output, err := CommandWithPath(fmt.Sprintf("%s %s %s", cmd, src, dst))
+	KLog.Logger.Debug().Str("output", output).Str("source", src).Str("destination", dst).Msg("rsync output")
 	return err
 }
 
