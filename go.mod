@@ -1,6 +1,8 @@
 module github.com/kairos-io/immucore
 
-go 1.24.4
+go 1.24.5
+
+toolchain go1.24.6
 
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
@@ -169,3 +171,5 @@ require (
 	pault.ag/go/modprobe v0.2.0 // indirect
 	pault.ag/go/topsort v0.1.1 // indirect
 )
+
+replace github.com/kairos-io/kairos-sdk => github.com/aidanleuck/kairos-sdk v0.0.0-20250821145705-fe48b0f88e1f
