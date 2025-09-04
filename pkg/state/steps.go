@@ -120,7 +120,7 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 func (s *State) WaitForSysrootDagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpWaitForSysroot,
 		herd.WithCallback(func(ctx context.Context) error {
-			var timeout = 60 * time.Second
+			var timeout = 120 * time.Second
 			timeoutArg := internalUtils.CleanupSlice(internalUtils.ReadCMDLineArg("rd.immucore.sysrootwait="))
 			if len(timeoutArg) > 0 {
 				atoi, err := strconv.Atoi(timeoutArg[0])
