@@ -30,13 +30,14 @@ func RegisterNormalBoot(s *state.State, g *herd.Graph) error {
 	s.LogIfError(s.RunKcryptUpgrade(g, herd.WithDeps(cnst.OpLvmActivate)), "upgrade kcrypt partitions")
 
 	// Mount COS_OEM (After root as it mounts under s.Rootdir/oem)
-	s.LogIfError(s.MountOemDagStep(g, herd.WithDeps(cnst.OpMountRoot, cnst.OpLvmActivate)), "oem mount")
+	// NOTE: We solved this with the cmdline now
+	//s.LogIfError(s.MountOemDagStep(g, herd.WithDeps(cnst.OpMountRoot, cnst.OpLvmActivate)), "oem mount")
 
 	// Run unlock.
 	// Depends on mount root because it needs the kcrypt-discovery-challenger available under /sysroot
 	// Depends on OpKcryptUpgrade until we don't support upgrading from 1.X to the current version
-	// Depends on mount oem to read the server configuration
-	s.LogIfError(s.RunKcrypt(g, herd.WithDeps(cnst.OpMountRoot, cnst.OpKcryptUpgrade, cnst.OpMountOEM)), "kcrypt unlock")
+	// Depends on mount oem to read the server configuration - Not anymore
+	s.LogIfError(s.RunKcrypt(g, herd.WithDeps(cnst.OpMountRoot, cnst.OpKcryptUpgrade)), "kcrypt unlock")
 
 	// Run yip stage rootfs. Requires root+oem+sentinel to be mounted
 	s.LogIfError(s.RootfsStageDagStep(g, herd.WithDeps(cnst.OpMountRoot, cnst.OpMountOEM, cnst.OpSentinel)), "running rootfs stage")
@@ -63,12 +64,12 @@ func RegisterNormalBoot(s *state.State, g *herd.Graph) error {
 	// Write fstab file
 	s.LogIfError(s.WriteFstabDagStep(g,
 		herd.WithDeps(cnst.OpMountRoot, cnst.OpDiscoverState, cnst.OpLoadConfig),
-		herd.WithWeakDeps(cnst.OpMountOEM, cnst.OpCustomMounts, cnst.OpMountBind, cnst.OpOverlayMount)), "write fstab")
+		herd.WithWeakDeps(cnst.OpKcryptUnlock, cnst.OpMountOEM, cnst.OpCustomMounts, cnst.OpMountBind, cnst.OpOverlayMount)), "write fstab")
 
 	// do it after fstab is created
 	s.LogIfError(s.InitramfsStageDagStep(g,
 		herd.WithDeps(cnst.OpMountRoot, cnst.OpDiscoverState, cnst.OpLoadConfig, cnst.OpWriteFstab),
-		herd.WithWeakDeps(cnst.OpMountBaseOverlay, cnst.OpMountOEM, cnst.OpMountBind, cnst.OpMountBind, cnst.OpCustomMounts, cnst.OpOverlayMount),
+		herd.WithWeakDeps(cnst.OpMountBaseOverlay, cnst.OpKcryptUnlock, cnst.OpMountOEM, cnst.OpMountBind, cnst.OpMountBind, cnst.OpCustomMounts, cnst.OpOverlayMount),
 	), "initramfs stage")
 	return err
 }
