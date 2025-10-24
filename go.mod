@@ -69,7 +69,6 @@ require (
 	github.com/elliotwutingfeng/asciiset v0.0.0-20250912055424-93680c478db2 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
-	github.com/folbricht/tpmk v0.1.2-0.20230104073416-f20b20c289d7 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.6.2 // indirect
 	github.com/go-git/go-git/v5 v5.14.0 // indirect
@@ -81,10 +80,11 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/google/certificate-transparency-go v1.1.4 // indirect
-	github.com/google/go-attestation v0.4.4-0.20230613144338-a9b6eb1eb888 // indirect
+	github.com/google/go-attestation v0.5.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
+	github.com/google/go-configfs-tsm v0.3.3 // indirect
 	github.com/google/go-containerregistry v0.20.6 // indirect
-	github.com/google/go-tpm-tools v0.3.13-0.20230620182252-4639ecce2aba // indirect
+	github.com/google/go-tpm-tools v0.4.4 // indirect
 	github.com/google/go-tspi v0.3.0 // indirect
 	github.com/google/pprof v0.0.0-20250403155104-27863c87afa6 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
@@ -180,4 +180,7 @@ require (
 	pault.ag/go/topsort v0.1.1 // indirect
 )
 
-replace github.com/kairos-io/kairos-sdk => /home/dimitris/workspace/kairos/kairos-sdk
+replace (
+	github.com/kairos-io/kairos-sdk => /home/dimitris/workspace/kairos/kairos-sdk
+	github.com/kairos-io/tpm-helpers => /home/dimitris/workspace/kairos/tpm-helpers
+)
