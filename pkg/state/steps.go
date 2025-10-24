@@ -11,7 +11,6 @@ import (
 	cnst "github.com/kairos-io/immucore/internal/constants"
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/immucore/pkg/op"
-	"github.com/kairos-io/kairos-sdk/kcrypt"
 	"github.com/kairos-io/kairos-sdk/utils"
 	"github.com/spectrocloud-labs/herd"
 )
@@ -167,12 +166,13 @@ func (s *State) LVMActivation(g *herd.Graph) error {
 	}))
 }
 
-// RunKcrypt will run the UnlockAll method of kcrypt to unlock the encrypted partitions
-// Requires sysroot to be mounted as the kcrypt-challenger binary is not injected in the initramfs.
+// RunKcrypt unlocks encrypted partitions using the appropriate encryptor.
+// It uses kcrypt.GetEncryptor() to automatically determine the encryption method
+// (Remote KMS, TPM with PCR, or Local TPM NV) based on system configuration.
+// This works for both UKI and non-UKI modes - the encryptor handles the differences.
 func (s *State) RunKcrypt(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpKcryptUnlock, append(opts, herd.WithCallback(func(_ context.Context) error {
-		internalUtils.KLog.Logger.Debug().Msg("Unlocking with kcrypt")
-		return kcrypt.UnlockAll(false, internalUtils.KLog)
+		return unlockEncryptedPartitions()
 	}))...)
 }
 
