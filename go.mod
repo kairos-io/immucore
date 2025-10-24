@@ -69,6 +69,7 @@ require (
 	github.com/elliotwutingfeng/asciiset v0.0.0-20250912055424-93680c478db2 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
+	github.com/folbricht/tpmk v0.1.2-0.20230104073416-f20b20c289d7 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.6.2 // indirect
 	github.com/go-git/go-git/v5 v5.14.0 // indirect
@@ -79,12 +80,17 @@ require (
 	github.com/gofrs/flock v0.12.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
+	github.com/google/certificate-transparency-go v1.1.4 // indirect
+	github.com/google/go-attestation v0.4.4-0.20230613144338-a9b6eb1eb888 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-containerregistry v0.20.6 // indirect
+	github.com/google/go-tpm-tools v0.3.13-0.20230620182252-4639ecce2aba // indirect
+	github.com/google/go-tspi v0.3.0 // indirect
 	github.com/google/pprof v0.0.0-20250403155104-27863c87afa6 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gookit/color v1.5.4 // indirect
+	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.24.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
@@ -93,6 +99,7 @@ require (
 	github.com/jaypipes/pcidb v1.1.1 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jzelinskie/whirlpool v0.0.0-20201016144138-0675e54bb004 // indirect
+	github.com/kairos-io/tpm-helpers v0.0.0-20250917111550-e914e08a09c2 // indirect
 	github.com/kendru/darwin/go/depgraph v0.0.0-20230809052043-4d1c7e9d1767 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
@@ -172,3 +179,5 @@ require (
 	pault.ag/go/modprobe v0.2.0 // indirect
 	pault.ag/go/topsort v0.1.1 // indirect
 )
+
+replace github.com/kairos-io/kairos-sdk => /home/dimitris/workspace/kairos/kairos-sdk

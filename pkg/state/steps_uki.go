@@ -17,7 +17,6 @@ import (
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/immucore/pkg/op"
 	"github.com/kairos-io/immucore/pkg/schema"
-	"github.com/kairos-io/kairos-sdk/kcrypt"
 	"github.com/kairos-io/kairos-sdk/signatures"
 	"github.com/kairos-io/kairos-sdk/state"
 	"github.com/mudler/go-kdetect"
@@ -382,20 +381,28 @@ func (s *State) UKILoadKernelModules(g *herd.Graph) error {
 	)
 }
 
-// UKIUnlock tries to unlock the disks with the TPM policy.
+// UKIUnlock unlocks encrypted partitions in UKI mode.
+// It wraps the unified unlockEncryptedPartitions with UKI-specific setup
+// (PATH, removable media check, reboot on error).
 func (s *State) UKIUnlock(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpUkiKcrypt, append(opts, herd.WithCallback(func(_ context.Context) error {
-		// Set full path on uki to get all the binaries
+		// Check if booting from removable media (live CD)
 		if !state.EfiBootFromInstall(internalUtils.KLog.Logger) {
 			internalUtils.KLog.Logger.Debug().Msg("Not unlocking disks as we think we are booting from removable media")
 			return nil
 		}
+
+		// Set full path on UKI to get all the binaries
 		_ = os.Setenv("PATH", "/usr/bin:/usr/sbin:/bin:/sbin")
-		internalUtils.KLog.Logger.Debug().Msg("Will now try to unlock partitions")
-		err := kcrypt.UnlockAll(true, internalUtils.KLog)
+
+		// Use the unified unlock logic
+		err := unlockEncryptedPartitions()
 		if err != nil {
+			// UKI-specific error handling: reboot on failure
 			internalUtils.RebootOrWait("Unlocking partitions failed", err)
+			return err
 		}
+
 		return nil
 	}))...)
 }
