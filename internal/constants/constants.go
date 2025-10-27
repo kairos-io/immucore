@@ -99,6 +99,7 @@ const (
 	OpUkiBaseMounts        = "uki-base-mounts"
 	OpUkiPivotToSysroot    = "uki-pivot-to-sysroot"
 	OpUkiKernelModules     = "uki-kernel-modules"
+	OpUkiNetwork           = "uki-network"
 	OpWaitForSysroot       = "wait-for-sysroot"
 	OpLvmActivate          = "lvm-activation"
 	OpKcryptUnlock         = "unlock-all"
