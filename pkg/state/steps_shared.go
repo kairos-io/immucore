@@ -10,11 +10,15 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/jaypipes/ghw"
 	cnst "github.com/kairos-io/immucore/internal/constants"
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/immucore/pkg/op"
 	"github.com/kairos-io/immucore/pkg/schema"
+	"github.com/kairos-io/kairos-sdk/kcrypt"
 	"github.com/kairos-io/kairos-sdk/state"
+	"github.com/kairos-io/kairos-sdk/types"
+	"github.com/kairos-io/kairos-sdk/utils"
 	"github.com/spectrocloud-labs/herd"
 )
 
@@ -476,4 +480,76 @@ func (s *State) EnableSysExtensions(g *herd.Graph, opts ...herd.OpOption) error 
 // Depends on everything but weak, so it will still try to write.
 func (s *State) WriteFstabDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpWriteFstab, append(opts, herd.WithCallback(s.WriteFstab()))...)
+}
+
+// unlockEncryptedPartitions is the unified logic for unlocking encrypted partitions.
+// It works for both UKI and non-UKI modes by using kcrypt.GetEncryptor() which
+// automatically detects the appropriate encryption method.
+func unlockEncryptedPartitions() error {
+	internalUtils.KLog.Logger.Debug().Msg("Getting encryptor for unlocking")
+
+	// Get the appropriate encryptor based on system configuration
+	// This automatically detects UKI mode, kcrypt config, etc.
+	encryptor, err := kcrypt.GetEncryptor(internalUtils.KLog)
+	if err != nil {
+		internalUtils.KLog.Logger.Err(err).Msg("Failed to get encryptor")
+		return err
+	}
+
+	internalUtils.KLog.Logger.Info().Str("method", encryptor.Name()).Msg("Using encryption method for unlock")
+
+	// Scan for all LUKS partitions and unlock them
+	partitions, err := findEncryptedPartitions(internalUtils.KLog)
+	if err != nil {
+		internalUtils.KLog.Logger.Err(err).Msg("Failed to find encrypted partitions")
+		return err
+	}
+
+	if len(partitions) == 0 {
+		internalUtils.KLog.Logger.Debug().Msg("No encrypted partitions found")
+		return nil
+	}
+
+	internalUtils.KLog.Logger.Info().Strs("partitions", partitions).Msg("Found encrypted partitions to unlock")
+
+	// Unlock all encrypted partitions using the encryptor
+	// The encryptor knows how to unlock based on its type (TPM+PCR, Remote KMS, Local TPM)
+	err = encryptor.Unlock(partitions)
+	if err != nil {
+		internalUtils.KLog.Logger.Err(err).Msg("Failed to unlock partitions")
+		return err
+	}
+
+	internalUtils.KLog.Logger.Info().Msg("Successfully unlocked all encrypted partitions")
+	return nil
+}
+
+// findEncryptedPartitions scans the system for LUKS encrypted partitions
+// and returns their filesystem labels.
+func findEncryptedPartitions(log types.KairosLogger) ([]string, error) {
+	blk, err := ghw.Block()
+	if err != nil {
+		log.Logger.Warn().Msgf("Warning: Error reading partitions '%s'", err.Error())
+		return nil, err
+	}
+
+	var partitionLabels []string
+	for _, disk := range blk.Disks {
+		for _, p := range disk.Partitions {
+			if p.Type == "crypto_LUKS" {
+				// Check if device is already unlocked
+				// We mount it under /dev/mapper/DEVICE, so it's pretty easy to check
+				if !utils.Exists(filepath.Join("/dev", "mapper", p.Name)) {
+					log.Logger.Info().Msgf("Found unmounted LUKS partition at '%s' with label '%s'", filepath.Join("/dev", p.Name), p.FilesystemLabel)
+					if p.FilesystemLabel != "" {
+						partitionLabels = append(partitionLabels, p.FilesystemLabel)
+					}
+				} else {
+					log.Logger.Info().Msgf("Device %s seems to be mounted at %s, skipping", filepath.Join("/dev", p.Name), filepath.Join("/dev", "mapper", p.Name))
+				}
+			}
+		}
+	}
+
+	return partitionLabels, nil
 }
