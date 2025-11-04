@@ -474,10 +474,10 @@ func (s *State) UKISetupNetwork(g *herd.Graph) error {
 							} else {
 								internalUtils.KLog.Logger.Debug().Str("resolv.conf", string(resolvConf)).Msg("DNS configuration found")
 							}
-							
+
 							// Wait a moment for DNS to be ready
 							time.Sleep(2 * time.Second)
-							
+
 							return nil
 						}
 					}
