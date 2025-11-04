@@ -12,11 +12,11 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jaypipes/ghw v0.19.1
 	github.com/joho/godotenv v1.5.1
-	github.com/kairos-io/kairos-sdk v0.11.1-0.20251017131805-77d51189e0b0
+	github.com/kairos-io/kairos-sdk v0.12.1-0.20251103152832-82bc7cc6481b
 	github.com/moby/sys/mountinfo v0.7.2
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
 	github.com/mudler/yip v1.18.1
-	github.com/onsi/ginkgo/v2 v2.26.0
+	github.com/onsi/ginkgo/v2 v2.27.2
 	github.com/onsi/gomega v1.38.2
 	github.com/rs/zerolog v1.34.0
 	github.com/spectrocloud-labs/herd v0.4.2
@@ -99,7 +99,7 @@ require (
 	github.com/jaypipes/pcidb v1.1.1 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jzelinskie/whirlpool v0.0.0-20201016144138-0675e54bb004 // indirect
-	github.com/kairos-io/tpm-helpers v0.0.0-20250917111550-e914e08a09c2 // indirect
+	github.com/kairos-io/tpm-helpers v0.0.0-20251103104631-9d4298b86881 // indirect
 	github.com/kendru/darwin/go/depgraph v0.0.0-20230809052043-4d1c7e9d1767 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
@@ -159,7 +159,6 @@ require (
 	go.opentelemetry.io/otel v1.36.0 // indirect
 	go.opentelemetry.io/otel/metric v1.36.0 // indirect
 	go.opentelemetry.io/otel/trace v1.36.0 // indirect
-	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.41.0 // indirect
 	golang.org/x/mod v0.27.0 // indirect
@@ -178,9 +177,4 @@ require (
 	howett.net/plist v1.0.2-0.20250314012144-ee69052608d9 // indirect
 	pault.ag/go/modprobe v0.2.0 // indirect
 	pault.ag/go/topsort v0.1.1 // indirect
-)
-
-replace (
-	github.com/kairos-io/kairos-sdk => /home/dimitris/workspace/kairos/kairos-sdk
-	github.com/kairos-io/tpm-helpers => /home/dimitris/workspace/kairos/tpm-helpers
 )
