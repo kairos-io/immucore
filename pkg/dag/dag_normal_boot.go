@@ -32,11 +32,10 @@ func RegisterNormalBoot(s *state.State, g *herd.Graph) error {
 	// Run unlock.
 	// Depends on mount root because it needs the kcrypt-discovery-challenger available under /sysroot
 	// Depends on OpKcryptUpgrade until we don't support upgrading from 1.X to the current version
-	// No longer depends on mount oem since we read the server configuration from cmdline now
 	s.LogIfError(s.RunKcrypt(g, herd.WithDeps(cnst.OpMountRoot, cnst.OpKcryptUpgrade)), "kcrypt unlock")
 
 	// Mount COS_OEM (After root as it mounts under s.Rootdir/oem)
-	// Now depends on OpKcryptUnlock to ensure OEM is decrypted before mounting
+	// Depends on OpKcryptUnlock to ensure OEM is decrypted before mounting
 	s.LogIfError(s.MountOemDagStep(g, herd.WithDeps(cnst.OpMountRoot, cnst.OpLvmActivate, cnst.OpKcryptUnlock)), "oem mount")
 
 	// Run yip stage rootfs. Requires root+oem+sentinel to be mounted

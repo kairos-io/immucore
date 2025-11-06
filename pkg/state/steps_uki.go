@@ -388,7 +388,10 @@ func (s *State) UKISetupNetwork(g *herd.Graph) error {
 	return g.Add(cnst.OpUkiNetwork,
 		herd.WithDeps(cnst.OpUkiBaseMounts, cnst.OpUkiPivotToSysroot, cnst.OpUkiKernelModules, cnst.OpUkiUdev),
 		herd.WithCallback(func(_ context.Context) error {
-			internalUtils.KLog.Logger.Info().Msg("UKISetupNetwork: Starting network setup check")
+
+			// TODO: Make this function actually work.
+			internalUtils.KLog.Logger.Warn().Msg("UKISetupNetwork: Not implemented yet!")
+			return nil
 
 			// Skip network setup if booting in livecd mode because
 			// network is handled by the normal boot process
