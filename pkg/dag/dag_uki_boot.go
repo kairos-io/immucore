@@ -38,7 +38,14 @@ func RegisterUKI(s *state.State, g *herd.Graph) error {
 	// Mount cdrom under /run/initramfs/livecd and /run/rootfsbase for the efiboot.img contents
 	s.LogIfError(s.UKIMountLiveCd(g, herd.WithDeps(cnst.OpSentinel, cnst.OpUkiUdev)), "Mount LiveCD")
 
+	// Setup network for remote KMS access (needed before unlock)
+	// TODO: Implement this properly and enable. Until then, no KMS for UKI.
+	//s.LogIfError(s.UKISetupNetwork(g), "uki network setup")
+
 	// Unlock partitions if needed with TPM
+	// TODO: Make it depend on network setup for remote KMS access, as soon as we
+	// fix the OpUkiNetwork step.
+	//s.LogIfError(s.UKIUnlock(g, herd.WithDeps(cnst.OpSentinel, cnst.OpUkiUdev, cnst.OpUkiNetwork)), "uki unlock")
 	s.LogIfError(s.UKIUnlock(g, herd.WithDeps(cnst.OpSentinel, cnst.OpUkiUdev)), "uki unlock")
 
 	s.LogIfError(s.MountOemDagStep(g, herd.WithDeps(cnst.OpUkiKcrypt), herd.WeakDeps), "oem mount")

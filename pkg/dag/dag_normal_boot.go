@@ -1,10 +1,68 @@
 package dag
 
 import (
+	"fmt"
+	"strings"
+
 	cnst "github.com/kairos-io/immucore/internal/constants"
+	internalUtils "github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/immucore/pkg/state"
+	"github.com/kairos-io/kairos-sdk/ghw"
+	"github.com/kairos-io/kairos-sdk/types"
+	"github.com/kairos-io/kairos-sdk/utils"
 	"github.com/spectrocloud-labs/herd"
 )
+
+// oemEncrypted checks if the OEM partition is encrypted (LUKS).
+// It uses kairos-sdk's lightweight ghw to find the partition and blkid to check if it's LUKS encrypted.
+func oemEncrypted() bool {
+	oemLabel := internalUtils.GetOemLabel()
+	if oemLabel == "" {
+		// No OEM label found, assume not encrypted
+		return false
+	}
+
+	// Use kairos-sdk's lightweight ghw to get disks
+	logger := internalUtils.KLog
+	disks := ghw.GetDisks(ghw.NewPaths(""), &logger)
+	if disks == nil {
+		// If we can't read block devices, assume not encrypted to be safe
+		internalUtils.KLog.Logger.Warn().Msg("Error reading partitions, assuming OEM is not encrypted")
+		return false
+	}
+
+	// Find the partition with the OEM label
+	var oemPartition *types.Partition
+	for _, disk := range disks {
+		for _, p := range disk.Partitions {
+			if p.FilesystemLabel == oemLabel {
+				oemPartition = p
+				break
+			}
+		}
+		if oemPartition != nil {
+			break
+		}
+	}
+
+	if oemPartition == nil {
+		// Partition not found, assume not encrypted
+		return false
+	}
+
+	// Use blkid to check if the partition is LUKS encrypted
+	// blkid -t TYPE=crypto_LUKS -L <label> will return the device path if it's LUKS, or nothing if it's not
+	devicePath, err := utils.SH(fmt.Sprintf("blkid -t TYPE=crypto_LUKS -L %s", oemLabel))
+	devicePath = strings.TrimSpace(devicePath)
+
+	if err != nil || devicePath == "" {
+		// Not LUKS encrypted or error checking
+		return false
+	}
+
+	internalUtils.KLog.Logger.Debug().Str("label", oemLabel).Msg("OEM partition is encrypted")
+	return true
+}
 
 // RegisterNormalBoot registers a dag for a normal boot, where we want to mount all the pieces that make up the
 // final system. This mounts root, oem, runs rootfs, loads the cos-layout.env file and mounts custom stuff from that file
@@ -29,14 +87,20 @@ func RegisterNormalBoot(s *state.State, g *herd.Graph) error {
 	// Depend on LVM in case the LVM is encrypted somehow? Not sure if possible.
 	s.LogIfError(s.RunKcryptUpgrade(g, herd.WithDeps(cnst.OpLvmActivate)), "upgrade kcrypt partitions")
 
-	// Mount COS_OEM (After root as it mounts under s.Rootdir/oem)
-	s.LogIfError(s.MountOemDagStep(g, herd.WithDeps(cnst.OpMountRoot, cnst.OpLvmActivate)), "oem mount")
+	var kcryptDeps, oemMountDeps herd.OpOption
+	if oemEncrypted() {
+		// We need to run partition unlocking before we mount OEM
+		kcryptDeps = herd.WithDeps(cnst.OpMountRoot, cnst.OpKcryptUpgrade)
+		oemMountDeps = herd.WithDeps(cnst.OpMountRoot, cnst.OpLvmActivate, cnst.OpKcryptUnlock)
+	} else {
+		// We need to mount OEM before we run partition unlocking because old installations
+		// may not have the needed KMS configuration in the cmdline.
+		kcryptDeps = herd.WithDeps(cnst.OpMountRoot, cnst.OpKcryptUpgrade, cnst.OpMountOEM)
+		oemMountDeps = herd.WithDeps(cnst.OpMountRoot, cnst.OpLvmActivate)
+	}
 
-	// Run unlock.
-	// Depends on mount root because it needs the kcrypt-discovery-challenger available under /sysroot
-	// Depends on OpKcryptUpgrade until we don't support upgrading from 1.X to the current version
-	// Depends on mount oem to read the server configuration
-	s.LogIfError(s.RunKcrypt(g, herd.WithDeps(cnst.OpMountRoot, cnst.OpKcryptUpgrade, cnst.OpMountOEM)), "kcrypt unlock")
+	s.LogIfError(s.RunKcrypt(g, kcryptDeps), "kcrypt unlock")
+	s.LogIfError(s.MountOemDagStep(g, oemMountDeps), "oem mount")
 
 	// Run yip stage rootfs. Requires root+oem+sentinel to be mounted
 	s.LogIfError(s.RootfsStageDagStep(g, herd.WithDeps(cnst.OpMountRoot, cnst.OpMountOEM, cnst.OpSentinel)), "running rootfs stage")
@@ -63,12 +127,12 @@ func RegisterNormalBoot(s *state.State, g *herd.Graph) error {
 	// Write fstab file
 	s.LogIfError(s.WriteFstabDagStep(g,
 		herd.WithDeps(cnst.OpMountRoot, cnst.OpDiscoverState, cnst.OpLoadConfig),
-		herd.WithWeakDeps(cnst.OpMountOEM, cnst.OpCustomMounts, cnst.OpMountBind, cnst.OpOverlayMount)), "write fstab")
+		herd.WithWeakDeps(cnst.OpKcryptUnlock, cnst.OpMountOEM, cnst.OpCustomMounts, cnst.OpMountBind, cnst.OpOverlayMount)), "write fstab")
 
 	// do it after fstab is created
 	s.LogIfError(s.InitramfsStageDagStep(g,
 		herd.WithDeps(cnst.OpMountRoot, cnst.OpDiscoverState, cnst.OpLoadConfig, cnst.OpWriteFstab),
-		herd.WithWeakDeps(cnst.OpMountBaseOverlay, cnst.OpMountOEM, cnst.OpMountBind, cnst.OpMountBind, cnst.OpCustomMounts, cnst.OpOverlayMount),
+		herd.WithWeakDeps(cnst.OpMountBaseOverlay, cnst.OpKcryptUnlock, cnst.OpMountOEM, cnst.OpMountBind, cnst.OpMountBind, cnst.OpCustomMounts, cnst.OpOverlayMount),
 	), "initramfs stage")
 	return err
 }
