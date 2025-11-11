@@ -50,18 +50,27 @@ func oemEncrypted() bool {
 		return false
 	}
 
-	// Use blkid to check if the partition is LUKS encrypted
-	// blkid -t TYPE=crypto_LUKS -L <label> will return the device path if it's LUKS, or nothing if it's not
-	devicePath, err := utils.SH(fmt.Sprintf("blkid -t TYPE=crypto_LUKS -L %s", oemLabel))
-	devicePath = strings.TrimSpace(devicePath)
-
-	if err != nil || devicePath == "" {
-		// Not LUKS encrypted or error checking
+	devicePath := oemPartition.Path
+	if devicePath == "" {
+		// No device path found, assume not encrypted
+		internalUtils.KLog.Logger.Debug().Str("label", oemLabel).Msg("OEM partition found but no device path, assuming not encrypted")
 		return false
 	}
 
-	internalUtils.KLog.Logger.Debug().Str("label", oemLabel).Msg("OEM partition is encrypted")
-	return true
+	// Use blkid to check if this specific device is LUKS encrypted
+	// blkid -p <device> -s TYPE -o value returns "crypto_LUKS" if encrypted, or filesystem type if not
+	deviceType, err := utils.SH(fmt.Sprintf("blkid -p %s -s TYPE -o value", devicePath))
+	deviceType = strings.TrimSpace(deviceType)
+
+	if err != nil || deviceType == "" {
+		// Error checking or no type found, assume not encrypted to be safe
+		internalUtils.KLog.Logger.Debug().Str("label", oemLabel).Str("device", devicePath).Msg("Could not determine device type, assuming OEM is not encrypted")
+		return false
+	}
+
+	isEncrypted := deviceType == "crypto_LUKS"
+	internalUtils.KLog.Logger.Debug().Str("label", oemLabel).Str("device", devicePath).Str("type", deviceType).Bool("encrypted", isEncrypted).Msg("Checked OEM partition encryption status")
+	return isEncrypted
 }
 
 // RegisterNormalBoot registers a dag for a normal boot, where we want to mount all the pieces that make up the
@@ -88,13 +97,17 @@ func RegisterNormalBoot(s *state.State, g *herd.Graph) error {
 	s.LogIfError(s.RunKcryptUpgrade(g, herd.WithDeps(cnst.OpLvmActivate)), "upgrade kcrypt partitions")
 
 	var kcryptDeps, oemMountDeps herd.OpOption
-	if oemEncrypted() {
+	isOemEncrypted := oemEncrypted()
+	internalUtils.KLog.Logger.Info().Bool("oem_encrypted", isOemEncrypted).Msg("Checking OEM encryption status")
+	if isOemEncrypted {
 		// We need to run partition unlocking before we mount OEM
+		internalUtils.KLog.Logger.Info().Msg("OEM is encrypted: kcrypt unlock will run before OEM mount")
 		kcryptDeps = herd.WithDeps(cnst.OpMountRoot, cnst.OpKcryptUpgrade)
 		oemMountDeps = herd.WithDeps(cnst.OpMountRoot, cnst.OpLvmActivate, cnst.OpKcryptUnlock)
 	} else {
 		// We need to mount OEM before we run partition unlocking because old installations
 		// may not have the needed KMS configuration in the cmdline.
+		internalUtils.KLog.Logger.Info().Msg("OEM is NOT encrypted: OEM mount will run before kcrypt unlock")
 		kcryptDeps = herd.WithDeps(cnst.OpMountRoot, cnst.OpKcryptUpgrade, cnst.OpMountOEM)
 		oemMountDeps = herd.WithDeps(cnst.OpMountRoot, cnst.OpLvmActivate)
 	}
