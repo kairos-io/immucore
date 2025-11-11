@@ -101,22 +101,19 @@ func RegisterNormalBoot(s *state.State, g *herd.Graph) error {
 	internalUtils.KLog.Logger.Info().Bool("oem_encrypted", isOemEncrypted).Msg("Checking OEM encryption status")
 	if isOemEncrypted {
 		// We need to run partition unlocking before we mount OEM
+		internalUtils.KLog.Logger.Info().Msg("OEM is encrypted: kcrypt unlock will run before OEM mount")
 		kcryptDeps = herd.WithDeps(cnst.OpMountRoot, cnst.OpKcryptUpgrade)
 		oemMountDeps = herd.WithDeps(cnst.OpMountRoot, cnst.OpLvmActivate, cnst.OpKcryptUnlock)
-
-		internalUtils.KLog.Logger.Info().Msg("OEM is encrypted: kcrypt unlock will run before OEM mount")
-		s.LogIfError(s.RunKcrypt(g, kcryptDeps), "kcrypt unlock")
-		s.LogIfError(s.MountOemDagStep(g, oemMountDeps), "oem mount")
 	} else {
 		// We need to mount OEM before we run partition unlocking because old installations
 		// may not have the needed KMS configuration in the cmdline.
+		internalUtils.KLog.Logger.Info().Msg("OEM is NOT encrypted: OEM mount will run before kcrypt unlock")
 		kcryptDeps = herd.WithDeps(cnst.OpMountRoot, cnst.OpKcryptUpgrade, cnst.OpMountOEM)
 		oemMountDeps = herd.WithDeps(cnst.OpMountRoot, cnst.OpLvmActivate)
-
-		internalUtils.KLog.Logger.Info().Msg("OEM is NOT encrypted: OEM mount will run before kcrypt unlock")
-		s.LogIfError(s.MountOemDagStep(g, oemMountDeps), "oem mount")
-		s.LogIfError(s.RunKcrypt(g, kcryptDeps), "kcrypt unlock")
 	}
+
+	s.LogIfError(s.RunKcrypt(g, kcryptDeps), "kcrypt unlock")
+	s.LogIfError(s.MountOemDagStep(g, oemMountDeps), "oem mount")
 
 	// Run yip stage rootfs. Requires root+oem+sentinel to be mounted
 	s.LogIfError(s.RootfsStageDagStep(g, herd.WithDeps(cnst.OpMountRoot, cnst.OpMountOEM, cnst.OpSentinel)), "running rootfs stage")
