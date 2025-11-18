@@ -72,8 +72,8 @@ github.com/Microsoft/hcsshim v0.12.9 h1:2zJy5KA+l0loz1HzEGqyNnjd3fyZA31ZBCGKacp6
 github.com/Microsoft/hcsshim v0.12.9/go.mod h1:fJ0gkFAna6ukt0bLdKB8djt4XIJhF/vEPuoIWYVvZ8Y=
 github.com/ProtonMail/go-crypto v1.1.5 h1:eoAQfK2dwL+tFSFpr7TbOaPNUbPiJj4fLYwwGE1FQO4=
 github.com/ProtonMail/go-crypto v1.1.5/go.mod h1:rA3QumHc/FZ8pAHreoekgiAbzpNsfQAosU5td4SnOrE=
-github.com/alecthomas/assert/v2 v2.3.0 h1:mAsH2wmvjsuvyBvAmCtm7zFsBlb8mIHx5ySLVdDZXL0=
-github.com/alecthomas/assert/v2 v2.3.0/go.mod h1:pXcQ2Asjp247dahGEmsZ6ru0UVwnkhktn7S0bBDLxvQ=
+github.com/alecthomas/assert/v2 v2.6.0 h1:o3WJwILtexrEUk3cUVal3oiQY2tfgr/FHWiz/v2n4FU=
+github.com/alecthomas/assert/v2 v2.6.0/go.mod h1:Bze95FyfUr7x34QZrjL+XP+0qgp/zg8yS+TtBj1WA3k=
 github.com/alecthomas/repr v0.2.0 h1:HAzS41CIzNW5syS8Mf9UwXhNH1J9aix/BvDRf1Ml2Yk=
 github.com/alecthomas/repr v0.2.0/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
 github.com/anatol/devmapper.go v0.0.0-20230829043248-59ac2b9706ba h1:LJ/tQNki21ep58+YZElkXQVpswENcK66NMNv4JGZf7w=
@@ -287,8 +287,6 @@ github.com/google/go-sev-guest v0.9.3 h1:GOJ+EipURdeWFl/YYdgcCxyPeMgQUWlI056iFkB
 github.com/google/go-sev-guest v0.9.3/go.mod h1:hc1R4R6f8+NcJwITs0L90fYWTsBpd1Ix+Gur15sqHDs=
 github.com/google/go-tdx-guest v0.3.1 h1:gl0KvjdsD4RrJzyLefDOvFOUH3NAJri/3qvaL5m83Iw=
 github.com/google/go-tdx-guest v0.3.1/go.mod h1:/rc3d7rnPykOPuY8U9saMyEps0PZDThLk/RygXm04nE=
-github.com/google/go-tpm v0.9.6 h1:Ku42PT4LmjDu1H5C5ISWLlpI1mj+Zq7sPGKoRw2XROA=
-github.com/google/go-tpm v0.9.6/go.mod h1:h9jEsEECg7gtLis0upRBQU+GhYVH6jMjrFxI8u6bVUY=
 github.com/google/go-tpm v0.9.7 h1:u89J4tUUeDTlH8xxC3CTW7OHZjbjKoHdQ9W7gCUhtxA=
 github.com/google/go-tpm v0.9.7/go.mod h1:h9jEsEECg7gtLis0upRBQU+GhYVH6jMjrFxI8u6bVUY=
 github.com/google/go-tpm-tools v0.4.4 h1:oiQfAIkc6xTy9Fl5NKTeTJkBTlXdHsxAofmQyxBKY98=
@@ -434,8 +432,10 @@ github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8 h1:+g0budy5fEFMX
 github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8/go.mod h1:826dAJvIa3X5kfBoxSupdQbIFO4egt+hoUiw4BfPKdI=
 github.com/mudler/go-pluggable v0.0.0-20230126220627-7710299a0ae5 h1:FaZD86+A9mVt7lh9glAryzQblMsbJYU2VnrdZ8yHlTs=
 github.com/mudler/go-pluggable v0.0.0-20230126220627-7710299a0ae5/go.mod h1:WmKcT8ONmhDQIqQ+HxU+tkGWjzBEyY/KFO8LTGCu4AI=
-github.com/mudler/yip v1.18.1 h1:IbHWfoZDNIoXv2HKdZPpIYk2ht3C0vMky5toKIatMFc=
-github.com/mudler/yip v1.18.1/go.mod h1:Wk3CIZCqdK58+1CzamA87atJD2y/dhDKXrguUyYipCc=
+github.com/mudler/yip v1.18.2-0.20251117085734-889160bc49e2 h1:ORwMMQ/bgk2vywW4sa8GzIVIQoLq0lpvdOnRDgT4Ttc=
+github.com/mudler/yip v1.18.2-0.20251117085734-889160bc49e2/go.mod h1:+Z5JjyysbFHHb7y3T/WVANdH0plVQ0qzJQcl3XdNBH8=
+github.com/mudler/yip v1.18.2-0.20251117113338-4bb127173d98/go.mod h1:mfLFcn/9J577m6YMmOZBjyq7wKSRYOOSrCENiH7euWo=
+github.com/mudler/yip v1.19.0/go.mod h1:kRjH39H96Eh4NkL984OvDWPERVOzDw+oVI/oVy5GzuE=
 github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646 h1:zYyBkD/k9seD2A7fsi6Oo2LfFZAehjjQMERAvZLEDnQ=
 github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646/go.mod h1:jpp1/29i3P1S/RLdc7JQKbRpFeM1dOBd8T9ki5s+AY8=
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=
