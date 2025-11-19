@@ -15,7 +15,7 @@ builds:
   - ldflags:
       - w -s -X "github.com/kairos-io/immucore/internal/version.version={{.Tag}}" -X "github.com/kairos-io/immucore/internal/version.gitCommit={{.Commit}}"
     env:
-      - CGO_ENABLED=1
+      - CGO_ENABLED=0
       - GOEXPERIMENT=boringcrypto
     goos:
       - linux
@@ -29,7 +29,7 @@ builds:
   - ldflags:
       - w -s -X "github.com/kairos-io/immucore/internal/version.version={{.Tag}}" -X "github.com/kairos-io/immucore/internal/version.gitCommit={{.Commit}}"
     env:
-      - CGO_ENABLED=1
+      - CGO_ENABLED=0
       - GOEXPERIMENT=boringcrypto
       - CC=aarch64-linux-gnu-gcc
     goos:
