@@ -8,8 +8,7 @@ import (
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/immucore/pkg/state"
 	"github.com/kairos-io/kairos-sdk/ghw"
-	"github.com/kairos-io/kairos-sdk/types"
-	"github.com/kairos-io/kairos-sdk/utils"
+	"github.com/kairos-io/kairos-sdk/types/partitions"
 	"github.com/spectrocloud-labs/herd"
 )
 
@@ -32,7 +31,7 @@ func oemEncrypted() bool {
 	}
 
 	// Find the partition with the OEM label
-	var oemPartition *types.Partition
+	var oemPartition *partitions.Partition
 	for _, disk := range disks {
 		for _, p := range disk.Partitions {
 			if p.FilesystemLabel == oemLabel {
@@ -59,7 +58,7 @@ func oemEncrypted() bool {
 
 	// Use blkid to check if this specific device is LUKS encrypted
 	// blkid -p <device> -s TYPE -o value returns "crypto_LUKS" if encrypted, or filesystem type if not
-	deviceType, err := utils.SH(fmt.Sprintf("blkid -p %s -s TYPE -o value", devicePath))
+	deviceType, err := internalUtils.CommandWithPath(fmt.Sprintf("blkid -p %s -s TYPE -o value", devicePath))
 	deviceType = strings.TrimSpace(deviceType)
 
 	if err != nil || deviceType == "" {

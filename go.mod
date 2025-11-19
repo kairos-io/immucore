@@ -2,6 +2,8 @@ module github.com/kairos-io/immucore
 
 go 1.25
 
+replace github.com/kairos-io/kairos-sdk v0.14.0 => ../kairos-sdk
+
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/containerd/containerd v1.7.29
@@ -10,9 +12,9 @@ require (
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/google/go-tpm v0.9.7
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/jaypipes/ghw v0.19.1
+	github.com/jaypipes/ghw v0.20.0
 	github.com/joho/godotenv v1.5.1
-	github.com/kairos-io/kairos-sdk v0.13.0
+	github.com/kairos-io/kairos-sdk v0.14.0
 	github.com/moby/sys/mountinfo v0.7.2
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
 	github.com/mudler/yip v1.19.0

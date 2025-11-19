@@ -1,13 +1,14 @@
 package utils
 
 import (
-	"github.com/kairos-io/immucore/internal/constants"
-	"github.com/kairos-io/kairos-sdk/types"
 	"os"
+
+	"github.com/kairos-io/immucore/internal/constants"
+	"github.com/kairos-io/kairos-sdk/types/logger"
 )
 
 // KLog is the generic KairosLogger that we pass to kcrypt calls
-var KLog types.KairosLogger
+var KLog logger.KairosLogger
 
 func SetLogger() {
 	level := "info"
@@ -20,5 +21,5 @@ func SetLogger() {
 	}
 	_ = os.MkdirAll(constants.LogDir, os.ModeDir|os.ModePerm)
 
-	KLog = types.NewKairosLoggerWithExtraDirs("immucore", level, false, constants.LogDir)
+	KLog = logger.NewKairosLoggerWithExtraDirs("immucore", level, false, constants.LogDir)
 }

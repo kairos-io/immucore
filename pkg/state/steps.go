@@ -11,7 +11,6 @@ import (
 	cnst "github.com/kairos-io/immucore/internal/constants"
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/immucore/pkg/op"
-	"github.com/kairos-io/kairos-sdk/utils"
 	"github.com/spectrocloud-labs/herd"
 )
 
@@ -69,13 +68,13 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 				}
 				_ = internalUtils.Fsck(s.path("/run/initramfs/cos-state", s.TargetImage))
 				cmd := fmt.Sprintf("losetup -f %s", s.path("/run/initramfs/cos-state", s.TargetImage))
-				_, err := utils.SH(cmd)
+				_, err := internalUtils.CommandWithPath(cmd)
 				s.LogIfError(err, "losetup")
 				// Trigger udevadm
 				// On some systems the COS_ACTIVE/PASSIVE label is automatically shown as soon as we mount the device
 				// But on other it seems like it won't trigger which causes the sysroot to not be mounted as we cant find
 				// the block device by the target label. Make sure we run this after mounting so we refresh the devices.
-				sh, _ := utils.SH("udevadm trigger")
+				sh, _ := internalUtils.CommandWithPath("udevadm trigger")
 				internalUtils.KLog.Logger.Debug().Str("output", sh).Msg("udevadm trigger")
 				internalUtils.KLog.Logger.Debug().Str("targetImage", s.TargetImage).Str("path", s.Rootdir).Str("TargetDevice", s.TargetDevice).Msg("mount done")
 				return err

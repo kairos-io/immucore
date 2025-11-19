@@ -17,8 +17,7 @@ import (
 	"github.com/kairos-io/immucore/pkg/schema"
 	"github.com/kairos-io/kairos-sdk/kcrypt"
 	"github.com/kairos-io/kairos-sdk/state"
-	"github.com/kairos-io/kairos-sdk/types"
-	"github.com/kairos-io/kairos-sdk/utils"
+	"github.com/kairos-io/kairos-sdk/types/logger"
 	"github.com/spectrocloud-labs/herd"
 )
 
@@ -526,7 +525,7 @@ func unlockEncryptedPartitions() error {
 
 // findEncryptedPartitions scans the system for LUKS encrypted partitions
 // and returns their filesystem labels.
-func findEncryptedPartitions(log types.KairosLogger) ([]string, error) {
+func findEncryptedPartitions(log logger.KairosLogger) ([]string, error) {
 	blk, err := ghw.Block()
 	if err != nil {
 		log.Logger.Warn().Msgf("Warning: Error reading partitions '%s'", err.Error())
@@ -539,7 +538,7 @@ func findEncryptedPartitions(log types.KairosLogger) ([]string, error) {
 			if p.Type == "crypto_LUKS" {
 				// Check if device is already unlocked
 				// We mount it under /dev/mapper/DEVICE, so it's pretty easy to check
-				if !utils.Exists(filepath.Join("/dev", "mapper", p.Name)) {
+				if _, err = os.Stat(filepath.Join("/dev", "mapper", p.Name)); !os.IsNotExist(err) {
 					log.Logger.Info().Msgf("Found unmounted LUKS partition at '%s' with label '%s'", filepath.Join("/dev", p.Name), p.FilesystemLabel)
 					if p.FilesystemLabel != "" {
 						partitionLabels = append(partitionLabels, p.FilesystemLabel)
