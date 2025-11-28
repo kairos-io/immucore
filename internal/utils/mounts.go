@@ -93,7 +93,14 @@ func DiskFSType(s string) string {
 
 // SyncState will rsync source into destination. Useful for Bind mounts.
 func SyncState(src, dst string) error {
-	_, err := CommandWithPath(fmt.Sprintf("rsync -aqAX %s %s", src, dst))
+	// This has the --update flag to avoid overwriting newer files in dst.
+	// This also has a weird bug in which if the source is a file and destination is a symlink.
+	// According to docs it should overwrite the symlink as its of a different type but it does not.
+	// Doing it the other way around (symlink source to file destination) does overwrite it so be careful with this.
+	// So we rely in that behaviour but if its fixed in the future we might need to change this.
+	// Reported here:
+	// https://github.com/RsyncProject/rsync/issues/827
+	_, err := CommandWithPath(fmt.Sprintf("rsync -aquAX %s %s", src, dst))
 	return err
 }
 
