@@ -8,7 +8,7 @@ import (
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/immucore/pkg/state"
 	"github.com/kairos-io/kairos-sdk/ghw"
-	"github.com/kairos-io/kairos-sdk/types"
+	"github.com/kairos-io/kairos-sdk/types/partitions"
 	"github.com/kairos-io/kairos-sdk/utils"
 	"github.com/spectrocloud-labs/herd"
 )
@@ -32,7 +32,7 @@ func oemEncrypted() bool {
 	}
 
 	// Find the partition with the OEM label
-	var oemPartition *types.Partition
+	var oemPartition *partitions.Partition
 	for _, disk := range disks {
 		for _, p := range disk.Partitions {
 			if p.FilesystemLabel == oemLabel {
