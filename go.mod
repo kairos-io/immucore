@@ -15,7 +15,7 @@ require (
 	github.com/kairos-io/kairos-sdk v0.14.1
 	github.com/moby/sys/mountinfo v0.7.2
 	github.com/mudler/go-kdetect v0.0.0-20210802130128-dd92e121bed8
-	github.com/mudler/yip v1.19.0
+	github.com/mudler/yip v1.19.1-0.20260108085244-a70fbd012638
 	github.com/onsi/ginkgo/v2 v2.27.3
 	github.com/onsi/gomega v1.38.3
 	github.com/rs/zerolog v1.34.0
