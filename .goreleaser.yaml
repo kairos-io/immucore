@@ -15,6 +15,7 @@ builds:
     binary: '{{ .ProjectName }}'
     tags:
       - nogit
+      - nounpack
     id: default
   - ldflags:
       - -w -s -X "github.com/kairos-io/immucore/internal/version.version={{.Tag}}" -X "github.com/kairos-io/immucore/internal/version.gitCommit={{.Commit}}"
@@ -30,6 +31,7 @@ builds:
     binary: '{{ .ProjectName }}'
     tags:
       - nogit
+      - nounpack
     id: fips-amd64
     hooks:
       post:
@@ -49,6 +51,7 @@ builds:
     binary: '{{ .ProjectName }}'
     tags:
       - nogit
+      - nounpack
     id: fips-arm64
     hooks:
       post:

@@ -10,19 +10,13 @@ import (
 	"github.com/kairos-io/immucore/internal/constants"
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/immucore/pkg/schema"
-	"github.com/rs/zerolog"
 )
 
 // MountOPWithFstab creates and executes a mount operation.
 // returns the fstab entries created and an error if any.
 func MountOPWithFstab(what, where, t string, options []string, timeout time.Duration) (schema.FsTabs, error) {
 	var fstab schema.FsTabs
-	l := internalUtils.KLog.With().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Logger()
-	// Not sure why this defaults to debuglevel when creating a sublogger, so make sure we set it properly
-	debug := len(internalUtils.ReadCMDLineArg("rd.immucore.debug")) > 0
-	if debug {
-		l = l.Level(zerolog.DebugLevel)
-	}
+	l := internalUtils.KLog.With().Str("what", what).Str("where", where).Str("type", t).Strs("options", options).Logger().Level(internalUtils.KLog.GetLevel())
 	c := context.Background()
 	cc := time.After(timeout)
 	for {
