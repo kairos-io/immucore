@@ -443,13 +443,14 @@ func validateAndEnableSysConfExtensions(s *State, extType string) error {
 	var sourceDir string
 	var destDir string
 
-	if extType == cnst.SysExt {
+	switch extType {
+	case cnst.SysExt:
 		sourceDir = cnst.SourceSysExtDir
 		destDir = cnst.DestSysExtDir
-	} else if extType == cnst.ConfExt {
+	case cnst.ConfExt:
 		sourceDir = cnst.SourceConfExtDir
 		destDir = cnst.DestConfExtDir
-	} else {
+	default:
 		return errors.New("unknown extension type")
 	}
 
