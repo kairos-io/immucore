@@ -135,7 +135,7 @@ func RegisterNormalBoot(s *state.State, g *herd.Graph) error {
 	s.LogIfError(s.MountCustomBindsDagStep(g), "custom binds mount")
 
 	//
-	s.LogIfError(s.EnableSysAndConfExtensions(g, herd.WithWeakDeps(cnst.OpMountBind)), "enable sysextensions")
+	s.LogIfError(s.EnableSysAndConfExtensions(g, herd.WithWeakDeps(cnst.OpMountBind)), "enable sysext and confexts")
 
 	// Write fstab file
 	s.LogIfError(s.WriteFstabDagStep(g,
