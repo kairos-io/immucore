@@ -231,7 +231,7 @@ func (s *State) MountOemDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 					internalUtils.KLog.Logger.Debug().Msg("OEM label from cmdline empty, won't mount OEM")
 					return nil
 				}
-				op := func(_ context.Context) error {
+				operation := func(_ context.Context) error {
 					fstab, err := op.MountOPWithFstab(
 						fmt.Sprintf("/dev/disk/by-label/%s", internalUtils.GetOemLabel()),
 						s.path("/oem"),
@@ -248,7 +248,7 @@ func (s *State) MountOemDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 					}
 					return err
 				}
-				return op(ctx)
+				return operation(ctx)
 			}))...)
 }
 
@@ -293,15 +293,15 @@ func (s *State) MountCustomOverlayDagStep(g *herd.Graph, opts ...herd.OpOption) 
 					internalUtils.KLog.Logger.Debug().Strs("dirs", s.OverlayDirs).Msg("Mounting overlays")
 					for _, p := range s.OverlayDirs {
 						internalUtils.KLog.Logger.Debug().Str("what", p).Msg("Overlay mount start")
-						op := op.MountWithBaseOverlay(p, s.Rootdir, "/run/overlay")
-						err := op.Run()
+						operation := op.MountWithBaseOverlay(p, s.Rootdir, "/run/overlay")
+						err := operation.Run()
 						// Append to errors only if it's not an already mounted error
 						if err != nil && !errors.Is(err, cnst.ErrAlreadyMounted) {
 							internalUtils.KLog.Logger.Err(err).Msg("overlay mount")
 							multierr = multierror.Append(multierr, err)
 							continue
 						}
-						s.fstabs = append(s.fstabs, &op.FstabEntry)
+						s.fstabs = append(s.fstabs, &operation.FstabEntry)
 						internalUtils.KLog.Logger.Debug().Str("what", p).Msg("Overlay mount done")
 					}
 					return multierr.ErrorOrNil()
@@ -363,11 +363,11 @@ func (s *State) MountCustomBindsDagStep(g *herd.Graph, opts ...herd.OpOption) er
 
 					for _, p := range s.SortedBindMounts() {
 						internalUtils.KLog.Logger.Debug().Str("what", p).Msg("Bind mount start")
-						op := op.MountBind(p, s.Rootdir, s.StateDir)
-						err2 := op.Run()
+						operation := op.MountBind(p, s.Rootdir, s.StateDir)
+						err2 := operation.Run()
 						if err2 == nil {
 							// Only append to fstabs if there was no error, otherwise we will try to mount it after switch_root
-							s.fstabs = append(s.fstabs, &op.FstabEntry)
+							s.fstabs = append(s.fstabs, &operation.FstabEntry)
 						}
 						// Append to errors only if it's not an already mounted error
 						if err2 != nil && !errors.Is(err2, cnst.ErrAlreadyMounted) {
@@ -383,9 +383,10 @@ func (s *State) MountCustomBindsDagStep(g *herd.Graph, opts ...herd.OpOption) er
 		)...)
 }
 
-// EnableSysExtensions softlinks extensions for the running state from /var/lib/kairos/extensions/$STATE to /run/extensions.
+// EnableSysAndConfExtensions softlinks extensions for the running state from /var/lib/kairos/extensions/$STATE to /run/extensions.
 // So when initramfs stage runs and enables systemd-sysext it can load the extensions for a given bootentry.
-func (s *State) EnableSysExtensions(g *herd.Graph, opts ...herd.OpOption) error {
+// Works for both sysext and confext.
+func (s *State) EnableSysAndConfExtensions(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpUkiCopySysExtensions, append(opts, herd.WithCallback(func(_ context.Context) error {
 		// If uki and we are not booting from install media then do nothing
 		if internalUtils.IsUKI() {
@@ -408,69 +409,104 @@ func (s *State) EnableSysExtensions(g *herd.Graph, opts ...herd.OpOption) error 
 			}
 		}
 
-		// At this point the extensions dir should be available
-		r, err := state.NewRuntimeWithLogger(internalUtils.KLog.Logger)
+		// Create the confext dir as well
+		if _, err := os.Stat(cnst.DestConfExtDir); os.IsNotExist(err) {
+			err = os.MkdirAll(cnst.DestConfExtDir, 0755)
+			if err != nil {
+				internalUtils.KLog.Logger.Err(err).Msg("Creating confext dir")
+				return err
+			}
+		}
+
+		err := validateAndEnableSysConfExtensions(s, cnst.SysExt)
 		if err != nil {
 			return err
 		}
-		var dir string
-
-		switch r.BootState {
-		case state.Active:
-			dir = fmt.Sprintf("%s/%s", cnst.SourceSysExtDir, "active")
-		case state.Passive:
-			dir = fmt.Sprintf("%s/%s", cnst.SourceSysExtDir, "passive")
-		case state.Recovery:
-			dir = fmt.Sprintf("%s/%s", cnst.SourceSysExtDir, "recovery")
-		default:
-			internalUtils.KLog.Logger.Debug().Str("state", string(r.BootState)).Msg("Not copying sysextensions as we are not in a state that we know off")
-			return nil
-
-		}
-		// move to use dir with the full path from here so its simpler
-		entries, err := os.ReadDir(s.path(dir))
-		// We don't care if the dir does not exist
-		if err != nil && !os.IsNotExist(err) {
-			return nil
-		}
-
-		// Common dir is always there for all states no matter what
-		commonEntries, _ := os.ReadDir(s.path(fmt.Sprintf("%s/%s", cnst.SourceSysExtDir, "common")))
-		entries = append(entries, commonEntries...)
-
-		for _, entry := range entries {
-			if !entry.IsDir() && filepath.Ext(entry.Name()) == ".raw" {
-				// If the file is a raw file, lets softlink it
-				if internalUtils.IsUKI() {
-					// Verify the signature
-					output, err := internalUtils.CommandWithPath(fmt.Sprintf("systemd-dissect --validate %s %s", cnst.SysextDefaultPolicy, s.path(filepath.Join(dir, entry.Name()))))
-					if err != nil {
-						// If the file didn't pass the validation, we don't copy it
-						internalUtils.KLog.Logger.Warn().Str("src", s.path(filepath.Join(dir, entry.Name()))).Msg("Sysextension does not pass validation")
-						internalUtils.KLog.Logger.Debug().Err(err).Str("src", s.path(filepath.Join(dir, entry.Name()))).Str("output", output).Msg("Validating sysextension")
-						continue
-					}
-				}
-				// Check if it already exists with the same name
-				// This is because as we have the common dir, there could be a point in which the common dir and the
-				// specific boot state dir have the same file, and we dont want to fail at this point, just warn and continue
-				if _, err := os.Stat(filepath.Join(cnst.DestSysExtDir, entry.Name())); !os.IsNotExist(err) {
-					// If it exists, we can just skip it
-					internalUtils.KLog.Logger.Warn().Str("file", filepath.Join(cnst.DestSysExtDir, entry.Name())).Msg("Skipping sysextension as its already enabled")
-					continue
-				}
-				// it has to link to the final dir after initramfs, so we avoid setting s.path here for the target
-				err = os.Symlink(filepath.Join(dir, entry.Name()), filepath.Join(cnst.DestSysExtDir, entry.Name()))
-				if err != nil {
-					internalUtils.KLog.Logger.Err(err).Msg("Creating symlink")
-					return err
-				}
-				internalUtils.KLog.Logger.Debug().Str("what", entry.Name()).Msg("Enabled sysextension")
-			}
+		err = validateAndEnableSysConfExtensions(s, cnst.ConfExt)
+		if err != nil {
+			return err
 		}
 
 		return nil
 	}))...)
+}
+
+// validateAndEnableSysConfExtensions is the common logic for validating and enabling both sys and conf extensions,
+// as they work in a similar way, just different source and destination dirs and different validation for sys extensions.
+func validateAndEnableSysConfExtensions(s *State, extType string) error {
+	// At this point the extensions dir should be available
+	r, err := state.NewRuntimeWithLogger(internalUtils.KLog.Logger)
+	if err != nil {
+		return err
+	}
+	var dir string
+	var sourceDir string
+	var destDir string
+
+	if extType == cnst.SysExt {
+		sourceDir = cnst.SourceSysExtDir
+		destDir = cnst.DestSysExtDir
+	} else if extType == cnst.ConfExt {
+		sourceDir = cnst.SourceConfExtDir
+		destDir = cnst.DestConfExtDir
+	} else {
+		return errors.New("unknown extension type")
+	}
+
+	switch r.BootState {
+	case state.Active:
+		dir = filepath.Join(sourceDir, "active")
+	case state.Passive:
+		dir = filepath.Join(sourceDir, "passive")
+	case state.Recovery:
+		dir = filepath.Join(sourceDir, "recovery")
+	default:
+		internalUtils.KLog.Logger.Debug().Str("state", string(r.BootState)).Msg("Not copying sysextensions as we are not in a state that we know off")
+		return nil
+
+	}
+	// move to use dir with the full path from here so its simpler
+	entries, err := os.ReadDir(s.path(dir))
+	// We don't care if the dir does not exist
+	if err != nil && !os.IsNotExist(err) {
+		return nil
+	}
+
+	// Common dir is always there for all states no matter what
+	commonEntries, _ := os.ReadDir(s.path(filepath.Join(sourceDir, "common")))
+	entries = append(entries, commonEntries...)
+
+	for _, entry := range entries {
+		if !entry.IsDir() && filepath.Ext(entry.Name()) == ".raw" {
+			// If the file is a raw file, lets softlink it
+			if internalUtils.IsUKI() {
+				// Verify the signature
+				output, err := internalUtils.CommandWithPath(fmt.Sprintf("systemd-dissect --validate %s %s", cnst.SysextDefaultPolicy, s.path(filepath.Join(dir, entry.Name()))))
+				if err != nil {
+					// If the file didn't pass the validation, we don't copy it
+					internalUtils.KLog.Logger.Warn().Str("src", s.path(filepath.Join(dir, entry.Name()))).Msgf("%s does not pass validation", extType)
+					internalUtils.KLog.Logger.Debug().Err(err).Str("src", s.path(filepath.Join(dir, entry.Name()))).Str("output", output).Msgf("Validating %s", extType)
+					continue
+				}
+			}
+			// Check if it already exists with the same name
+			// This is because as we have the common dir, there could be a point in which the common dir and the
+			// specific boot state dir have the same file, and we dont want to fail at this point, just warn and continue
+			if _, err := os.Stat(filepath.Join(destDir, entry.Name())); !os.IsNotExist(err) {
+				// If it exists, we can just skip it
+				internalUtils.KLog.Logger.Warn().Str("file", filepath.Join(destDir, entry.Name())).Msgf("Skipping %s as its already enabled", extType)
+				continue
+			}
+			// it has to link to the final dir after initramfs, so we avoid setting s.path here for the target
+			err = os.Symlink(filepath.Join(dir, entry.Name()), filepath.Join(destDir, entry.Name()))
+			if err != nil {
+				internalUtils.KLog.Logger.Err(err).Msg("Creating symlink")
+				return err
+			}
+			internalUtils.KLog.Logger.Debug().Str("what", entry.Name()).Msgf("Enabled %s", extType)
+		}
+	}
+	return nil
 }
 
 // WriteFstabDagStep will add writing the final fstab file with all the mounts

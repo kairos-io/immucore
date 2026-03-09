@@ -122,8 +122,12 @@ const (
 	PathAppend             = "/usr/bin:/usr/sbin:/bin:/sbin"
 	PATH                   = "PATH"
 	DefaultPCR             = 11
+	SysExt                 = "sysext"
+	ConfExt                = "confext"
 	SourceSysExtDir        = "/var/lib/kairos/extensions/"
+	SourceConfExtDir       = "/var/lib/kairos/confexts/"
 	DestSysExtDir          = "/run/extensions"
+	DestConfExtDir         = "/run/confexts"
 	VerityCertDir          = "/run/verity.d/"
 	SysextDefaultPolicy    = "--image-policy=\"root=verity+signed+absent:usr=verity+signed+absent\""
 	EfiDir                 = "/efi"
