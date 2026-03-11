@@ -445,9 +445,11 @@ func validateAndEnableSysConfExtensions(s *State, extType string) error {
 
 	switch extType {
 	case cnst.SysExt:
+		internalUtils.KLog.Logger.Debug().Msg("Enabling system extensions")
 		sourceDir = cnst.SourceSysExtDir
 		destDir = cnst.DestSysExtDir
 	case cnst.ConfExt:
+		internalUtils.KLog.Logger.Debug().Msg("Enabling config extensions")
 		sourceDir = cnst.SourceConfExtDir
 		destDir = cnst.DestConfExtDir
 	default:
@@ -464,7 +466,6 @@ func validateAndEnableSysConfExtensions(s *State, extType string) error {
 	default:
 		internalUtils.KLog.Logger.Debug().Str("state", string(r.BootState)).Msg("Not copying sysextensions as we are not in a state that we know off")
 		return nil
-
 	}
 	// move to use dir with the full path from here so its simpler
 	entries, err := os.ReadDir(s.path(dir))
@@ -472,10 +473,6 @@ func validateAndEnableSysConfExtensions(s *State, extType string) error {
 	if err != nil && !os.IsNotExist(err) {
 		return nil
 	}
-
-	// Common dir is always there for all states no matter what
-	commonEntries, _ := os.ReadDir(s.path(filepath.Join(sourceDir, "common")))
-	entries = append(entries, commonEntries...)
 
 	for _, entry := range entries {
 		if !entry.IsDir() && filepath.Ext(entry.Name()) == ".raw" {
@@ -500,6 +497,39 @@ func validateAndEnableSysConfExtensions(s *State, extType string) error {
 			}
 			// it has to link to the final dir after initramfs, so we avoid setting s.path here for the target
 			err = os.Symlink(filepath.Join(dir, entry.Name()), filepath.Join(destDir, entry.Name()))
+			if err != nil {
+				internalUtils.KLog.Logger.Err(err).Msg("Creating symlink")
+				return err
+			}
+			internalUtils.KLog.Logger.Debug().Str("what", entry.Name()).Msgf("Enabled %s", extType)
+		}
+	}
+
+	// Common dir is always there for all states no matter what
+	commonEntries, _ := os.ReadDir(s.path(filepath.Join(sourceDir, "common")))
+	for _, entry := range commonEntries {
+		if !entry.IsDir() && filepath.Ext(entry.Name()) == ".raw" {
+			// If the file is a raw file, lets softlink it
+			if internalUtils.IsUKI() {
+				// Verify the signature
+				output, err := internalUtils.CommandWithPath(fmt.Sprintf("systemd-dissect --validate %s %s", cnst.SysextDefaultPolicy, s.path(filepath.Join(sourceDir, "common", entry.Name()))))
+				if err != nil {
+					// If the file didn't pass the validation, we don't copy it
+					internalUtils.KLog.Logger.Warn().Str("src", s.path(filepath.Join(sourceDir, "common", entry.Name()))).Msgf("%s does not pass validation", extType)
+					internalUtils.KLog.Logger.Debug().Err(err).Str("src", s.path(filepath.Join(sourceDir, "common", entry.Name()))).Str("output", output).Msgf("Validating %s", extType)
+					continue
+				}
+			}
+			// Check if it already exists with the same name
+			// This is because as we have the common dir, there could be a point in which the common dir and the
+			// specific boot state dir have the same file, and we dont want to fail at this point, just warn and continue
+			if _, err := os.Stat(filepath.Join(destDir, entry.Name())); !os.IsNotExist(err) {
+				// If it exists, we can just skip it
+				internalUtils.KLog.Logger.Warn().Str("file", filepath.Join(destDir, entry.Name())).Msgf("Skipping %s as its already enabled", extType)
+				continue
+			}
+			// it has to link to the final dir after initramfs, so we avoid setting s.path here for the target
+			err = os.Symlink(filepath.Join(sourceDir, "common", entry.Name()), filepath.Join(destDir, entry.Name()))
 			if err != nil {
 				internalUtils.KLog.Logger.Err(err).Msg("Creating symlink")
 				return err

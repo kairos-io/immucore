@@ -310,7 +310,7 @@ func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
 			// This dir is created by systemd-stub and passed to the kernel as a cpio archive
 			// that gets mounted in the initial ramdisk where we run immucore from
 			// It contains the tpm public key and signatures of the current uki
-			out, pcrErr := internalUtils.CommandWithPath("cp /.extra/* /run/systemd/")
+			out, pcrErr := internalUtils.CommandWithPath("cp -r /.extra/* /run/systemd/")
 			if pcrErr != nil {
 				internalUtils.KLog.Logger.Err(pcrErr).Str("out", out).Msg("Copying extra files")
 			}
