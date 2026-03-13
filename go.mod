@@ -1,6 +1,6 @@
 module github.com/kairos-io/immucore
 
-go 1.25.8
+go 1.26.1
 
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
