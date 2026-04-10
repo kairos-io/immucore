@@ -178,3 +178,5 @@ require (
 	pault.ag/go/modprobe v0.2.0 // indirect
 	pault.ag/go/topsort v0.1.1 // indirect
 )
+
+replace github.com/mudler/go-kdetect => github.com/mauromorales/go-kdetect v0.0.0-20260410082240-92dd68c267ad
