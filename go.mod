@@ -14,7 +14,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/kairos-io/kairos-sdk v0.16.0
 	github.com/moby/sys/mountinfo v0.7.2
-	github.com/mudler/yip v1.21.2
+	github.com/mudler/yip v1.23.3
 	github.com/onsi/ginkgo/v2 v2.28.0
 	github.com/onsi/gomega v1.39.1
 	github.com/spectrocloud-labs/herd v0.4.2
