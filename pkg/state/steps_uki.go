@@ -19,7 +19,6 @@ import (
 	"github.com/kairos-io/immucore/pkg/schema"
 	"github.com/kairos-io/kairos-sdk/signatures"
 	"github.com/kairos-io/kairos-sdk/state"
-	"github.com/mudler/go-kdetect"
 	"github.com/spectrocloud-labs/herd"
 )
 
@@ -363,11 +362,7 @@ func (s *State) UKILoadKernelModules(g *herd.Graph) error {
 		herd.WithCallback(func(_ context.Context) error {
 			// Run depmod to ensure all modules are loaded and modules.dep updated
 			_, _ = internalUtils.CommandWithPath("depmod -a")
-			drivers, err := kdetect.ProbeKernelModules("")
-			if err != nil {
-				internalUtils.KLog.Logger.Err(err).Msg("Detecting needed modules")
-			}
-			drivers = append(drivers, cnst.GenericKernelDrivers()...)
+			drivers := cnst.GenericKernelDrivers()
 			internalUtils.KLog.Logger.Debug().Strs("drivers", drivers).Msg("Detecting needed modules")
 			for _, driver := range drivers {
 				cmd := fmt.Sprintf("modprobe %s", driver)
