@@ -13,6 +13,12 @@ func GetCloudInitPaths() []string {
 	return []string{"/system/oem", "/oem/", "/usr/local/cloud-config/"}
 }
 
+func TPMKernelModules() []string {
+	return []string{
+		"tpm_ftpm_tee",
+	}
+}
+
 // GenericKernelDrivers returns a list of generic kernel drivers to insmod during uki mode
 // as they could be useful for a lot of situations.
 func GenericKernelDrivers() []string {
@@ -98,6 +104,7 @@ const (
 	OpUkiUdev              = "uki-udev"
 	OpUkiBaseMounts        = "uki-base-mounts"
 	OpUkiPivotToSysroot    = "uki-pivot-to-sysroot"
+	OpUkiTPMKernelModules  = "uki-tpm-modules"
 	OpUkiKernelModules     = "uki-kernel-modules"
 	OpUkiNetwork           = "uki-network"
 	OpWaitForSysroot       = "wait-for-sysroot"

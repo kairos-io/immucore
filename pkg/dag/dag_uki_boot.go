@@ -15,15 +15,16 @@ func RegisterUKI(s *state.State, g *herd.Graph) error {
 	// Mount basic mounts
 	s.LogIfError(s.UKIMountBaseSystem(g), "mounting base mounts")
 
+	// Load needed kernel TPM modules !
+	s.LogIfError(s.UKILoadTPMModules(g), "kernel TPM modules")
+
 	// Move to sysroot
 	s.LogIfError(s.UkiPivotToSysroot(g), "pivot to sysroot")
 
 	// Write sentinel
 	s.LogIfError(s.WriteSentinelDagStep(g, cnst.OpUkiBaseMounts), "sentinel")
 
-	// Load needed kernel modules
-	// TODO: This seems to be wrong as it leans on the udev to infer the modules, but at this point we dont have udev
-	// So we dont get all the proper modules needed!
+	// Load needed kernel modules !
 	s.LogIfError(s.UKILoadKernelModules(g), "kernel modules")
 
 	// Udev for devices discovery

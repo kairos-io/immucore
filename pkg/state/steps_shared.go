@@ -29,7 +29,7 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 		herd.WithCallback(func(_ context.Context) error {
 			var sentinel string
 
-			internalUtils.KLog.Logger.Debug().Msg("Will now create /run/cos is not exists")
+			internalUtils.KLog.Logger.Debug().Msg("Will now create /run/cos if not exists")
 			err := internalUtils.CreateIfNotExists("/run/cos/")
 			if err != nil {
 				internalUtils.KLog.Logger.Err(err).Msg("failed to create /run/cos")

@@ -170,7 +170,7 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 // And moving all the mounts into it and all the files as well.
 func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
 	return g.Add(cnst.OpUkiPivotToSysroot,
-		herd.WithDeps(cnst.OpUkiBaseMounts),
+		herd.WithDeps(cnst.OpUkiBaseMounts, cnst.OpUkiTPMKernelModules),
 		herd.WithCallback(func(_ context.Context) error {
 			var err error
 			// Create the new sysroot and move to it
@@ -302,16 +302,16 @@ func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
 				internalUtils.KLog.Logger.Err(pcrErr).Str("ext", ext).Msg("extend-pcr")
 			}
 
-			pcrErr = os.MkdirAll("/run/systemd", 0755) // #nosec G301 -- Original dir has this permissions
-			if pcrErr != nil {
-				internalUtils.KLog.Logger.Err(pcrErr).Msg("Creating /run/systemd dir")
+			err = os.MkdirAll("/run/systemd", 0755) // #nosec G301 -- Original dir has this permissions
+			if err != nil {
+				internalUtils.KLog.Logger.Err(err).Msg("Creating /run/systemd dir")
 			}
 			// This dir is created by systemd-stub and passed to the kernel as a cpio archive
 			// that gets mounted in the initial ramdisk where we run immucore from
 			// It contains the tpm public key and signatures of the current uki
-			out, pcrErr := internalUtils.CommandWithPath("cp -r /.extra/* /run/systemd/")
-			if pcrErr != nil {
-				internalUtils.KLog.Logger.Err(pcrErr).Str("out", out).Msg("Copying extra files")
+			out, err := internalUtils.CommandWithPath("cp -r /.extra/* /run/systemd/")
+			if err != nil {
+				internalUtils.KLog.Logger.Err(err).Str("out", out).Msg("Copying extra files")
 			}
 			return err
 		}))
@@ -353,12 +353,34 @@ func (s *State) UKIUdevDaemon(g *herd.Graph) error {
 	)
 }
 
+// UKILoadTPMModules loads kernel modules needed for TPM support during uki boot.
+// We need to load them ASAP as our measurement depends on this.
+func (s *State) UKILoadTPMModules(g *herd.Graph) error {
+	return g.Add(cnst.OpUkiTPMKernelModules,
+		herd.WithDeps(cnst.OpUkiBaseMounts),
+		herd.WithCallback(func(_ context.Context) error {
+			// Run depmod to ensure all modules are loaded and modules.dep updated
+			_, _ = internalUtils.CommandWithPath("depmod -a")
+			drivers := cnst.TPMKernelModules()
+			internalUtils.KLog.Logger.Debug().Strs("drivers", drivers).Msg("Detecting needed modules")
+			for _, driver := range drivers {
+				cmd := fmt.Sprintf("modprobe %s", driver)
+				out, err := internalUtils.CommandWithPath(cmd)
+				if err != nil {
+					internalUtils.KLog.Logger.Debug().Err(err).Str("out", out).Msg("modprobe")
+				}
+			}
+			return nil
+		}),
+	)
+}
+
 // UKILoadKernelModules loads kernel modules needed during uki boot to load the disks for.
 // Mainly block devices and net devices
 // probably others down the line.
 func (s *State) UKILoadKernelModules(g *herd.Graph) error {
 	return g.Add(cnst.OpUkiKernelModules,
-		herd.WithDeps(cnst.OpUkiBaseMounts, cnst.OpUkiPivotToSysroot),
+		herd.WithDeps(cnst.OpUkiBaseMounts, cnst.OpUkiPivotToSysroot, cnst.OpUkiTPMKernelModules),
 		herd.WithCallback(func(_ context.Context) error {
 			// Run depmod to ensure all modules are loaded and modules.dep updated
 			_, _ = internalUtils.CommandWithPath("depmod -a")
