@@ -17,13 +17,13 @@ limitations under the License.
 package mocks
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/jaypipes/ghw/pkg/block"
-	"github.com/jaypipes/ghw/pkg/context"
 	"github.com/jaypipes/ghw/pkg/linuxpath"
 )
 
@@ -64,8 +64,7 @@ func (g *GhwMock) AddPartitionToDisk(diskName string, partition *block.Partition
 func (g *GhwMock) CreateDevices() {
 	d, _ := os.MkdirTemp("", "ghwmock")
 	g.chroot = d
-	ctx := context.New()
-	ctx.Chroot = d
+	ctx := context.WithValue(context.Background(), "ghw.chroot", g.chroot)
 	g.paths = linuxpath.New(ctx)
 	_ = os.Setenv("GHW_CHROOT", g.chroot)
 	// Create the /sys/block dir
