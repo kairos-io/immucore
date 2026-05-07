@@ -387,7 +387,7 @@ func (s *State) UKILoadKernelModules(g *herd.Graph) error {
 			drivers := cnst.GenericKernelDrivers()
 			internalUtils.KLog.Logger.Debug().Strs("drivers", drivers).Msg("Detecting needed modules")
 			for _, driver := range drivers {
-				cmd := fmt.Sprintf("modprobe %s", driver)
+				cmd := fmt.Sprintf("modprobe -v %s", driver)
 				out, err := internalUtils.CommandWithPath(cmd)
 				if err != nil {
 					internalUtils.KLog.Logger.Debug().Err(err).Str("out", out).Msg("modprobe")

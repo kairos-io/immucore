@@ -25,7 +25,7 @@ func GenericKernelDrivers() []string {
 	return []string{
 		"af_packet",
 		"ahci",
-		"ahcpi-plaftorm",
+		"ahcpi-platform",
 		"ata_generic",
 		"ata_piix",
 		"cdrom",
@@ -42,13 +42,14 @@ func GenericKernelDrivers() []string {
 		"hid-generic",
 		"iso9660",
 		"isofs",
-		"libahcpi-platform",
+		"libahci-platform",
 		"libata",
 		"loop",
 		"mmc_block", // mmc block device support
 		"nls_cp437",
 		"nls_iso8859_1",
 		"nvme",
+		"nvme_core",
 		"ohci_hcd",
 		"ohci_pci",
 		"overlay",
@@ -76,10 +77,14 @@ func GenericKernelDrivers() []string {
 		"virtio_scsi",
 		"xhci_hcd",
 		"xhci_pci",
-		"nfit",      // For http boot NFIT memory mapping
-		"libnvdimm", // For http boot NFIT memory mapping
-		"nd_pmem",   // For http boot NFIT memory mapping
-		"dax_pmem",  // For http boot NFIT memory mapping
+		"nfit",               // For http boot NFIT memory mapping
+		"libnvdimm",          // For http boot NFIT memory mapping
+		"nd_pmem",            // For http boot NFIT memory mapping
+		"dax_pmem",           // For http boot NFIT memory mapping
+		"tegra-bpmp",         // For Thor
+		"tegra-bpmp-thermal", // For Thor
+		"phy-tegra194-p2u",   // For Thor
+		"pcie-tegra264",      // For Thor
 	}
 }
 
