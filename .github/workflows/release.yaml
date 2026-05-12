@@ -19,7 +19,7 @@ jobs:
       - name: Install gcc for amr64
         run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu libssl-dev
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v7
         with:
           version: latest
           args: release --clean
