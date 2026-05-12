@@ -7,7 +7,7 @@ import (
 	"github.com/kairos-io/kairos-sdk/types/logger"
 )
 
-// KLog is the generic KairosLogger that we pass to kcrypt calls
+// KLog is the generic KairosLogger that we pass to kcrypt calls.
 var KLog logger.KairosLogger
 
 func SetLogger() {

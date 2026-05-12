@@ -1,6 +1,9 @@
 package utils_test
 
 import (
+	"os"
+	"path/filepath"
+
 	"github.com/containerd/containerd/mount"
 	"github.com/jaypipes/ghw/pkg/block"
 	"github.com/kairos-io/immucore/internal/utils"
@@ -9,8 +12,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/twpayne/go-vfs/v4"
 	"github.com/twpayne/go-vfs/v4/vfst"
-	"os"
-	"path/filepath"
 )
 
 var _ = Describe("mount utils", func() {

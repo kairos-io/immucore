@@ -73,8 +73,7 @@ func RunStage(stage string) error {
 }
 
 func onlyYAMLPartialErrors(er error) bool {
-	var merr *multierror.Error
-	if errors.As(er, &merr) {
+	if merr, ok := errors.AsType[*multierror.Error](er); ok {
 		for _, e := range merr.Errors {
 			// Skip partial unmarshalling errors
 			// TypeError is throwed when it is possible to read the yaml partially

@@ -23,8 +23,7 @@ func oemEncrypted() bool {
 	}
 
 	// Use kairos-sdk's lightweight ghw to get disks
-	logger := internalUtils.KLog
-	disks := ghw.GetDisks(ghw.NewPaths(""), &logger)
+	disks := ghw.GetDisks(ghw.NewPaths(""), new(internalUtils.KLog))
 	if disks == nil {
 		// If we can't read block devices, assume not encrypted to be safe
 		internalUtils.KLog.Logger.Warn().Msg("Error reading partitions, assuming OEM is not encrypted")
