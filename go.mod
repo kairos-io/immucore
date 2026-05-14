@@ -10,9 +10,9 @@ require (
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/google/go-tpm v0.9.8
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/jaypipes/ghw v0.24.0
+	github.com/jaypipes/ghw v0.21.2
 	github.com/joho/godotenv v1.5.1
-	github.com/kairos-io/kairos-sdk v0.20.0
+	github.com/kairos-io/kairos-sdk v0.16.0
 	github.com/moby/sys/mountinfo v0.7.2
 	github.com/mudler/yip v1.23.5
 	github.com/onsi/ginkgo/v2 v2.28.3
