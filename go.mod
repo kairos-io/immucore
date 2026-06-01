@@ -15,8 +15,8 @@ require (
 	github.com/kairos-io/kairos-sdk v0.16.0
 	github.com/moby/sys/mountinfo v0.7.2
 	github.com/mudler/yip v1.23.6
-	github.com/onsi/ginkgo/v2 v2.28.3
 	github.com/onsi/gomega v1.41.0
+	github.com/onsi/ginkgo/v2 v2.29.0
 	github.com/spectrocloud-labs/herd v0.4.2
 	github.com/twpayne/go-vfs/v4 v4.3.0 // v5 requires a bump to go1.20
 	github.com/urfave/cli/v2 v2.27.7
@@ -70,7 +70,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-git/go-billy/v5 v5.9.0 // indirect
-	github.com/go-git/go-git/v5 v5.19.0 // indirect
+	github.com/go-git/go-git/v5 v5.19.1 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
