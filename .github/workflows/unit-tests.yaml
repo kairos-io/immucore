@@ -5,6 +5,9 @@ on:
       - main
   pull_request:
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-unit-${{ github.head_ref || github.ref }}-${{ github.repository }}
   cancel-in-progress: true
