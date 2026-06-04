@@ -9,7 +9,8 @@ import (
 
 	"github.com/containerd/containerd/mount"
 	"github.com/deniswernert/go-fstab"
-	"github.com/kairos-io/kairos-sdk/state"
+	"github.com/kairos-io/kairos-sdk/constants"
+	"github.com/kairos-io/kairos-sdk/ghw"
 )
 
 // https://github.com/kairos-io/packages/blob/7c3581a8ba6371e5ce10c3a98bae54fde6a505af/packages/system/dracut/immutable-rootfs/30cos-immutable-rootfs/cos-mount-layout.sh#L58
@@ -295,13 +296,19 @@ func GetOemLabel() string {
 	if oemLabel != "" {
 		return oemLabel
 	}
-	// We could not get it from the cmdline so get it from the runtime
-	runtime, err := state.NewRuntimeWithLogger(KLog.Logger)
-	if err != nil {
-		KLog.Logger.Debug().Err(err).Msg("runtime")
-		return ""
+	// We could not get it from the cmdline so detect it from the block devices.
+	// We use the kairos-sdk lightweight ghw here (instead of state.NewRuntimeWithLogger)
+	// because it honors the GHW_CHROOT env var, which is required for it to be mockable
+	// in tests and which the jaypipes ghw used by the state package no longer respects.
+	disks := ghw.GetDisks(ghw.NewPaths(""), &KLog)
+	for _, disk := range disks {
+		for _, p := range disk.Partitions {
+			if p.FilesystemLabel == constants.OEMLabel {
+				return p.FilesystemLabel
+			}
+		}
 	}
-	return runtime.OEM.FilesystemLabel
+	return ""
 }
 
 func ActivateLVM() error {

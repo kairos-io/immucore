@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	"github.com/jaypipes/ghw/pkg/block"
-	"github.com/jaypipes/ghw/pkg/context"
 	"github.com/jaypipes/ghw/pkg/linuxpath"
 )
 
@@ -59,14 +58,19 @@ func (g *GhwMock) AddPartitionToDisk(diskName string, partition *block.Partition
 	}
 }
 
-// CreateDevices will create a new context and paths for ghw using the Chroot value as base, then set the env var GHW_ROOT so the
+// CreateDevices will create the paths for ghw using the Chroot value as base, then set the env var GHW_CHROOT so the
 // ghw library picks that up and then iterate over the disks and partitions and create the necessary files.
 func (g *GhwMock) CreateDevices() {
 	d, _ := os.MkdirTemp("", "ghwmock")
 	g.chroot = d
-	ctx := context.New()
-	ctx.Chroot = d
-	g.paths = linuxpath.New(ctx)
+	// ghw >= v0.24.0 dropped the public pkg/context, and the chroot is now wired into ghw
+	// through the GHW_CHROOT env var (set below). We build the paths relative to the chroot
+	// ourselves, mirroring linuxpath's default layout, so the mock knows where to write files.
+	g.paths = &linuxpath.Paths{
+		SysBlock:    filepath.Join(d, "sys", "block"),
+		RunUdevData: filepath.Join(d, "run", "udev", "data"),
+		ProcMounts:  filepath.Join(d, "proc", "self", "mounts"),
+	}
 	_ = os.Setenv("GHW_CHROOT", g.chroot)
 	// Create the /sys/block dir
 	_ = os.MkdirAll(g.paths.SysBlock, 0755)
