@@ -18,6 +18,12 @@
         "patch"
       ],
       "automerge": true
+    },
+    {
+      "matchManagers": ["gomod"],
+      "matchDepNames": ["go"],
+      "matchDepTypes": ["golang"],
+      "rangeStrategy": "bump"
     }
   ],
   "customManagers": [
