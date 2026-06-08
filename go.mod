@@ -12,7 +12,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jaypipes/ghw v0.24.0
 	github.com/joho/godotenv v1.5.1
-	github.com/kairos-io/kairos-sdk v0.21.0
+	github.com/kairos-io/kairos-sdk v0.22.0
 	github.com/moby/sys/mountinfo v0.7.2
 	github.com/mudler/yip v1.24.0
 	github.com/onsi/ginkgo/v2 v2.29.0
@@ -128,7 +128,7 @@ require (
 	github.com/qeesung/image2ascii v1.0.1 // indirect
 	github.com/rs/zerolog v1.35.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/saferwall/pe v1.6.4 // indirect
+	github.com/saferwall/pe v1.6.5 // indirect
 	github.com/samber/lo v1.49.1 // indirect
 	github.com/sanity-io/litter v1.5.8 // indirect
 	github.com/satori/go.uuid v1.2.1-0.20181028125025-b2ce2384e17b // indirect
