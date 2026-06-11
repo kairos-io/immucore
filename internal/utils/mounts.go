@@ -316,7 +316,15 @@ func ActivateLVM() error {
 	// Otherwise, it has a default locking setting which activates the volumes on readonly
 	// This would be the same as passing rd.lvm.conf=0 in cmdline but rather do it here than add an extra option to cmdline
 	_, _ = CommandWithPath("rm /etc/lvm/lvm.conf")
-	out, err := CommandWithPath("lvm vgchange --refresh --sysinit")
+
+	// Activate (do NOT refresh) all available volume groups in system-init mode.
+	// We only need inactive boot volumes brought up (COS_* partitions on LVM installs);
+	// -ay is a no-op on already-active LVs. --refresh must be avoided: it suspends and
+	// reloads every active LV, including unrelated data VGs that event-based
+	// autoactivation already brought up (e.g. kubernetes pvc volumes). That reload can
+	// fail mid-operation and leave a device suspended (vgchange exit 5), which then
+	// poisons the strong-dep boot DAG (oem mount + kcrypt depend on this step).
+	out, err := CommandWithPath("lvm vgchange -ay --sysinit")
 	KLog.Logger.Debug().Str("out", out).Msg("vgchange")
 	if err != nil {
 		KLog.Logger.Err(err).Msg("vgchange")
