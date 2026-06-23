@@ -17,7 +17,7 @@ import (
 
 // MountTmpfsDagStep adds the step to mount /tmp .
 func (s *State) MountTmpfsDagStep(g *herd.Graph) error {
-	return g.Add(cnst.OpMountTmpfs, herd.WithCallback(
+	return g.Add(cnst.OpMountTmpfs, TimedCallback(cnst.OpMountTmpfs,
 		func(_ context.Context) error {
 			fstab, err := op.MountOPWithFstab("tmpfs", "/tmp", "tmpfs", []string{"rw"}, 10*time.Second)
 			for _, f := range fstab {
@@ -37,7 +37,7 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 
 	// 1 - mount the state partition to find the images (active/passive/recovery)
 	err = g.Add(cnst.OpMountState,
-		herd.WithCallback(
+		TimedCallback(cnst.OpMountState,
 			func(_ context.Context) error {
 				fstab, err := op.MountOPWithFstab(
 					internalUtils.GetState(),
@@ -60,7 +60,7 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 	// 2 - mount the image as a loop device
 	err = g.Add(cnst.OpDiscoverState,
 		herd.WithDeps(cnst.OpMountState),
-		herd.WithCallback(
+		TimedCallback(cnst.OpDiscoverState,
 			func(_ context.Context) error {
 				// Check if loop device is mounted already
 				if internalUtils.IsMounted(s.TargetDevice) {
@@ -88,7 +88,7 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 	// 3 - Mount the labels as Rootdir
 	err = g.Add(cnst.OpMountRoot,
 		herd.WithDeps(cnst.OpDiscoverState),
-		herd.WithCallback(
+		TimedCallback(cnst.OpMountRoot,
 			func(_ context.Context) error {
 				fstab, err := op.MountOPWithFstab(
 					s.TargetDevice,
@@ -118,7 +118,7 @@ func (s *State) MountRootDagStep(g *herd.Graph) error {
 // Useful for livecd/netboot as we want to run steps after s.Rootdir is ready but we don't mount it ourselves.
 func (s *State) WaitForSysrootDagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpWaitForSysroot,
-		herd.WithCallback(func(ctx context.Context) error {
+		TimedCallback(cnst.OpWaitForSysroot, func(ctx context.Context) error {
 			var timeout = 120 * time.Second
 			timeoutArg := internalUtils.CleanupSlice(internalUtils.ReadCMDLineArg("rd.immucore.sysrootwait="))
 			if len(timeoutArg) > 0 {
@@ -161,7 +161,7 @@ func (s *State) WaitForSysrootDagStep(g *herd.Graph) error {
 
 // LVMActivation will try to activate lvm volumes/groups on the system.
 func (s *State) LVMActivation(g *herd.Graph) error {
-	return g.Add(cnst.OpLvmActivate, herd.WithCallback(func(_ context.Context) error {
+	return g.Add(cnst.OpLvmActivate, TimedCallback(cnst.OpLvmActivate, func(_ context.Context) error {
 		return internalUtils.ActivateLVM()
 	}))
 }
@@ -171,7 +171,7 @@ func (s *State) LVMActivation(g *herd.Graph) error {
 // (Remote KMS, TPM with PCR, or Local TPM NV) based on system configuration.
 // This works for both UKI and non-UKI modes - the encryptor handles the differences.
 func (s *State) RunKcrypt(g *herd.Graph, opts ...herd.OpOption) error {
-	return g.Add(cnst.OpKcryptUnlock, append(opts, herd.WithCallback(func(_ context.Context) error {
+	return g.Add(cnst.OpKcryptUnlock, append(opts, TimedCallback(cnst.OpKcryptUnlock, func(_ context.Context) error {
 		return unlockEncryptedPartitions()
 	}))...)
 }
@@ -180,7 +180,7 @@ func (s *State) RunKcrypt(g *herd.Graph, opts ...herd.OpOption) error {
 // we inspect the uuid of the partition directly to know which label to use for the key
 // As those old installs have an old agent the only way to do it is during the first boot after the upgrade to the newest immucore.
 func (s *State) RunKcryptUpgrade(g *herd.Graph, opts ...herd.OpOption) error {
-	return g.Add(cnst.OpKcryptUpgrade, append(opts, herd.WithCallback(func(_ context.Context) error {
+	return g.Add(cnst.OpKcryptUpgrade, append(opts, TimedCallback(cnst.OpKcryptUpgrade, func(_ context.Context) error {
 		return internalUtils.UpgradeKcryptPartitions()
 	}))...)
 }

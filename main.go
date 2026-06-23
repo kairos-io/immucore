@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/kairos-io/immucore/internal/constants"
 	"github.com/kairos-io/immucore/internal/utils"
 	"github.com/kairos-io/immucore/internal/version"
 	"github.com/kairos-io/immucore/pkg/dag"
@@ -71,6 +72,10 @@ func main() {
 
 		err = g.Run(context.Background())
 		utils.KLog.Logger.Info().Msg(st.WriteDAG(g))
+		// Emit the boot timeline (slowest-first) to the log and a machine-readable
+		// trace file under constants.LogDir for diagnosing slow/hung boots.
+		utils.KLog.Logger.Info().Msg(state.RenderTimeline())
+		state.LogTimeline(constants.LogDir)
 		return err
 	}
 	app.Flags = []cli.Flag{
