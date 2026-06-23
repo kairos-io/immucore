@@ -184,7 +184,11 @@ func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
 
 			// Mount a tmpfs under sysroot
 			internalUtils.KLog.Logger.Debug().Msg("Mounting tmpfs on sysroot")
-			err = internalUtils.Mount("tmpfs", s.path(cnst.UkiSysrootDir), "tmpfs", 0, "")
+			// Pin the tmpfs root to 0755 explicitly. Without mode= the kernel uses
+			// 0777 & ~umask, which is non-deterministic in early boot and can leave / as
+			// 0777. Normal (non-UKI) boot mounts a real image fs whose root is 0755, so
+			// match that. Some software (e.g. snapd) requires / to be 0755.
+			err = internalUtils.Mount("tmpfs", s.path(cnst.UkiSysrootDir), "tmpfs", 0, "mode=0755")
 			if err != nil {
 				internalUtils.KLog.Logger.Err(err).Msg("mounting tmpfs on sysroot")
 				internalUtils.DropToEmergencyShell()
