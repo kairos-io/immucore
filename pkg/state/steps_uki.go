@@ -179,7 +179,7 @@ func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
 			err = os.MkdirAll(s.path(cnst.UkiSysrootDir), 0755) // #nosec G301 -- Sysroot needs to be 755 to be world readable
 			if err != nil {
 				internalUtils.KLog.Logger.Err(err).Msg("creating sysroot dir")
-				internalUtils.DropToEmergencyShell()
+				internalUtils.DropToEmergencyShellWithError("failed to create sysroot directory")
 			}
 
 			// Mount a tmpfs under sysroot
@@ -191,7 +191,7 @@ func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
 			err = internalUtils.Mount("tmpfs", s.path(cnst.UkiSysrootDir), "tmpfs", 0, "mode=0755")
 			if err != nil {
 				internalUtils.KLog.Logger.Err(err).Msg("mounting tmpfs on sysroot")
-				internalUtils.DropToEmergencyShell()
+				internalUtils.DropToEmergencyShellWithError("failed to mount tmpfs on sysroot")
 			}
 
 			// Move all the dirs in root FS that are not a mountpoint to the new root via cp -R
@@ -252,7 +252,7 @@ func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
 					err = os.Symlink(target, symlinkPath)
 					if err != nil {
 						internalUtils.KLog.Logger.Err(err).Str("from", target).Str("to", symlinkPath).Msg("Symlink")
-						internalUtils.DropToEmergencyShell()
+						internalUtils.DropToEmergencyShellWithError("failed to recreate symlink while pivoting to sysroot")
 					}
 					internalUtils.KLog.Logger.Debug().Str("from", target).Str("to", symlinkPath).Msg("Symlinked file")
 				} else {
@@ -285,19 +285,19 @@ func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
 			internalUtils.KLog.Logger.Debug().Str("to", s.path(cnst.UkiSysrootDir)).Msg("Changing dir")
 			if err = syscall.Chdir(s.path(cnst.UkiSysrootDir)); err != nil {
 				internalUtils.KLog.Logger.Err(err).Msg("chdir")
-				internalUtils.DropToEmergencyShell()
+				internalUtils.DropToEmergencyShellWithError("failed to chdir into sysroot")
 			}
 
 			internalUtils.KLog.Logger.Debug().Str("what", s.path(cnst.UkiSysrootDir)).Str("where", "/").Msg("Moving mount")
 			if err = internalUtils.Mount(s.path(cnst.UkiSysrootDir), "/", "", syscall.MS_MOVE, ""); err != nil {
 				internalUtils.KLog.Logger.Err(err).Msg("mount move")
-				internalUtils.DropToEmergencyShell()
+				internalUtils.DropToEmergencyShellWithError("failed to move sysroot mount to /")
 			}
 
 			internalUtils.KLog.Logger.Debug().Str("to", ".").Msg("Chrooting")
 			if err = syscall.Chroot("."); err != nil {
 				internalUtils.KLog.Logger.Err(err).Msg("chroot")
-				internalUtils.DropToEmergencyShell()
+				internalUtils.DropToEmergencyShellWithError("failed to chroot into the new root")
 			}
 
 			ext := "enter-initrd"
@@ -635,7 +635,7 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 			err = UKIExtendPCR(ext)
 			if err != nil {
 				internalUtils.KLog.Logger.Err(err).Str("ext", ext).Msg("extend-pcr")
-				internalUtils.DropToEmergencyShell()
+				internalUtils.DropToEmergencyShellWithError("failed to extend PCR (leave-initrd)")
 			}
 
 			// Print dag before exit, otherwise its never printed as we never exit the program
@@ -647,7 +647,7 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 			if err = internalUtils.Mount("", s.path(s.Rootdir), "", syscall.MS_REMOUNT|syscall.MS_RDONLY, "ro"); err != nil {
 				internalUtils.SetLogger() // Set the logger again as we closed it
 				internalUtils.KLog.Logger.Err(err).Msg("Mount / RO")
-				internalUtils.DropToEmergencyShell()
+				internalUtils.DropToEmergencyShellWithError("failed to remount / read-only before exec init")
 			}
 
 			internalUtils.SetLogger() // Set the logger again as we closed it
@@ -657,7 +657,7 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 				internalUtils.KLog.Logger.Warn().Err(err).Msg("Executing init failed, trying /bin/init")
 				if err = syscall.Exec("/bin/init", []string{"/bin/init"}, os.Environ()); err != nil {
 					internalUtils.KLog.Logger.Error().Err(err).Msg("Executing init failed, dropping to emergency shell")
-					internalUtils.DropToEmergencyShell()
+					internalUtils.DropToEmergencyShellWithError("failed to exec init (/sbin/init and /bin/init)")
 				}
 			}
 			return nil
