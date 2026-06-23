@@ -45,7 +45,7 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 
 	return g.Add(
 		cnst.OpUkiBaseMounts,
-		herd.WithCallback(
+		TimedCallback(cnst.OpUkiBaseMounts,
 			func(_ context.Context) error {
 				var err error
 				// Mount base mounts
@@ -171,7 +171,7 @@ func (s *State) UKIMountBaseSystem(g *herd.Graph) error {
 func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
 	return g.Add(cnst.OpUkiPivotToSysroot,
 		herd.WithDeps(cnst.OpUkiBaseMounts, cnst.OpUkiTPMKernelModules),
-		herd.WithCallback(func(_ context.Context) error {
+		TimedCallback(cnst.OpUkiPivotToSysroot, func(_ context.Context) error {
 			var err error
 			// Create the new sysroot and move to it
 			// We need the sysroot to NOT be of type rootfs, otherwise kubernetes stuff doesnt really work
@@ -326,7 +326,7 @@ func (s *State) UkiPivotToSysroot(g *herd.Graph) error {
 func (s *State) UKIUdevDaemon(g *herd.Graph) error {
 	return g.Add(cnst.OpUkiUdev,
 		herd.WithDeps(cnst.OpUkiBaseMounts, cnst.OpUkiPivotToSysroot, cnst.OpUkiKernelModules),
-		herd.WithCallback(func(_ context.Context) error {
+		TimedCallback(cnst.OpUkiUdev, func(_ context.Context) error {
 			// Should probably figure out other udevd binaries....
 			var udevBin string
 			if _, err := os.Stat("/usr/lib/systemd/systemd-udevd"); !os.IsNotExist(err) {
@@ -362,7 +362,7 @@ func (s *State) UKIUdevDaemon(g *herd.Graph) error {
 func (s *State) UKILoadTPMModules(g *herd.Graph) error {
 	return g.Add(cnst.OpUkiTPMKernelModules,
 		herd.WithDeps(cnst.OpUkiBaseMounts),
-		herd.WithCallback(func(_ context.Context) error {
+		TimedCallback(cnst.OpUkiTPMKernelModules, func(_ context.Context) error {
 			// Run depmod to ensure all modules are loaded and modules.dep updated
 			_, _ = internalUtils.CommandWithPath("depmod -a")
 			drivers := cnst.TPMKernelModules()
@@ -385,7 +385,7 @@ func (s *State) UKILoadTPMModules(g *herd.Graph) error {
 func (s *State) UKILoadKernelModules(g *herd.Graph) error {
 	return g.Add(cnst.OpUkiKernelModules,
 		herd.WithDeps(cnst.OpUkiBaseMounts, cnst.OpUkiPivotToSysroot, cnst.OpUkiTPMKernelModules),
-		herd.WithCallback(func(_ context.Context) error {
+		TimedCallback(cnst.OpUkiKernelModules, func(_ context.Context) error {
 			// Run depmod to ensure all modules are loaded and modules.dep updated
 			_, _ = internalUtils.CommandWithPath("depmod -a")
 			drivers := cnst.GenericKernelDrivers()
@@ -408,7 +408,7 @@ func (s *State) UKILoadKernelModules(g *herd.Graph) error {
 func (s *State) UKISetupNetwork(g *herd.Graph) error {
 	return g.Add(cnst.OpUkiNetwork,
 		herd.WithDeps(cnst.OpUkiBaseMounts, cnst.OpUkiPivotToSysroot, cnst.OpUkiKernelModules, cnst.OpUkiUdev),
-		herd.WithCallback(func(_ context.Context) error {
+		TimedCallback(cnst.OpUkiNetwork, func(_ context.Context) error {
 
 			// TODO: Make this function actually work.
 			internalUtils.KLog.Logger.Warn().Msg("UKISetupNetwork: Not implemented yet!")
@@ -518,7 +518,7 @@ func (s *State) UKISetupNetwork(g *herd.Graph) error {
 // It wraps the unified unlockEncryptedPartitions with UKI-specific setup
 // (PATH, removable media check, reboot on error).
 func (s *State) UKIUnlock(g *herd.Graph, opts ...herd.OpOption) error {
-	return g.Add(cnst.OpUkiKcrypt, append(opts, herd.WithCallback(func(_ context.Context) error {
+	return g.Add(cnst.OpUkiKcrypt, append(opts, TimedCallback(cnst.OpUkiKcrypt, func(_ context.Context) error {
 		// Check if booting from removable media (live CD)
 		if !state.EfiBootFromInstall(internalUtils.KLog.Logger) {
 			internalUtils.KLog.Logger.Debug().Msg("Not unlocking disks as we think we are booting from removable media")
@@ -543,7 +543,7 @@ func (s *State) UKIUnlock(g *herd.Graph, opts ...herd.OpOption) error {
 // UKIMountLiveCd tries to mount the livecd if we are booting from one into /run/initramfs/live
 // to mimic the same behavior as the livecd on non-uki boot.
 func (s *State) UKIMountLiveCd(g *herd.Graph, opts ...herd.OpOption) error {
-	return g.Add(cnst.OpUkiMountLivecd, append(opts, herd.WithCallback(func(_ context.Context) error {
+	return g.Add(cnst.OpUkiMountLivecd, append(opts, TimedCallback(cnst.OpUkiMountLivecd, func(_ context.Context) error {
 		// If we are booting from Install Media
 		if state.EfiBootFromInstall(internalUtils.KLog.Logger) {
 			internalUtils.KLog.Logger.Debug().Msg("Not mounting livecd as we think we are booting from removable media")
@@ -628,7 +628,7 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 	return g.Add(cnst.OpUkiInit,
 		herd.WeakDeps,
 		herd.WithWeakDeps(cnst.OpRootfsHook, cnst.OpInitramfsHook, cnst.OpWriteFstab),
-		herd.WithCallback(func(_ context.Context) error {
+		TimedCallback(cnst.OpUkiInit, func(_ context.Context) error {
 			var err error
 
 			ext := "leave-initrd"
@@ -667,7 +667,7 @@ func (s *State) UKIBootInitDagStep(g *herd.Graph) error {
 // UKIMountESPPartition tries to mount the ESP into /efi
 // Doesnt matter if it fails, its just for niceness.
 func (s *State) UKIMountESPPartition(g *herd.Graph, opts ...herd.OpOption) error {
-	return g.Add("mount-esp", append(opts, herd.WithCallback(func(_ context.Context) error {
+	return g.Add("mount-esp", append(opts, TimedCallback("mount-esp", func(_ context.Context) error {
 		if !state.EfiBootFromInstall(internalUtils.KLog.Logger) {
 			internalUtils.KLog.Logger.Debug().Msg("Not mounting ESP as we think we are booting from removable media")
 			return nil
@@ -718,7 +718,7 @@ func (s *State) UKIMountESPPartition(g *herd.Graph, opts ...herd.OpOption) error
 // TODO: A public cert could be provided in the config that its used for this, so we should
 // expand this in the future to also extract that cert during boot from the config into the /run/verity.d.
 func (s *State) ExtractCerts(g *herd.Graph, opts ...herd.OpOption) error {
-	return g.Add(cnst.OpUkiExtractCerts, append(opts, herd.WithCallback(func(_ context.Context) error {
+	return g.Add(cnst.OpUkiExtractCerts, append(opts, TimedCallback(cnst.OpUkiExtractCerts, func(_ context.Context) error {
 		// Get all the full certs
 		certs, err := signatures.GetAllFullCerts()
 		if err != nil {
@@ -778,7 +778,7 @@ func (s *State) ExtractCerts(g *herd.Graph, opts ...herd.OpOption) error {
 // Enable it by creating a softlink from /var/lib/kairos/extensions/{active,passive}/EXTENSION to /var/lib/kairos/extensions/EXTENSION
 // Remove it from the old location.
 func (s *State) MigrateSysExt(g *herd.Graph, opts ...herd.OpOption) error {
-	return g.Add(cnst.OpUkiTransitionSysext, append(opts, herd.WithCallback(func(_ context.Context) error {
+	return g.Add(cnst.OpUkiTransitionSysext, append(opts, TimedCallback(cnst.OpUkiTransitionSysext, func(_ context.Context) error {
 		if !state.EfiBootFromInstall(internalUtils.KLog.Logger) {
 			internalUtils.KLog.Logger.Debug().Msg("Not transitioning sysext as we think we are booting from removable media")
 			return nil

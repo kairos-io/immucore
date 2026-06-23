@@ -93,6 +93,24 @@ func (s *State) WriteDAG(g *herd.Graph) (out string) {
 	return
 }
 
+// FailureReason scans the executed graph and returns a human-readable string
+// listing the operations that errored, for use in the emergency-shell failure
+// summary. Returns a generic message when no specific op reported an error.
+func (s *State) FailureReason(g *herd.Graph) string {
+	var failed []string
+	for _, layer := range g.Analyze() {
+		for _, op := range layer {
+			if op.Error != nil {
+				failed = append(failed, fmt.Sprintf("%s: %s", op.Name, op.Error.Error()))
+			}
+		}
+	}
+	if len(failed) == 0 {
+		return "boot failed (no specific operation reported an error)"
+	}
+	return "failed operations: " + strings.Join(failed, "; ")
+}
+
 // LogIfError will log if there is an error with the given context as message
 // Context can be empty.
 func (s *State) LogIfError(e error, msgContext string) {

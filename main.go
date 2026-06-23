@@ -48,6 +48,11 @@ func main() {
 			OverlayBase:   utils.GetOverlayBase(),
 		}
 
+		// normalBoot tracks whether we took the full active/passive/recovery mount
+		// pipeline. Only that path should drop to an emergency shell on failure:
+		// live media intentionally disables immucore, and UKI already drops to a
+		// shell from inside its own steps.
+		var normalBoot bool
 		if utils.DisableImmucore() {
 			utils.KLog.Logger.Info().Msg("Stanza rd.cos.disable/rd.immucore.disable on the cmdline or booting from CDROM/Netboot/Squash recovery. Disabling immucore.")
 			err = dag.RegisterLiveMedia(st, g)
@@ -56,6 +61,7 @@ func main() {
 			err = dag.RegisterUKI(st, g)
 		} else {
 			utils.KLog.Logger.Info().Msg("Booting on active/passive/recovery.")
+			normalBoot = true
 			err = dag.RegisterNormalBoot(st, g)
 		}
 
@@ -76,6 +82,21 @@ func main() {
 		// trace file under constants.LogDir for diagnosing slow/hung boots.
 		utils.KLog.Logger.Info().Msg(state.RenderTimeline())
 		state.LogTimeline(constants.LogDir)
+
+		// On a normal-boot failure, print and persist a failure summary so the
+		// operator can see which DAG step broke and where the logs are, then return
+		// the error. We do NOT exec our own shell here: normal boot runs immucore as
+		// a dracut hook (not as init), so dracut owns the emergency shell. Exec-ing a
+		// shell ourselves would either hang (no console) or continue booting into the
+		// broken system on shell exit. UKI drops to a shell from inside its own steps
+		// because there immucore is the init; live media is intentionally disabled.
+		if err != nil && normalBoot {
+			summary := utils.RenderFailureSummary(st.FailureReason(g))
+			fmt.Fprintln(os.Stderr, summary)
+			if _, werr := utils.WriteFailureSummary(constants.LogDir, summary); werr != nil {
+				utils.KLog.Logger.Err(werr).Msg("writing failure summary")
+			}
+		}
 		return err
 	}
 	app.Flags = []cli.Flag{
