@@ -12,6 +12,7 @@ import (
 	"github.com/kairos-io/immucore/pkg/state"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/spectrocloud-labs/herd"
 )
 
 var _ = Describe("step timing registry", func() {
@@ -19,22 +20,22 @@ var _ = Describe("step timing registry", func() {
 		state.ResetTimeline()
 	})
 
-	It("records a step duration via TimedCallback", func() {
-		opt := state.TimedCallback("fake-op", func(_ context.Context) error {
+	It("records a step duration via TimedCallback run through a graph", func() {
+		called := false
+		g := herd.DAG(herd.EnableInit)
+		Expect(g.Add("fake-op", state.TimedCallback("fake-op", func(_ context.Context) error {
+			called = true
 			time.Sleep(5 * time.Millisecond)
 			return nil
-		})
-		// The OpOption must be usable.
-		Expect(opt).NotTo(BeNil())
+		}))).To(Succeed())
 
-		state.RunTimed("fake-op", func() error {
-			time.Sleep(5 * time.Millisecond)
-			return nil
-		})
+		Expect(g.Run(context.Background())).To(Succeed())
+		Expect(called).To(BeTrue())
 
 		timings := state.Timings()
 		Expect(timings).To(HaveKey("fake-op"))
 		Expect(timings["fake-op"].Duration).To(BeNumerically(">=", 5*time.Millisecond))
+		Expect(timings["fake-op"].Err).ToNot(HaveOccurred())
 	})
 
 	It("renders the timeline slowest-first with names and durations", func() {

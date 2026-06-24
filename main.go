@@ -92,7 +92,7 @@ func main() {
 		// because there immucore is the init; live media is intentionally disabled.
 		if err != nil && normalBoot {
 			summary := utils.RenderFailureSummary(st.FailureReason(g))
-			fmt.Fprintln(os.Stderr, summary)
+			fmt.Fprint(os.Stderr, summary)
 			if _, werr := utils.WriteFailureSummary(constants.LogDir, summary); werr != nil {
 				utils.KLog.Logger.Err(werr).Msg("writing failure summary")
 			}

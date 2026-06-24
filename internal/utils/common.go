@@ -273,9 +273,7 @@ func GetHostProcCmdline() string {
 func RenderFailureSummary(reason string) string {
 	var b strings.Builder
 
-	if reason == "" {
-		reason = "unknown failure (no reason provided)"
-	}
+	reason = normalizeFailureReason(reason)
 
 	// Read the kernel cmdline best-effort; do not fail the summary if it errors.
 	cmdline, err := os.ReadFile(GetHostProcCmdline())
@@ -297,6 +295,16 @@ func RenderFailureSummary(reason string) string {
 	return b.String()
 }
 
+// normalizeFailureReason returns a human-readable reason, substituting a
+// placeholder when the caller did not provide one. Shared so the structured
+// log and the rendered/persisted summary stay consistent.
+func normalizeFailureReason(reason string) string {
+	if reason == "" {
+		return "unknown failure (no reason provided)"
+	}
+	return reason
+}
+
 // WriteFailureSummary writes the rendered summary to a file under dir,
 // creating dir if needed. Returns the path written.
 func WriteFailureSummary(dir, summary string) (string, error) {
@@ -314,10 +322,13 @@ func WriteFailureSummary(dir, summary string) (string, error) {
 // persists it under the log dir, and then drops to the emergency shell.
 // reason describes the operation that failed.
 func DropToEmergencyShellWithError(reason string) {
+	reason = normalizeFailureReason(reason)
 	summary := RenderFailureSummary(reason)
 
 	// Always print to stderr so it is visible even if logging is misconfigured.
-	_, _ = fmt.Fprintln(os.Stderr, summary)
+	// RenderFailureSummary already ends in a newline; use Fprint to avoid a
+	// trailing blank line.
+	_, _ = fmt.Fprint(os.Stderr, summary)
 
 	// Mirror into the structured log.
 	KLog.Logger.Error().Str("reason", reason).Msg("immucore boot failed, dropping to emergency shell")
