@@ -93,9 +93,10 @@ func (s *State) WriteDAG(g *herd.Graph) (out string) {
 	return
 }
 
-// FailureReason scans the executed graph and returns a human-readable string
-// listing the operations that errored, for use in the emergency-shell failure
-// summary. Returns a generic message when no specific op reported an error.
+// FailureReason scans the graph after a run and returns a human-readable string
+// listing the operations that errored (op.Error is only set once an op has run),
+// for use in the emergency-shell failure summary. Returns a generic message when
+// no specific op reported an error.
 func (s *State) FailureReason(g *herd.Graph) string {
 	var failed []string
 	for _, layer := range g.Analyze() {

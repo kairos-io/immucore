@@ -44,13 +44,15 @@ var _ = Describe("step timing registry", func() {
 		state.RunTimed("medium", func() error { time.Sleep(15 * time.Millisecond); return nil })
 
 		out := state.RenderTimeline()
-		Expect(out).To(ContainSubstring("slow"))
-		Expect(out).To(ContainSubstring("medium"))
-		Expect(out).To(ContainSubstring("fast"))
+		Expect(out).To(ContainSubstring("<slow>"))
+		Expect(out).To(ContainSubstring("<medium>"))
+		Expect(out).To(ContainSubstring("<fast>"))
 
-		slowIdx := strings.Index(out, "slow")
-		medIdx := strings.Index(out, "medium")
-		fastIdx := strings.Index(out, "fast")
+		// Match the step tokens, not bare words: the header text "slowest first"
+		// contains "slow" and would otherwise be matched before the step.
+		slowIdx := strings.Index(out, "<slow>")
+		medIdx := strings.Index(out, "<medium>")
+		fastIdx := strings.Index(out, "<fast>")
 		Expect(slowIdx).To(BeNumerically("<", medIdx))
 		Expect(medIdx).To(BeNumerically("<", fastIdx))
 	})
