@@ -299,6 +299,7 @@ func RenderFailureSummary(reason string) string {
 // placeholder when the caller did not provide one. Shared so the structured
 // log and the rendered/persisted summary stay consistent.
 func normalizeFailureReason(reason string) string {
+	reason = strings.TrimSpace(reason)
 	if reason == "" {
 		return "unknown failure (no reason provided)"
 	}

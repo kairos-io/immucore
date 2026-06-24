@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -97,15 +98,16 @@ func RenderTimeline() string {
 	if len(steps) == 0 {
 		return "Boot timeline: no steps recorded\n"
 	}
-	out := "Boot timeline (slowest first):\n"
+	var b strings.Builder
+	b.WriteString("Boot timeline (slowest first):\n")
 	for i, s := range steps {
 		status := "ok"
 		if s.Err != nil {
 			status = fmt.Sprintf("error: %s", s.Err.Error())
 		}
-		out += fmt.Sprintf("%d. <%s> %s (%s)\n", i+1, s.Name, s.Duration.Round(time.Millisecond), status)
+		fmt.Fprintf(&b, "%d. <%s> %s (%s)\n", i+1, s.Name, s.Duration.Round(time.Millisecond), status)
 	}
-	return out
+	return b.String()
 }
 
 // timelineEntry is the JSON shape of a single step in the trace file.
