@@ -31,32 +31,32 @@ var _ = Describe("failure summary", func() {
 
 	Describe("RenderFailureSummary", func() {
 		It("includes a bold header", func() {
-			out := utils.RenderFailureSummary("something failed")
+			out := utils.RenderFailureSummary("something failed", constants.LogDir)
 			Expect(out).To(ContainSubstring("IMMUCORE BOOT FAILED"))
 		})
 
 		It("includes the reason passed in", func() {
-			out := utils.RenderFailureSummary("failed to mount sysroot")
+			out := utils.RenderFailureSummary("failed to mount sysroot", constants.LogDir)
 			Expect(out).To(ContainSubstring("failed to mount sysroot"))
 		})
 
 		It("includes the kernel cmdline content", func() {
-			out := utils.RenderFailureSummary("boom")
+			out := utils.RenderFailureSummary("boom", constants.LogDir)
 			Expect(out).To(ContainSubstring("rd.immucore.uki root=LABEL=COS_ACTIVE rd.immucore.debug"))
 		})
 
-		It("includes the log directory location", func() {
-			out := utils.RenderFailureSummary("boom")
-			Expect(out).To(ContainSubstring(constants.LogDir))
+		It("includes the log directory location passed in", func() {
+			out := utils.RenderFailureSummary("boom", "/custom/log/dir")
+			Expect(out).To(ContainSubstring("/custom/log/dir"))
 		})
 
 		It("includes the inspect/retry hint", func() {
-			out := utils.RenderFailureSummary("boom")
+			out := utils.RenderFailureSummary("boom", constants.LogDir)
 			Expect(out).To(ContainSubstring("Inspect logs above, then exit this shell to retry or reboot."))
 		})
 
 		It("handles an empty reason gracefully", func() {
-			out := utils.RenderFailureSummary("")
+			out := utils.RenderFailureSummary("", constants.LogDir)
 			Expect(out).To(ContainSubstring("IMMUCORE BOOT FAILED"))
 		})
 	})
@@ -67,7 +67,7 @@ var _ = Describe("failure summary", func() {
 			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll(tmpDir)
 
-			summary := utils.RenderFailureSummary("disk on fire")
+			summary := utils.RenderFailureSummary("disk on fire", tmpDir)
 			path, err := utils.WriteFailureSummary(tmpDir, summary)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(path).To(HavePrefix(tmpDir))
@@ -75,6 +75,19 @@ var _ = Describe("failure summary", func() {
 			content, err := os.ReadFile(path)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(content)).To(ContainSubstring("disk on fire"))
+		})
+
+		It("persists the summary root-only (cmdline may carry secrets)", func() {
+			tmpDir, err := os.MkdirTemp("", "logdir-perms")
+			Expect(err).ToNot(HaveOccurred())
+			defer os.RemoveAll(tmpDir)
+
+			path, err := utils.WriteFailureSummary(tmpDir, "secret token=abc")
+			Expect(err).ToNot(HaveOccurred())
+
+			info, err := os.Stat(path)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(info.Mode().Perm()).To(Equal(os.FileMode(0600)))
 		})
 
 		It("creates the dir if it does not exist", func() {

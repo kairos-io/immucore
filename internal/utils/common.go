@@ -269,8 +269,10 @@ func GetHostProcCmdline() string {
 // RenderFailureSummary builds a human-readable boot failure summary.
 // It is intentionally separate from the shell-exec logic so it can be unit
 // tested without exec-ing anything. reason is the caller-provided context
-// describing which operation failed (may be empty).
-func RenderFailureSummary(reason string) string {
+// describing which operation failed (may be empty). logDir is the directory the
+// summary points operators at for logs; pass the same dir given to
+// WriteFailureSummary so the displayed path matches where the summary lands.
+func RenderFailureSummary(reason, logDir string) string {
 	var b strings.Builder
 
 	reason = normalizeFailureReason(reason)
@@ -287,7 +289,7 @@ func RenderFailureSummary(reason string) string {
 	b.WriteString("========================================\n")
 	fmt.Fprintf(&b, "Reason:  %s\n", reason)
 	fmt.Fprintf(&b, "Cmdline: %s\n", cmdlineStr)
-	fmt.Fprintf(&b, "Logs:    %s\n", constants.LogDir)
+	fmt.Fprintf(&b, "Logs:    %s\n", logDir)
 	b.WriteString("----------------------------------------\n")
 	b.WriteString("Inspect logs above, then exit this shell to retry or reboot.\n")
 	b.WriteString("========================================\n")
@@ -312,8 +314,11 @@ func WriteFailureSummary(dir, summary string) (string, error) {
 	if err := os.MkdirAll(dir, 0755); err != nil { // #nosec G301 -- log dir, world readable is fine
 		return "", err
 	}
+	// 0600: the summary embeds the kernel cmdline, which can carry secrets
+	// (tokens, KMS passwords, keys). Keep it root-only so non-root readers on the
+	// booted system cannot harvest them from the persisted file.
 	path := filepath.Join(dir, "boot_failure.log")
-	if err := os.WriteFile(path, []byte(summary), 0644); err != nil { // #nosec G306 -- log file
+	if err := os.WriteFile(path, []byte(summary), 0600); err != nil {
 		return "", err
 	}
 	return path, nil
@@ -324,7 +329,7 @@ func WriteFailureSummary(dir, summary string) (string, error) {
 // reason describes the operation that failed.
 func DropToEmergencyShellWithError(reason string) {
 	reason = normalizeFailureReason(reason)
-	summary := RenderFailureSummary(reason)
+	summary := RenderFailureSummary(reason, constants.LogDir)
 
 	// Always print to stderr so it is visible even if logging is misconfigured.
 	// RenderFailureSummary already ends in a newline; use Fprint to avoid a
