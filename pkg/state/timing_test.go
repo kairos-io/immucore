@@ -39,9 +39,11 @@ var _ = Describe("step timing registry", func() {
 	})
 
 	It("renders the timeline slowest-first with names and durations", func() {
-		state.RunTimed("fast", func() error { time.Sleep(2 * time.Millisecond); return nil })
-		state.RunTimed("slow", func() error { time.Sleep(30 * time.Millisecond); return nil })
-		state.RunTimed("medium", func() error { time.Sleep(15 * time.Millisecond); return nil })
+		// Wide gaps so scheduling jitter on loaded CI runners cannot reorder the
+		// measured durations.
+		state.RunTimed("fast", func() error { time.Sleep(10 * time.Millisecond); return nil })
+		state.RunTimed("slow", func() error { time.Sleep(300 * time.Millisecond); return nil })
+		state.RunTimed("medium", func() error { time.Sleep(100 * time.Millisecond); return nil })
 
 		out := state.RenderTimeline()
 		Expect(out).To(ContainSubstring("<slow>"))
