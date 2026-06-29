@@ -371,6 +371,8 @@ github.com/kairos-io/kairos-sdk v0.22.1 h1:h1IuF8LiHo8vHdcQo7MJAWHNbm4nr+q/hIf+Q
 github.com/kairos-io/kairos-sdk v0.22.1/go.mod h1:GuUCzYyKzMkmGYqEL03ni9HKKkQIcahto53YnK2taXA=
 github.com/kairos-io/kairos-sdk v0.23.0 h1:tLFPfXxxAOhtPIZPwmOH01aVbpZ6xiGGcf/synefvtY=
 github.com/kairos-io/kairos-sdk v0.23.0/go.mod h1:zzULzLTNjdsDW82W7HowCygHtruG8rGPGV94FaI+iT8=
+github.com/kairos-io/kairos-sdk v0.23.1 h1:87cSbA7a1a0KvNrtmw0FaYR5hi4TGfOfO/jOH3ojRfA=
+github.com/kairos-io/kairos-sdk v0.23.1/go.mod h1:2ExNXYTMfjv6yOJGxkW3bpy/u7BMC/Op+TExRSNfWjY=
 github.com/kairos-io/tpm-helpers v0.0.0-20251107132133-df566ad2d185 h1:XSUSjYFkIFdZhFEc3Z6xcqggbgPOclKz+9hntaA+q8o=
 github.com/kairos-io/tpm-helpers v0.0.0-20251107132133-df566ad2d185/go.mod h1:zOtMRZ4zGpy+qL6W1N0LrczM/9T0sdoaJ1K5PgfchAs=
 github.com/kairos-io/tpm-helpers v0.0.0-20260608091616-8a4ccb53d8f7 h1:xa+JqfOHMr6yenQKtVjnkeb6k/D1zwBa/35Mw/peRm0=
