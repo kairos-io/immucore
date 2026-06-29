@@ -266,6 +266,89 @@ func GetHostProcCmdline() string {
 	return proc
 }
 
+// RenderFailureSummary builds a human-readable boot failure summary.
+// It is intentionally separate from the shell-exec logic so it can be unit
+// tested without exec-ing anything. reason is the caller-provided context
+// describing which operation failed (may be empty). logDir is the directory the
+// summary points operators at for logs; pass the same dir given to
+// WriteFailureSummary so the displayed path matches where the summary lands.
+func RenderFailureSummary(reason, logDir string) string {
+	var b strings.Builder
+
+	reason = normalizeFailureReason(reason)
+
+	// Read the kernel cmdline best-effort; do not fail the summary if it errors.
+	cmdline, err := os.ReadFile(GetHostProcCmdline())
+	cmdlineStr := strings.TrimSpace(string(cmdline))
+	if err != nil || cmdlineStr == "" {
+		cmdlineStr = "(unavailable)"
+	}
+
+	b.WriteString("========================================\n")
+	b.WriteString("        IMMUCORE BOOT FAILED\n")
+	b.WriteString("========================================\n")
+	fmt.Fprintf(&b, "Reason:  %s\n", reason)
+	fmt.Fprintf(&b, "Cmdline: %s\n", cmdlineStr)
+	fmt.Fprintf(&b, "Logs:    %s\n", logDir)
+	b.WriteString("----------------------------------------\n")
+	b.WriteString("Inspect logs above, then exit this shell to retry or reboot.\n")
+	b.WriteString("========================================\n")
+
+	return b.String()
+}
+
+// normalizeFailureReason returns a human-readable reason, substituting a
+// placeholder when the caller did not provide one. Shared so the structured
+// log and the rendered/persisted summary stay consistent.
+func normalizeFailureReason(reason string) string {
+	reason = strings.TrimSpace(reason)
+	if reason == "" {
+		return "unknown failure (no reason provided)"
+	}
+	return reason
+}
+
+// WriteFailureSummary writes the rendered summary to a file under dir,
+// creating dir if needed. Returns the path written.
+func WriteFailureSummary(dir, summary string) (string, error) {
+	if err := os.MkdirAll(dir, 0755); err != nil { // #nosec G301 -- log dir, world readable is fine
+		return "", err
+	}
+	// 0600: the summary embeds the kernel cmdline, which can carry secrets
+	// (tokens, KMS passwords, keys). Keep it root-only so non-root readers on the
+	// booted system cannot harvest them from the persisted file.
+	path := filepath.Join(dir, "boot_failure.log")
+	if err := os.WriteFile(path, []byte(summary), 0600); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
+// DropToEmergencyShellWithError prints a structured failure summary to stderr,
+// persists it under the log dir, and then drops to the emergency shell.
+// reason describes the operation that failed.
+func DropToEmergencyShellWithError(reason string) {
+	reason = normalizeFailureReason(reason)
+	summary := RenderFailureSummary(reason, constants.LogDir)
+
+	// Always print to stderr so it is visible even if logging is misconfigured.
+	// RenderFailureSummary already ends in a newline; use Fprint to avoid a
+	// trailing blank line.
+	_, _ = fmt.Fprint(os.Stderr, summary)
+
+	// Mirror into the structured log.
+	KLog.Logger.Error().Str("reason", reason).Msg("immucore boot failed, dropping to emergency shell")
+
+	// Best-effort persist to the log dir.
+	if path, err := WriteFailureSummary(constants.LogDir, summary); err != nil {
+		KLog.Logger.Warn().Err(err).Msg("could not write boot failure summary to log dir")
+	} else {
+		KLog.Logger.Info().Str("path", path).Msg("wrote boot failure summary")
+	}
+
+	DropToEmergencyShell()
+}
+
 func DropToEmergencyShell() {
 	env := os.Environ()
 	// try to extract any existing path from the environment

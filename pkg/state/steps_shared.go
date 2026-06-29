@@ -26,7 +26,7 @@ import (
 func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 	return g.Add(cnst.OpSentinel,
 		herd.WithDeps(deps...),
-		herd.WithCallback(func(_ context.Context) error {
+		TimedCallback(cnst.OpSentinel, func(_ context.Context) error {
 			var sentinel string
 
 			internalUtils.KLog.Logger.Debug().Msg("Will now create /run/cos if not exists")
@@ -92,12 +92,12 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 
 // RootfsStageDagStep will add the rootfs stage.
 func (s *State) RootfsStageDagStep(g *herd.Graph, opts ...herd.OpOption) error {
-	return g.Add(cnst.OpRootfsHook, append(opts, herd.WithCallback(s.RunStageOp("rootfs")))...)
+	return g.Add(cnst.OpRootfsHook, append(opts, TimedCallback(cnst.OpRootfsHook, s.RunStageOp("rootfs")))...)
 }
 
 // InitramfsStageDagStep will add the rootfs stage.
 func (s *State) InitramfsStageDagStep(g *herd.Graph, opts ...herd.OpOption) error {
-	return g.Add(cnst.OpInitramfsHook, append(opts, herd.WithCallback(s.RunStageOp("initramfs")))...)
+	return g.Add(cnst.OpInitramfsHook, append(opts, TimedCallback(cnst.OpInitramfsHook, s.RunStageOp("initramfs")))...)
 }
 
 // RunStageOp runs elemental run-stage stage. If its rootfs its special as it needs som symlinks
@@ -148,7 +148,7 @@ func (s *State) RunStageOp(stage string) func(context.Context) error {
 func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpLoadConfig,
 		append(opts, herd.WithDeps(cnst.OpRootfsHook),
-			herd.WithCallback(func(_ context.Context) error {
+			TimedCallback(cnst.OpLoadConfig, func(_ context.Context) error {
 				if s.CustomMounts == nil {
 					s.CustomMounts = map[string]string{}
 				}
@@ -221,7 +221,7 @@ func (s *State) LoadEnvLayoutDagStep(g *herd.Graph, opts ...herd.OpOption) error
 func (s *State) MountOemDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpMountOEM,
 		append(opts,
-			herd.WithCallback(func(ctx context.Context) error {
+			TimedCallback(cnst.OpMountOEM, func(ctx context.Context) error {
 				runtime, _ := state.NewRuntimeWithLogger(internalUtils.KLog.Logger)
 				if runtime.BootState == state.LiveCD {
 					internalUtils.KLog.Logger.Debug().Msg("Livecd mode detected, won't mount OEM")
@@ -257,7 +257,7 @@ func (s *State) MountOemDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 func (s *State) MountBaseOverlayDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpMountBaseOverlay,
 		append(opts, herd.WithDeps(cnst.OpLoadConfig),
-			herd.WithCallback(
+			TimedCallback(cnst.OpMountBaseOverlay,
 				func(_ context.Context) error {
 					operation, err := op.BaseOverlay(schema.Overlay{
 						Base:        "/run/overlay",
@@ -287,7 +287,7 @@ func (s *State) MountBaseOverlayDagStep(g *herd.Graph, opts ...herd.OpOption) er
 func (s *State) MountCustomOverlayDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpOverlayMount,
 		append(opts, herd.WithDeps(cnst.OpLoadConfig, cnst.OpMountBaseOverlay),
-			herd.WithCallback(
+			TimedCallback(cnst.OpOverlayMount,
 				func(_ context.Context) error {
 					var multierr *multierror.Error
 					internalUtils.KLog.Logger.Debug().Strs("dirs", s.OverlayDirs).Msg("Mounting overlays")
@@ -313,7 +313,7 @@ func (s *State) MountCustomOverlayDagStep(g *herd.Graph, opts ...herd.OpOption) 
 // MountCustomMountsDagStep will add mounting s.CustomMounts .
 func (s *State) MountCustomMountsDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpCustomMounts, append(opts, herd.WithDeps(cnst.OpLoadConfig),
-		herd.WithCallback(func(_ context.Context) error {
+		TimedCallback(cnst.OpCustomMounts, func(_ context.Context) error {
 			var err *multierror.Error
 			internalUtils.KLog.Logger.Debug().Interface("mounts", s.CustomMounts).Msg("Mounting custom mounts")
 
@@ -356,7 +356,7 @@ func (s *State) MountCustomMountsDagStep(g *herd.Graph, opts ...herd.OpOption) e
 func (s *State) MountCustomBindsDagStep(g *herd.Graph, opts ...herd.OpOption) error {
 	return g.Add(cnst.OpMountBind,
 		append(opts, herd.WithDeps(cnst.OpOverlayMount, cnst.OpCustomMounts, cnst.OpLoadConfig),
-			herd.WithCallback(
+			TimedCallback(cnst.OpMountBind,
 				func(_ context.Context) error {
 					var err *multierror.Error
 					internalUtils.KLog.Logger.Debug().Strs("mounts", s.BindMounts).Msg("Mounting binds")
@@ -387,7 +387,7 @@ func (s *State) MountCustomBindsDagStep(g *herd.Graph, opts ...herd.OpOption) er
 // So when initramfs stage runs and enables systemd-sysext it can load the extensions for a given bootentry.
 // Works for both sysext and confext.
 func (s *State) EnableSysAndConfExtensions(g *herd.Graph, opts ...herd.OpOption) error {
-	return g.Add(cnst.OpUkiCopySysExtensions, append(opts, herd.WithCallback(func(_ context.Context) error {
+	return g.Add(cnst.OpUkiCopySysExtensions, append(opts, TimedCallback(cnst.OpUkiCopySysExtensions, func(_ context.Context) error {
 		// If uki and we are not booting from install media then do nothing
 		if internalUtils.IsUKI() {
 			if !state.EfiBootFromInstall(internalUtils.KLog.Logger) {
@@ -543,7 +543,7 @@ func validateAndEnableSysConfExtensions(s *State, extType string) error {
 // WriteFstabDagStep will add writing the final fstab file with all the mounts
 // Depends on everything but weak, so it will still try to write.
 func (s *State) WriteFstabDagStep(g *herd.Graph, opts ...herd.OpOption) error {
-	return g.Add(cnst.OpWriteFstab, append(opts, herd.WithCallback(s.WriteFstab()))...)
+	return g.Add(cnst.OpWriteFstab, append(opts, TimedCallback(cnst.OpWriteFstab, s.WriteFstab()))...)
 }
 
 // unlockEncryptedPartitions is the unified logic for unlocking encrypted partitions.
