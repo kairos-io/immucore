@@ -357,8 +357,8 @@ github.com/jstemmer/go-junit-report v0.0.0-20190106144839-af01ea7f8024/go.mod h1
 github.com/jstemmer/go-junit-report v0.9.1/go.mod h1:Brl9GWCQeLvo8nXZwPNNblvFj/XSXhF0NWZEnDohbsk=
 github.com/jzelinskie/whirlpool v0.0.0-20201016144138-0675e54bb004 h1:G+9t9cEtnC9jFiTxyptEKuNIAbiN5ZCQzX2a74lj3xg=
 github.com/jzelinskie/whirlpool v0.0.0-20201016144138-0675e54bb004/go.mod h1:KmHnJWQrgEvbuy0vcvj00gtMqbvNn1L+3YUZLK/B92c=
-github.com/kairos-io/kairos-sdk v0.23.4 h1:5GWk0pYVFiknA20GUNm9qJwbEieY2lrPu0F7FlMY6Do=
-github.com/kairos-io/kairos-sdk v0.23.4/go.mod h1:cIjefAOJtO6f0Zu5ig6KR2Tu9BvRqCh3nKwXpupYyfo=
+github.com/kairos-io/kairos-sdk v0.24.0 h1:MOD/bL+ZDLrZILN3PVhuVNcinWiFw6QWFaWmAwnUERE=
+github.com/kairos-io/kairos-sdk v0.24.0/go.mod h1:u/k5mhH2kqtegckE0izUz+Rtu0OoJcsilO+nkz1t8BU=
 github.com/kairos-io/tpm-helpers v0.0.0-20260702080541-9b3e057e2f32 h1:uunggNSibnMrKkvBblxmpsa1BNGHXFqsJf0zyUm0Eas=
 github.com/kairos-io/tpm-helpers v0.0.0-20260702080541-9b3e057e2f32/go.mod h1:VCNa+JJQgXutnWNJvZyNSemeMSy2w+b9SKTkItiIkro=
 github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 h1:Z9n2FFNUXsshfwJMBgNA0RU6/i7WVaAegv3PtuIHPMs=
