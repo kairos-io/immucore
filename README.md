@@ -122,13 +122,16 @@ token is only needed when no other stanza is present.
   missing one is created.
 
 * `kairos.ram.create_partitions=<device>`: Same, but target an explicit disk
-  (e.g. `kairos.ram.create_partitions=/dev/vda`).
+  (e.g. `kairos.ram.create_partitions=/dev/vda`). The consent rules below
+  still apply — an explicit disk that belongs to another system is refused
+  without `kairos.ram.wipe`, so a typo in the device path cannot destroy or
+  alter a foreign disk.
 
-* `kairos.ram.wipe`: Allow `create_partitions` to overwrite a disk that
-  already has a partition table. **Destroys all data on the disk.** Without
-  this flag a non-empty disk stops the boot with an explanation. With this
-  flag, auto-selection also skips the empty-disk preference and simply takes
-  the largest disk, whatever its state.
+* `kairos.ram.wipe`: Consent flag for touching disks that already carry
+  partitions belonging to another system. **Destroys all data on the target
+  disk.** Without this flag such a disk stops the boot with an explanation.
+  With it, auto-selection also skips the empty-disk preference and simply
+  takes the largest disk, whatever its state.
 
 * `kairos.ram.oem=<MiB>`: Size of the created `COS_OEM` partition in MiB.
   Defaults to 64.
@@ -137,14 +140,37 @@ token is only needed when no other stanza is present.
   partition in MiB. Defaults to 0, which means "expand to the end of the
   disk".
 
+#### Disk selection and consent rules
+
+How the target disk is resolved when partitions need creating:
+
+| Selection | `kairos.ram.wipe` | Target |
+|---|---|---|
+| `create_partitions=/dev/X` | any | `/dev/X`, verbatim |
+| bare `create_partitions` | unset | largest EMPTY candidate disk; if none is empty, largest overall (then hits the consent rule below) |
+| bare `create_partitions` | set | largest candidate disk, regardless of state |
+
+And what happens to the resolved target:
+
+| Target disk state | `kairos.ram.wipe` | Result |
+|---|---|---|
+| Empty (no partition table) | any | fresh GPT + partitions created |
+| Already carries `COS_OEM` or `COS_PERSISTENT` | any | append-only: the missing label is created next to the existing one, nothing else is touched |
+| Carries only foreign partitions | unset | **boot halts** with the wipe-required screen |
+| Carries only foreign partitions | set | fresh GPT when both labels are missing (destroys the disk), append otherwise |
+
+Candidate disks exclude removable media (USB, SD), CD-ROM and virtual
+devices (loop, ram, zram, nbd, device-mapper, md). Largest-first matches the
+rule kairos-agent uses for `device: auto` at install time.
+
 When something blocks the boot (missing partitions and no
-`create_partitions` flag, ambiguous disk selection, non-empty disk without
-`wipe`), immucore takes over the console with a full-screen message
-explaining what went wrong and the exact stanzas to fix it. On systemd
-systems, pressing any key reboots immediately, and with no input the system
-reboots automatically after 90 seconds through `systemd-reboot.service` (so
-boot-assessment sees the failed boot). On non-systemd systems (e.g. Alpine)
-the message is printed and the boot fails normally.
+`create_partitions` flag, no eligible disk, foreign disk without `wipe`),
+immucore takes over the console with a full-screen message explaining what
+went wrong and the exact stanzas to fix it. On systemd systems, pressing any
+key reboots immediately, and with no input the system reboots automatically
+after 90 seconds through `systemd-reboot.service` (so boot-assessment sees
+the failed boot). On non-systemd systems (e.g. Alpine) the message is
+printed and the boot fails normally.
 
 Sentinel: in-RAM boots are classified as `active_boot` (the running system
 is the current install), so `/run/cos/active_mode` is written as usual, plus
