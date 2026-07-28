@@ -121,6 +121,44 @@ const (
 	OpUkiExtractCerts      = "extract-certs"
 	OpUkiTransitionSysext  = "uki-transition-sysext"
 	OpUkiCopySysExtensions = "enable-sysext-confext"
+	// InRamSentinelName is the extra sentinel file written under /run/cos/ when
+	// the kairos.in_ram workflow is active. It is additive: WriteSentinelDagStep
+	// still writes the BootState-driven sentinel (which is active_mode for
+	// in-RAM boots because kairos-sdk forces BootState=Active) so existing
+	// cloud-init gates keep firing. Tooling that specifically needs to know the
+	// rootfs is on a tmpfs can stat this file.
+	InRamSentinelName = "in_ram_mode"
+
+	// OpEnsurePartitions runs early in the in-RAM DAG and either confirms that
+	// COS_OEM + COS_PERSISTENT already exist on disk, or auto-creates the
+	// missing ones on the disk selected via rd.kairos.auto_create_partitions.
+	// After it completes, downstream mount steps behave as if the workstation
+	// had been installed normally with an empty OEM.
+	OpEnsurePartitions = "ensure-partitions"
+
+	// OemLabel is the filesystem label of the OEM partition. Duplicated with
+	// the string used across kairos-sdk / kairos-agent; kept here so this
+	// package has no import cycle.
+	OemLabel = "COS_OEM"
+	// PersistentLabel is the filesystem label of the persistent partition.
+	PersistentLabel = "COS_PERSISTENT"
+
+	// DefaultOemSizeMiB is the size we create COS_OEM at on first boot when no
+	// explicit rd.kairos.auto_create.partitions.oem= override is present.
+	// Matches kairos-agent's default install layout.
+	DefaultOemSizeMiB uint64 = 64
+	// DefaultPersistentSizeMiB=0 means "expand to the end of the disk" in yip's
+	// layout plugin. Users can override to a fixed size to leave room for other
+	// partitions after ours.
+	DefaultPersistentSizeMiB uint64 = 0
+
+	// Cmdline stanzas driving the ensure-partitions step. Values captured as
+	// ReadCMDLineArg results (slice of strings). See EnsurePartitionsDagStep
+	// for the exact semantics.
+	CmdlineAutoCreatePartitions     = "rd.kairos.auto_create_partitions"
+	CmdlineAutoCreatePartitionsWipe = "rd.kairos.auto_create_partitions.wipe"
+	CmdlineAutoCreateOemSize        = "rd.kairos.auto_create.partitions.oem="
+	CmdlineAutoCreatePersistentSize = "rd.kairos.auto_create.partitions.persistent="
 	UkiLivecdMountPoint    = "/run/initramfs/live"
 	UkiIsoBaseTree         = "/run/rootfsbase"
 	UkiIsoBootImage        = "efiboot.img"

@@ -12,7 +12,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jaypipes/ghw v0.25.0
 	github.com/joho/godotenv v1.5.1
-	github.com/kairos-io/kairos-sdk v0.24.0
+	github.com/kairos-io/kairos-sdk v0.24.1-0.20260728115338-8a60cb81eeda
 	github.com/moby/sys/mountinfo v0.7.2
 	github.com/mudler/yip v1.25.1
 	github.com/onsi/ginkgo/v2 v2.32.0
@@ -110,7 +110,7 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/moby/api v1.55.0 // indirect
-	github.com/moby/moby/client v0.5.0 // indirect
+	github.com/moby/moby/client v0.5.1 // indirect
 	github.com/moby/sys/sequential v0.6.0 // indirect
 	github.com/moby/sys/userns v0.1.0 // indirect
 	github.com/mudler/entities v0.8.3 // indirect
