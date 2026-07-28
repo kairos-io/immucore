@@ -56,12 +56,12 @@ func main() {
 		var normalBoot bool
 		switch {
 		case st.InRam:
-			// kairos.in_ram must win over DisableImmucore below: an in-RAM boot
+			// kairos.ram must win over DisableImmucore below: an in-RAM boot
 			// still has live:LABEL / netboot on the cmdline (that is how the
 			// squashfs got copied into RAM in the first place), and we do NOT
 			// want the live-media no-op path — we still need to mount OEM +
 			// persistent + apply cloud-init from disk.
-			utils.KLog.Logger.Info().Msg("Booting in-RAM (kairos.in_ram) with OEM+persistent from disk.")
+			utils.KLog.Logger.Info().Msg("Booting in-RAM (kairos.ram) with OEM+persistent from disk.")
 			normalBoot = true
 			err = dag.RegisterInRamBoot(st, g)
 		case utils.DisableImmucore():

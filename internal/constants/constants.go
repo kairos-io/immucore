@@ -122,7 +122,7 @@ const (
 	OpUkiTransitionSysext  = "uki-transition-sysext"
 	OpUkiCopySysExtensions = "enable-sysext-confext"
 	// InRamSentinelName is the extra sentinel file written under /run/cos/ when
-	// the kairos.in_ram workflow is active. It is additive: WriteSentinelDagStep
+	// the kairos.ram workflow is active. It is additive: WriteSentinelDagStep
 	// still writes the BootState-driven sentinel (which is active_mode for
 	// in-RAM boots because kairos-sdk forces BootState=Active) so existing
 	// cloud-init gates keep firing. Tooling that specifically needs to know the
@@ -131,7 +131,7 @@ const (
 
 	// OpEnsurePartitions runs early in the in-RAM DAG and either confirms that
 	// COS_OEM + COS_PERSISTENT already exist on disk, or auto-creates the
-	// missing ones on the disk selected via rd.kairos.auto_create_partitions.
+	// missing ones on the disk selected via kairos.ram.auto_create_partitions.
 	// After it completes, downstream mount steps behave as if the workstation
 	// had been installed normally with an empty OEM.
 	OpEnsurePartitions = "ensure-partitions"
@@ -144,7 +144,7 @@ const (
 	PersistentLabel = "COS_PERSISTENT"
 
 	// DefaultOemSizeMiB is the size we create COS_OEM at on first boot when no
-	// explicit rd.kairos.auto_create.partitions.oem= override is present.
+	// explicit kairos.ram.oem= override is present.
 	// Matches kairos-agent's default install layout.
 	DefaultOemSizeMiB uint64 = 64
 	// DefaultPersistentSizeMiB=0 means "expand to the end of the disk" in yip's
@@ -152,13 +152,14 @@ const (
 	// partitions after ours.
 	DefaultPersistentSizeMiB uint64 = 0
 
-	// Cmdline stanzas driving the ensure-partitions step. Values captured as
-	// ReadCMDLineArg results (slice of strings). See EnsurePartitionsDagStep
-	// for the exact semantics.
-	CmdlineAutoCreatePartitions     = "rd.kairos.auto_create_partitions"
-	CmdlineAutoCreatePartitionsWipe = "rd.kairos.auto_create_partitions.wipe"
-	CmdlineAutoCreateOemSize        = "rd.kairos.auto_create.partitions.oem="
-	CmdlineAutoCreatePersistentSize = "rd.kairos.auto_create.partitions.persistent="
+	// Cmdline stanzas driving the ensure-partitions step. All live under the
+	// kairos.ram.* namespace so they sit next to the kairos.ram flag that
+	// enables the in-RAM workflow in the first place. See
+	// EnsurePartitionsDagStep for the exact semantics of each.
+	CmdlineAutoCreatePartitions     = "kairos.ram.auto_create_partitions"
+	CmdlineAutoCreatePartitionsWipe = "kairos.ram.wipe"
+	CmdlineAutoCreateOemSize        = "kairos.ram.oem="
+	CmdlineAutoCreatePersistentSize = "kairos.ram.persistent="
 	UkiLivecdMountPoint    = "/run/initramfs/live"
 	UkiIsoBaseTree         = "/run/rootfsbase"
 	UkiIsoBootImage        = "efiboot.img"

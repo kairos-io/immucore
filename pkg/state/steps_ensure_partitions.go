@@ -15,7 +15,7 @@ import (
 // EnsurePartitionsDagStep gates every downstream mount step in the in-RAM
 // workflow. On first boot the workstation's disk may not yet carry the
 // COS_OEM and COS_PERSISTENT partitions immucore needs; this step either
-// creates them (when rd.kairos.auto_create_partitions is set) or halts the
+// creates them (when kairos.ram.auto_create_partitions is set) or halts the
 // boot with an actionable message pointing the operator at the exact cmdline
 // tokens they need to add. Once it succeeds the rest of the DAG behaves as
 // if the disk had been installed normally — MountOemDagStep, custom mounts
@@ -50,7 +50,7 @@ func (s *State) EnsurePartitionsDagStep(g *herd.Graph, deps ...string) error {
 					Bool("oem_found", oemFound).
 					Bool("persistent_found", persistentFound).
 					Strs("candidate_disks", candidates).
-					Msg("missing required partitions and rd.kairos.auto_create_partitions not set")
+					Msg("missing required partitions and kairos.ram.auto_create_partitions not set")
 				return errors.New("missing kairos partitions and auto-create flag not set")
 			}
 

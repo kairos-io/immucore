@@ -204,26 +204,26 @@ var _ = Describe("mount utils", func() {
 		})
 	})
 	Context("BootInRam", func() {
-		It("Returns false when kairos.in_ram is absent", func() {
+		It("Returns false when kairos.ram is absent", func() {
 			Expect(utils.BootInRam()).To(BeFalse())
 		})
-		It("Returns true when kairos.in_ram is set on its own", func() {
-			err := fs.WriteFile("/proc/cmdline", []byte("kairos.in_ram\n"), os.ModePerm)
+		It("Returns true when kairos.ram is set on its own", func() {
+			err := fs.WriteFile("/proc/cmdline", []byte("kairos.ram\n"), os.ModePerm)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(utils.BootInRam()).To(BeTrue())
 		})
-		It("Returns true when kairos.in_ram is set alongside a live: cmdline", func() {
-			err := fs.WriteFile("/proc/cmdline", []byte("root=live:LABEL=COS_LIVE ro kairos.in_ram rd.live.ram=1\n"), os.ModePerm)
+		It("Returns true when kairos.ram is set alongside a live: cmdline", func() {
+			err := fs.WriteFile("/proc/cmdline", []byte("root=live:LABEL=COS_LIVE ro kairos.ram rd.live.ram=1\n"), os.ModePerm)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(utils.BootInRam()).To(BeTrue())
 		})
-		It("Returns true when kairos.in_ram is set alongside netboot", func() {
-			err := fs.WriteFile("/proc/cmdline", []byte("netboot kairos.in_ram\n"), os.ModePerm)
+		It("Returns true when kairos.ram is set alongside netboot", func() {
+			err := fs.WriteFile("/proc/cmdline", []byte("netboot kairos.ram\n"), os.ModePerm)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(utils.BootInRam()).To(BeTrue())
 		})
 		It("Does not match a substring token", func() {
-			err := fs.WriteFile("/proc/cmdline", []byte("kairos.in_ram_experimental=1\n"), os.ModePerm)
+			err := fs.WriteFile("/proc/cmdline", []byte("kairos.ram_experimental=1\n"), os.ModePerm)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(utils.BootInRam()).To(BeFalse())
 		})

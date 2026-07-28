@@ -7,7 +7,7 @@ import (
 	"github.com/spectrocloud-labs/herd"
 )
 
-// RegisterInRamBoot registers the DAG for the kairos.in_ram workflow: the
+// RegisterInRamBoot registers the DAG for the kairos.ram workflow: the
 // rootfs is a tmpfs staged by dracut's rd.live.ram (over the squashfs from ISO
 // or netboot), while COS_OEM and COS_PERSISTENT are still discovered and
 // mounted from local disk. Every workstation in a PXE-served fleet boots the
@@ -34,7 +34,7 @@ func RegisterInRamBoot(s *state.State, g *herd.Graph) error {
 
 	// First-boot partition provisioning. Idempotent: no-op when both
 	// COS_OEM and COS_PERSISTENT already exist. When either is missing this
-	// either creates them (if rd.kairos.auto_create_partitions is set) or
+	// either creates them (if kairos.ram.auto_create_partitions is set) or
 	// halts the boot with an actionable message. Must run BEFORE every
 	// downstream step that expects those labels to exist (kcrypt, mount-oem,
 	// custom-mounts).

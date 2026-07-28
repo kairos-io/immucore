@@ -222,7 +222,7 @@ func IsUKI() bool {
 }
 
 // BootInRam returns true when the kernel cmdline enables the in-RAM workflow
-// (kairos.in_ram token). Wraps kairos-sdk's DetectInRam and honors the
+// (kairos.ram token). Wraps kairos-sdk's DetectInRam and honors the
 // HOST_PROC_CMDLINE seam so tests can drive it. Used only for dispatch in
 // main.go; every step in the DAG should read State.InRam instead.
 func BootInRam() bool {

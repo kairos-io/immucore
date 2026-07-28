@@ -77,7 +77,7 @@ func isCandidateDisk(name string, removable bool) bool {
 // DiskHasPartitions reports whether the block device at devPath already has
 // any partition table entries visible to ghw. Used to gate the wipe flag: we
 // refuse to write a fresh GPT over a disk with existing partitions unless the
-// caller opted in with rd.kairos.auto_create_partitions.wipe.
+// caller opted in with kairos.ram.wipe.
 func DiskHasPartitions(devPath string) bool {
 	base := filepath.Base(devPath)
 	block, err := ghw.Block()
@@ -92,7 +92,7 @@ func DiskHasPartitions(devPath string) bool {
 	return false
 }
 
-// ParseAutoCreateDisk reads rd.kairos.auto_create_partitions from the kernel
+// ParseAutoCreateDisk reads kairos.ram.auto_create_partitions from the kernel
 // cmdline. The stanza has three shapes:
 //   - absent            → set=false, no action taken
 //   - bare token        → set=true, explicitDisk="" (caller must auto-select)
@@ -122,9 +122,9 @@ func ParseAutoCreateDisk() (explicitDisk string, set bool) {
 	return "", set
 }
 
-// AutoCreateWipeEnabled reports whether rd.kairos.auto_create_partitions.wipe
+// AutoCreateWipeEnabled reports whether kairos.ram.wipe
 // is present on the cmdline. Exact-token match to avoid overlapping with the
-// bare rd.kairos.auto_create_partitions flag.
+// bare kairos.ram.auto_create_partitions flag.
 func AutoCreateWipeEnabled() bool {
 	cmdline, err := os.ReadFile(GetHostProcCmdline())
 	if err != nil {
