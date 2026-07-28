@@ -126,7 +126,9 @@ token is only needed when no other stanza is present.
 
 * `kairos.ram.wipe`: Allow `create_partitions` to overwrite a disk that
   already has a partition table. **Destroys all data on the disk.** Without
-  this flag a non-empty disk stops the boot with an explanation.
+  this flag a non-empty disk stops the boot with an explanation. With this
+  flag, auto-selection also skips the empty-disk preference and simply takes
+  the largest disk, whatever its state.
 
 * `kairos.ram.oem=<MiB>`: Size of the created `COS_OEM` partition in MiB.
   Defaults to 64.

@@ -136,17 +136,24 @@ func selectTargetDisk(explicit string) (string, error) {
 	candidates := internalUtils.CandidateDisks()
 	if len(candidates) > 0 {
 		selected := candidates[0]
-		for _, c := range candidates {
-			if !internalUtils.DiskHasPartitions(c) {
-				selected = c
-				break
+		// With kairos.ram.wipe the operator already declared "destroy whatever
+		// is on the target" — the empty-disk preference would only second-guess
+		// that, so the largest disk wins no matter its state. Without wipe,
+		// prefer the largest EMPTY disk and fall back to the largest overall
+		// (which then halts at the wipe guard with instructions).
+		if !internalUtils.AutoCreateWipeEnabled() {
+			for _, c := range candidates {
+				if !internalUtils.DiskHasPartitions(c) {
+					selected = c
+					break
+				}
 			}
 		}
 		if len(candidates) > 1 {
 			internalUtils.KLog.Logger.Info().
 				Strs("candidates", candidates).
 				Str("selected", selected).
-				Msg(fmt.Sprintf("multiple candidate disks; picking the largest empty one (override with %s=/dev/xxx)",
+				Msg(fmt.Sprintf("multiple candidate disks; auto-selected (override with %s=/dev/xxx)",
 					cnst.CmdlineAutoCreatePartitions))
 		}
 		return selected, nil
