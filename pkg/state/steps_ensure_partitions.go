@@ -118,8 +118,13 @@ func (s *State) EnsurePartitionsDagStep(g *herd.Graph, deps ...string) error {
 }
 
 // selectTargetDisk resolves the effective target disk. explicit wins when
-// non-empty (operator gave us a path); otherwise the largest candidate disk
-// is used — CandidateDisks sorts largest-first, matching kairos-agent's
+// non-empty (operator gave us a path). Otherwise, prefer the largest EMPTY
+// candidate disk: a disk that already carries a partition table is most
+// likely in use by another system, and grabbing it just because it is the
+// biggest would either halt on the wipe guard or, with kairos.ram.wipe set,
+// destroy the wrong disk. Only when no empty disk exists do we fall back to
+// the largest disk overall, letting the wipe guard downstream explain the
+// situation. The largest-first ordering matches kairos-agent's
 // `device: auto` install rule so RAM mode and a regular install land on the
 // same disk. Only "no candidates at all" halts boot via HaltWithBanner —
 // same reasoning as the missing-flag branch: returning an error would let
@@ -130,14 +135,21 @@ func selectTargetDisk(explicit string) (string, error) {
 	}
 	candidates := internalUtils.CandidateDisks()
 	if len(candidates) > 0 {
+		selected := candidates[0]
+		for _, c := range candidates {
+			if !internalUtils.DiskHasPartitions(c) {
+				selected = c
+				break
+			}
+		}
 		if len(candidates) > 1 {
 			internalUtils.KLog.Logger.Info().
 				Strs("candidates", candidates).
-				Str("selected", candidates[0]).
-				Msg(fmt.Sprintf("multiple candidate disks; picking the largest (override with %s=/dev/xxx)",
+				Str("selected", selected).
+				Msg(fmt.Sprintf("multiple candidate disks; picking the largest empty one (override with %s=/dev/xxx)",
 					cnst.CmdlineAutoCreatePartitions))
 		}
-		return candidates[0], nil
+		return selected, nil
 	}
 	internalUtils.HaltWithBanner(
 		internalUtils.RenderNoDisksMessage(),
