@@ -66,26 +66,34 @@ func (s *State) EnsurePartitionsDagStep(g *herd.Graph, deps ...string) error {
 				return err
 			}
 
-			// If we are creating BOTH partitions we may need to init a fresh
-			// GPT. When one label is already present, the disk already has a
-			// partition table we want to preserve — append only.
+			// Wipe consent guard. Touching a disk whose partitions all belong
+			// to someone else — whether by writing a fresh GPT (both labels
+			// missing) or appending a partition to its table (partial case,
+			// e.g. an explicitly-selected disk that is in use by another
+			// system) — requires the operator to opt in with kairos.ram.wipe.
+			// A disk already carrying one of our labels is exempt: appending
+			// the missing sibling next to it is the expected recovery path.
+			if internalUtils.DiskHasPartitions(target) &&
+				!internalUtils.DiskHasKairosPartitions(target) &&
+				!internalUtils.AutoCreateWipeEnabled() {
+				internalUtils.HaltWithBanner(
+					internalUtils.RenderWipeRequiredMessage(target),
+					fmt.Sprintf("target disk %s has existing partitions; add %s to overwrite",
+						target, cnst.CmdlineAutoCreatePartitionsWipe),
+					errors.New("refusing to touch non-empty disk without wipe flag"),
+				)
+				// Reached only on non-systemd hosts (Alpine/openrc), where
+				// HaltWithBanner paints the screen and returns so we can
+				// fail the step normally.
+				return errors.New("refusing to touch non-empty disk; see console for details")
+			}
+
+			// If we are creating BOTH partitions we init a fresh GPT (either
+			// the disk is empty or the operator consented to the wipe above).
+			// When one of our labels is already present on the disk, append
+			// only — the existing table is preserved.
 			bothMissing := !oemFound && !persistentFound
 			initDisk := bothMissing
-			if bothMissing && internalUtils.DiskHasPartitions(target) {
-				if !internalUtils.AutoCreateWipeEnabled() {
-					internalUtils.HaltWithBanner(
-						internalUtils.RenderWipeRequiredMessage(target),
-						fmt.Sprintf("target disk %s has existing partitions; add %s to overwrite",
-							target, cnst.CmdlineAutoCreatePartitionsWipe),
-						errors.New("refusing to overwrite non-empty disk without wipe flag"),
-					)
-					// Reached only on non-systemd hosts (Alpine/openrc), where
-					// HaltWithBanner paints the screen and returns so we can
-					// fail the step normally.
-					return errors.New("refusing to overwrite non-empty disk; see console for details")
-				}
-				// Wipe explicitly requested — proceed with initDisk=true.
-			}
 
 			oemSize := internalUtils.ParseAutoCreateSize(cnst.CmdlineAutoCreateOemSize, uint64(sdkConstants.OEMSize))
 			persistentSize := internalUtils.ParseAutoCreateSize(cnst.CmdlineAutoCreatePersistentSize, uint64(sdkConstants.PersistentSize))

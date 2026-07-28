@@ -110,6 +110,29 @@ func DiskHasPartitions(devPath string) bool {
 	return false
 }
 
+// DiskHasKairosPartitions reports whether the block device at devPath carries
+// a COS_OEM or COS_PERSISTENT partition. A disk holding one of our labels is
+// "ours" — appending the missing sibling next to it needs no wipe consent,
+// unlike touching a disk whose partitions all belong to someone else.
+func DiskHasKairosPartitions(devPath string) bool {
+	base := filepath.Base(devPath)
+	block, err := ghw.Block()
+	if err != nil {
+		return false
+	}
+	for _, d := range block.Disks {
+		if d.Name != base {
+			continue
+		}
+		for _, p := range d.Partitions {
+			if p.FilesystemLabel == sdkConstants.OEMLabel || p.FilesystemLabel == sdkConstants.PersistentLabel {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // ParseAutoCreateDisk reads kairos.ram.create_partitions from the kernel
 // cmdline. The stanza has three shapes:
 //   - absent            → set=false, no action taken
