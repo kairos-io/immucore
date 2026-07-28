@@ -42,20 +42,37 @@ func KairosPartitionsPresent() (oem, persistent bool, err error) {
 // auto-created COS_OEM / COS_PERSISTENT partitions. Removable, loop, ram, cd
 // and device-mapper disks are excluded — those are the boot medium or
 // synthetic devices, never a workstation's persistent storage.
-// The result is sorted by device path for deterministic behavior.
+//
+// The result is sorted by size, largest first (ties broken by device path),
+// because auto-selection picks the first entry: the largest disk is the same
+// rule kairos-agent uses for `device: auto` at install time, so RAM mode and
+// a regular install land on the same disk.
 func CandidateDisks() []string {
 	block, err := ghw.Block()
 	if err != nil {
 		return nil
 	}
-	var out []string
+	type disk struct {
+		path string
+		size uint64
+	}
+	var disks []disk
 	for _, d := range block.Disks {
 		if !isCandidateDisk(d.Name, d.IsRemovable) {
 			continue
 		}
-		out = append(out, "/dev/"+d.Name)
+		disks = append(disks, disk{path: "/dev/" + d.Name, size: d.SizeBytes})
 	}
-	sort.Strings(out)
+	sort.Slice(disks, func(i, j int) bool {
+		if disks[i].size != disks[j].size {
+			return disks[i].size > disks[j].size
+		}
+		return disks[i].path < disks[j].path
+	})
+	out := make([]string, 0, len(disks))
+	for _, d := range disks {
+		out = append(out, d.path)
+	}
 	return out
 }
 
@@ -270,25 +287,24 @@ func RenderMissingPartitionsMessage(oemFound, persistentFound bool, candidates [
 	)
 }
 
-// RenderAmbiguousDiskMessage explains why auto-selection refused to guess
-// when more than one candidate disk is present. Better a clear halt than
-// silent data loss on the wrong drive.
-func RenderAmbiguousDiskMessage(candidates []string) string {
+// RenderNoDisksMessage explains that auto-create was requested but no
+// eligible disk is attached to the machine at all (only removable / virtual
+// devices were found).
+func RenderNoDisksMessage() string {
 	var wrong strings.Builder
-	fmt.Fprintf(&wrong, "Found %d disks that could hold the OEM and PERSISTENT partitions.\n", len(candidates))
-	wrong.WriteString("Auto-create refuses to pick one because getting it wrong would\n")
-	wrong.WriteString("destroy data on the other disk.\n")
+	wrong.WriteString("Partition auto-creation was requested but no eligible disk was found.\n")
+	wrong.WriteString("Removable media (USB, SD), CD-ROM and virtual devices (loop, ram,\n")
+	wrong.WriteString("device-mapper) are never used for the OEM and PERSISTENT partitions.\n")
 
 	var fix strings.Builder
-	for _, d := range candidates {
-		fmt.Fprintf(&fix, "  %s=%s\n", constants.CmdlineAutoCreatePartitions, d)
-	}
+	fix.WriteString("  - Attach a non-removable disk to this machine, or\n")
+	fmt.Fprintf(&fix, "  - Point auto-create at a specific device: %s=/dev/xxx\n", constants.CmdlineAutoCreatePartitions)
 
 	return RenderFailureScreen(
-		"RAM mode: multiple candidate disks, refusing to guess",
+		"RAM mode: no disk available for the OEM and PERSISTENT partitions",
 		ramModeIntro(),
 		FailureSection{Title: "What went wrong", Body: wrong.String()},
-		FailureSection{Title: "How to fix (pick one and pass its path)", Body: fix.String()},
+		FailureSection{Title: "How to fix", Body: fix.String()},
 	)
 }
 

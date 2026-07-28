@@ -112,10 +112,11 @@ token is only needed when no other stanza is present.
 
 * `kairos.ram.create_partitions`: On first boot, if `COS_OEM` and/or
   `COS_PERSISTENT` are missing, create (and format) them automatically. With
-  no value, the disk is auto-selected — but only when exactly one candidate
-  (non-removable, non-virtual) disk is visible; otherwise boot stops with a
-  message listing the candidates. Existing partitions are never touched: if
-  one of the two labels already exists, only the missing one is created.
+  no value, the largest candidate (non-removable, non-virtual) disk is
+  auto-selected — the same rule kairos-agent uses for `device: auto` at
+  install time. Boot stops with a message only when no eligible disk exists
+  at all. Existing partitions are never touched: if one of the two labels
+  already exists, only the missing one is created.
 
 * `kairos.ram.create_partitions=<device>`: Same, but target an explicit disk
   (e.g. `kairos.ram.create_partitions=/dev/vda`).

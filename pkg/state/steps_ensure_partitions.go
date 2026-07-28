@@ -118,34 +118,32 @@ func (s *State) EnsurePartitionsDagStep(g *herd.Graph, deps ...string) error {
 }
 
 // selectTargetDisk resolves the effective target disk. explicit wins when
-// non-empty (operator gave us a path); otherwise we scan candidate disks and
-// require exactly one, refusing to guess when more than one is available.
-// Both "no candidates" and "multiple candidates" halt boot via HaltWithBanner
-// — same reasoning as the missing-flag branch: returning an error would let
+// non-empty (operator gave us a path); otherwise the largest candidate disk
+// is used — CandidateDisks sorts largest-first, matching kairos-agent's
+// `device: auto` install rule so RAM mode and a regular install land on the
+// same disk. Only "no candidates at all" halts boot via HaltWithBanner —
+// same reasoning as the missing-flag branch: returning an error would let
 // systemd proceed into a broken userland.
 func selectTargetDisk(explicit string) (string, error) {
 	if explicit != "" {
 		return explicit, nil
 	}
 	candidates := internalUtils.CandidateDisks()
-	if len(candidates) == 1 {
+	if len(candidates) > 0 {
+		if len(candidates) > 1 {
+			internalUtils.KLog.Logger.Info().
+				Strs("candidates", candidates).
+				Str("selected", candidates[0]).
+				Msg(fmt.Sprintf("multiple candidate disks; picking the largest (override with %s=/dev/xxx)",
+					cnst.CmdlineAutoCreatePartitions))
+		}
 		return candidates[0], nil
 	}
-	banner := internalUtils.RenderAmbiguousDiskMessage(candidates)
-	if len(candidates) == 0 {
-		internalUtils.HaltWithBanner(
-			banner,
-			"auto-create requested but no candidate disks visible",
-			errors.New("no candidate disks"),
-		)
-	} else {
-		internalUtils.HaltWithBanner(
-			banner,
-			fmt.Sprintf("auto-create requested but %d candidate disks visible; set an explicit path via %s=/dev/xxx",
-				len(candidates), cnst.CmdlineAutoCreatePartitions),
-			errors.New("ambiguous disk selection"),
-		)
-	}
+	internalUtils.HaltWithBanner(
+		internalUtils.RenderNoDisksMessage(),
+		"auto-create requested but no candidate disks visible",
+		errors.New("no candidate disks"),
+	)
 	// Reached only on non-systemd hosts (Alpine/openrc), where HaltWithBanner
 	// paints the screen and returns so we can fail the step normally.
 	return "", errors.New("could not resolve a target disk; see console for details")

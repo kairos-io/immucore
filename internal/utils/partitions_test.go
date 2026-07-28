@@ -129,10 +129,11 @@ var _ = Describe("ensure-partitions helpers", func() {
 			Expect(out).To(MatchRegexp(`COS_OEM\s+present`))
 			Expect(out).To(ContainSubstring("(none"))
 		})
-		It("Ambiguous-disk message names every candidate", func() {
-			out := utils.RenderAmbiguousDiskMessage([]string{"/dev/vda", "/dev/vdb", "/dev/nvme0n1"})
-			Expect(strings.Count(out, "kairos.ram.create_partitions=")).To(Equal(3))
-			Expect(out).To(ContainSubstring("/dev/nvme0n1"))
+		It("No-disks message explains eligibility and the explicit-device fix", func() {
+			out := utils.RenderNoDisksMessage()
+			Expect(out).To(ContainSubstring("KAIROS BOOT FAILED"))
+			Expect(out).To(ContainSubstring("no eligible disk"))
+			Expect(out).To(ContainSubstring("kairos.ram.create_partitions=/dev/xxx"))
 		})
 		It("Wipe-required message names the offending disk and the flag", func() {
 			out := utils.RenderWipeRequiredMessage("/dev/vda")
