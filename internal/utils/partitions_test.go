@@ -135,6 +135,18 @@ var _ = Describe("ensure-partitions helpers", func() {
 			Expect(out).To(ContainSubstring("no eligible disk"))
 			Expect(out).To(ContainSubstring("kairos.ram.create_partitions=/dev/xxx"))
 		})
+		It("Disk-not-found message names the missing disk and lists alternatives", func() {
+			out := utils.RenderDiskNotFoundMessage("/dev/tyop", []string{"/dev/vda", "/dev/vdb"})
+			Expect(out).To(ContainSubstring("KAIROS BOOT FAILED"))
+			Expect(out).To(ContainSubstring("/dev/tyop"))
+			Expect(out).To(ContainSubstring("no such disk"))
+			Expect(out).To(ContainSubstring("kairos.ram.create_partitions=/dev/vda"))
+			Expect(out).To(ContainSubstring("kairos.ram.create_partitions=/dev/vdb"))
+		})
+		It("Disk-not-found message handles zero available disks", func() {
+			out := utils.RenderDiskNotFoundMessage("/dev/tyop", nil)
+			Expect(out).To(ContainSubstring("no eligible disks found"))
+		})
 		It("Wipe-required message names the offending disk and the flag", func() {
 			out := utils.RenderWipeRequiredMessage("/dev/vda")
 			Expect(out).To(ContainSubstring("/dev/vda"))

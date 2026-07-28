@@ -139,6 +139,17 @@ func (s *State) EnsurePartitionsDagStep(g *herd.Graph, deps ...string) error {
 // systemd proceed into a broken userland.
 func selectTargetDisk(explicit string) (string, error) {
 	if explicit != "" {
+		if !internalUtils.DiskExists(explicit) {
+			internalUtils.HaltWithBanner(
+				internalUtils.RenderDiskNotFoundMessage(explicit, internalUtils.CandidateDisks()),
+				fmt.Sprintf("requested disk %s does not exist", explicit),
+				errors.New("requested disk not found"),
+			)
+			// Reached only on non-systemd hosts (Alpine/openrc), where
+			// HaltWithBanner paints the screen and returns so we can fail the
+			// step normally.
+			return "", fmt.Errorf("requested disk %s does not exist; see console for details", explicit)
+		}
 		return explicit, nil
 	}
 	candidates := internalUtils.CandidateDisks()

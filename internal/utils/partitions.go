@@ -122,6 +122,24 @@ func DiskHasPartitions(devPath string) bool {
 	return true
 }
 
+// DiskExists reports whether a block device named devPath is present in the
+// ghw disk list. Used to validate an explicitly requested target before any
+// guard logic runs — a typo'd device path should produce a clear "no such
+// disk" screen, not a misleading wipe-required one.
+func DiskExists(devPath string) bool {
+	base := filepath.Base(devPath)
+	block, err := ghw.Block()
+	if err != nil {
+		return false
+	}
+	for _, d := range block.Disks {
+		if d.Name == base {
+			return true
+		}
+	}
+	return false
+}
+
 // DiskHasKairosPartitions reports whether the block device at devPath carries
 // a COS_OEM or COS_PERSISTENT partition. A disk holding one of our labels is
 // "ours" — appending the missing sibling next to it needs no wipe consent,
@@ -340,6 +358,31 @@ func RenderNoDisksMessage() string {
 		ramModeIntro(),
 		FailureSection{Title: "What went wrong", Body: wrong.String()},
 		FailureSection{Title: "How to fix", Body: fix.String()},
+	)
+}
+
+// RenderDiskNotFoundMessage explains that the explicitly requested target
+// disk does not exist on this machine, listing the disks that do so the
+// operator can correct the cmdline.
+func RenderDiskNotFoundMessage(disk string, candidates []string) string {
+	var wrong strings.Builder
+	fmt.Fprintf(&wrong, "The kernel cmdline requests partition creation on %s,\n", disk)
+	wrong.WriteString("but no such disk exists on this machine.\n")
+
+	var fix strings.Builder
+	if len(candidates) == 0 {
+		fix.WriteString("  (no eligible disks found — attach a non-removable disk to this machine)\n")
+	} else {
+		for _, d := range candidates {
+			fmt.Fprintf(&fix, "  %s=%s\n", constants.CmdlineAutoCreatePartitions, d)
+		}
+	}
+
+	return RenderFailureScreen(
+		"RAM mode: requested disk does not exist",
+		ramModeIntro(),
+		FailureSection{Title: "What went wrong", Body: wrong.String()},
+		FailureSection{Title: "How to fix (disks available on this host)", Body: fix.String()},
 	)
 }
 
