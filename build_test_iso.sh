@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-# This builds a test iso based of hadron base
+# This builds a test iso based on hadron base
 # gets latest published hadron kairos image
 # builds current immucore and copies into the image
 # runs kairos-init again on the image so immucore is picked up and initramfs uses it

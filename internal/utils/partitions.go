@@ -17,15 +17,22 @@ import (
 )
 
 // KairosPartitionsPresent scans block devices via ghw and reports whether the
-// COS_OEM and COS_PERSISTENT filesystem labels are present anywhere on the
-// system. It never talks to /dev directly — a partition is considered present
-// only when udev has populated its ID_FS_LABEL.
+// COS_OEM and COS_PERSISTENT filesystem labels are present on an eligible
+// disk. The scan applies the same candidate criteria as auto-selection
+// (non-removable, non-virtual): a label sitting on a USB stick or loop device
+// must not suppress auto-creation, nor should RAM mode end up treating
+// removable media as its persistent storage. It never talks to /dev directly
+// — a partition is considered present only when udev has populated its
+// ID_FS_LABEL.
 func KairosPartitionsPresent() (oem, persistent bool, err error) {
 	block, berr := ghw.Block()
 	if berr != nil {
 		return false, false, fmt.Errorf("reading block info: %w", berr)
 	}
 	for _, disk := range block.Disks {
+		if !isCandidateDisk(disk.Name, disk.IsRemovable) {
+			continue
+		}
 		for _, part := range disk.Partitions {
 			switch part.FilesystemLabel {
 			case sdkConstants.OEMLabel:
@@ -96,18 +103,23 @@ func isCandidateDisk(name string, removable bool) bool {
 // any partition table entries visible to ghw. Used to gate the wipe flag: we
 // refuse to write a fresh GPT over a disk with existing partitions unless the
 // caller opted in with kairos.ram.wipe.
+//
+// Fails CLOSED: when block info cannot be read (or the device is not in the
+// list) the disk is reported as having partitions. This is a safety gate —
+// answering "empty" on unknown state would let init_disk=true write a fresh
+// GPT without wipe consent.
 func DiskHasPartitions(devPath string) bool {
 	base := filepath.Base(devPath)
 	block, err := ghw.Block()
 	if err != nil {
-		return false
+		return true
 	}
 	for _, d := range block.Disks {
 		if d.Name == base {
 			return len(d.Partitions) > 0
 		}
 	}
-	return false
+	return true
 }
 
 // DiskHasKairosPartitions reports whether the block device at devPath carries
