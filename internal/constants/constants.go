@@ -136,21 +136,9 @@ const (
 	// had been installed normally with an empty OEM.
 	OpEnsurePartitions = "ensure-partitions"
 
-	// OemLabel is the filesystem label of the OEM partition. Duplicated with
-	// the string used across kairos-sdk / kairos-agent; kept here so this
-	// package has no import cycle.
-	OemLabel = "COS_OEM"
-	// PersistentLabel is the filesystem label of the persistent partition.
-	PersistentLabel = "COS_PERSISTENT"
-
-	// DefaultOemSizeMiB is the size we create COS_OEM at on first boot when no
-	// explicit kairos.ram.oem= override is present.
-	// Matches kairos-agent's default install layout.
-	DefaultOemSizeMiB uint64 = 64
-	// DefaultPersistentSizeMiB=0 means "expand to the end of the disk" in yip's
-	// layout plugin. Users can override to a fixed size to leave room for other
-	// partitions after ours.
-	DefaultPersistentSizeMiB uint64 = 0
+	// Partition labels and default sizes come from kairos-sdk/constants
+	// (OEMLabel, PersistentLabel, OEMSize, PersistentSize) — do not duplicate
+	// them here.
 
 	// Cmdline stanzas driving the ensure-partitions step. All live under the
 	// kairos.ram.* namespace so they sit next to the kairos.ram flag that

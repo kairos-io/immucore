@@ -8,6 +8,7 @@ import (
 
 	cnst "github.com/kairos-io/immucore/internal/constants"
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
+	sdkConstants "github.com/kairos-io/kairos-sdk/constants"
 	"github.com/spectrocloud-labs/herd"
 )
 
@@ -86,8 +87,8 @@ func (s *State) EnsurePartitionsDagStep(g *herd.Graph, deps ...string) error {
 				// Wipe explicitly requested — proceed with initDisk=true.
 			}
 
-			oemSize := internalUtils.ParseAutoCreateSize(cnst.CmdlineAutoCreateOemSize, cnst.DefaultOemSizeMiB)
-			persistentSize := internalUtils.ParseAutoCreateSize(cnst.CmdlineAutoCreatePersistentSize, cnst.DefaultPersistentSizeMiB)
+			oemSize := internalUtils.ParseAutoCreateSize(cnst.CmdlineAutoCreateOemSize, uint64(sdkConstants.OEMSize))
+			persistentSize := internalUtils.ParseAutoCreateSize(cnst.CmdlineAutoCreatePersistentSize, uint64(sdkConstants.PersistentSize))
 
 			internalUtils.KLog.Logger.Info().
 				Str("target", target).

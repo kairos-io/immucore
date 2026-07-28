@@ -13,6 +13,7 @@ import (
 
 	"github.com/jaypipes/ghw"
 	"github.com/kairos-io/immucore/internal/constants"
+	sdkConstants "github.com/kairos-io/kairos-sdk/constants"
 )
 
 // KairosPartitionsPresent scans block devices via ghw and reports whether the
@@ -27,9 +28,9 @@ func KairosPartitionsPresent() (oem, persistent bool, err error) {
 	for _, disk := range block.Disks {
 		for _, part := range disk.Partitions {
 			switch part.FilesystemLabel {
-			case constants.OemLabel:
+			case sdkConstants.OEMLabel:
 				oem = true
-			case constants.PersistentLabel:
+			case sdkConstants.PersistentLabel:
 				persistent = true
 			}
 		}
@@ -175,12 +176,12 @@ func BuildEnsurePartitionsStage(targetDisk string, oemFound, persistentFound boo
 	if !oemFound {
 		fmt.Fprintf(&partsYAML,
 			"          - fsLabel: %s\n            pLabel: oem\n            size: %d\n            filesystem: ext4\n",
-			constants.OemLabel, oemSizeMiB)
+			sdkConstants.OEMLabel, oemSizeMiB)
 	}
 	if !persistentFound {
 		fmt.Fprintf(&partsYAML,
 			"          - fsLabel: %s\n            pLabel: persistent\n            size: %d\n            filesystem: ext4\n",
-			constants.PersistentLabel, persistentSizeMiB)
+			sdkConstants.PersistentLabel, persistentSizeMiB)
 	}
 	return fmt.Sprintf(`stages:
   ensure-partitions:
@@ -238,8 +239,8 @@ func RenderMissingPartitionsMessage(oemFound, persistentFound bool, candidates [
 		}
 		return "MISSING"
 	}
-	fmt.Fprintf(&wrong, "  - %s              %s\n", constants.OemLabel, state(oemFound))
-	fmt.Fprintf(&wrong, "  - %s       %s\n", constants.PersistentLabel, state(persistentFound))
+	fmt.Fprintf(&wrong, "  - %s              %s\n", sdkConstants.OEMLabel, state(oemFound))
+	fmt.Fprintf(&wrong, "  - %s       %s\n", sdkConstants.PersistentLabel, state(persistentFound))
 
 	var fix strings.Builder
 	fmt.Fprintf(&fix, "  %s               auto-create partitions on the single candidate disk\n", constants.CmdlineAutoCreatePartitions)
@@ -247,8 +248,8 @@ func RenderMissingPartitionsMessage(oemFound, persistentFound bool, candidates [
 
 	var extra strings.Builder
 	fmt.Fprintf(&extra, "  %s          overwrite an existing partition table (DESTROYS DATA)\n", constants.CmdlineAutoCreatePartitionsWipe)
-	fmt.Fprintf(&extra, "  %s64            override OEM size in MiB (default %d)\n", constants.CmdlineAutoCreateOemSize, constants.DefaultOemSizeMiB)
-	fmt.Fprintf(&extra, "  %s0      override PERSISTENT size in MiB (default %d = fill disk)\n", constants.CmdlineAutoCreatePersistentSize, constants.DefaultPersistentSizeMiB)
+	fmt.Fprintf(&extra, "  %s64            override OEM size in MiB (default %d)\n", constants.CmdlineAutoCreateOemSize, sdkConstants.OEMSize)
+	fmt.Fprintf(&extra, "  %s0      override PERSISTENT size in MiB (default %d = fill disk)\n", constants.CmdlineAutoCreatePersistentSize, sdkConstants.PersistentSize)
 
 	var disks strings.Builder
 	if len(candidates) == 0 {
