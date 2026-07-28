@@ -24,8 +24,11 @@ var _ = Describe("Kairos cmdline parsing (kairos-sdk integration)", func() {
 	}
 
 	BeforeEach(func() {
-		fs, cleanup, _ = vfst.NewTestFS(map[string]interface{}{"/proc/cmdline": ""})
-		path, _ := fs.RawPath("/proc/cmdline")
+		var err error
+		fs, cleanup, err = vfst.NewTestFS(map[string]interface{}{ "/proc/cmdline": "" })
+		Expect(err).ToNot(HaveOccurred())
+		path, err := fs.RawPath("/proc/cmdline")
+		Expect(err).ToNot(HaveOccurred())
 		Expect(os.Setenv("HOST_PROC_CMDLINE", path)).To(Succeed())
 	})
 	AfterEach(func() {
