@@ -477,17 +477,17 @@ func IsUKI() bool {
 	return state.DetectUKIboot(string(cmdline))
 }
 
-// BootInRam returns true when the kernel cmdline enables the in-RAM workflow
-// (kairos.ram token). Wraps kairos-sdk's DetectInRam and honors the
+// BootInRAM returns true when the kernel cmdline enables the in-RAM workflow
+// (kairos.ram token). Wraps kairos-sdk's DetectInRAM and honors the
 // HOST_PROC_CMDLINE seam so tests can drive it. Used only for dispatch in
-// main.go; every step in the DAG should read State.InRam instead.
-func BootInRam() bool {
+// main.go; every step in the DAG should read State.InRAM instead.
+func BootInRAM() bool {
 	cmdline, err := os.ReadFile(GetHostProcCmdline())
 	if err != nil {
 		KLog.Logger.Warn().Err(err).Msg("Error reading /proc/cmdline file " + err.Error())
 		return false
 	}
-	return state.DetectInRam(string(cmdline))
+	return state.DetectInRAM(string(cmdline))
 }
 
 // CommandWithPath runs a command adding the usual PATH to environment

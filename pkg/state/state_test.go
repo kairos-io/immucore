@@ -82,10 +82,10 @@ var _ = Describe("mounting immutable setup", func() {
 		})
 
 		It("generates in-RAM dag", func() {
-			s := &state.State{Rootdir: "/sysroot", InRam: true}
-			err := dag.RegisterInRamBoot(s, g)
+			s := &state.State{Rootdir: "/sysroot", InRAM: true}
+			err := dag.RegisterInRAMBoot(s, g)
 			Expect(err).ToNot(HaveOccurred())
-			checkInRamDag(g.Analyze(), s.WriteDAG(g))
+			checkInRAMDag(g.Analyze(), s.WriteDAG(g))
 		})
 
 		It("Mountop timeouts", func() {
@@ -165,7 +165,7 @@ func checkDag(dag [][]herd.GraphEntry, actualDag string) {
 	Expect(dag[11][0].Name).To(Equal(cnst.OpInitramfsHook), actualDag)
 }
 
-// checkInRamDag asserts the shape of the DAG produced by RegisterInRamBoot.
+// checkInRAMDag asserts the shape of the DAG produced by RegisterInRAMBoot.
 // It mirrors the normal-boot DAG minus LVM activation, mount-state,
 // discover-state, and mount-root — dracut's rd.live.ram provides /sysroot for
 // us, so we skip straight to waiting for it. Every other step (kcrypt, oem,
@@ -174,7 +174,7 @@ func checkDag(dag [][]herd.GraphEntry, actualDag string) {
 // wait-for-sysroot and every step that expects Kairos partition labels to
 // exist, so first-boot workstations get their COS_OEM/COS_PERSISTENT created
 // (when the auto-create flag is set) before mount-oem or kcrypt fire.
-func checkInRamDag(dag [][]herd.GraphEntry, actualDag string) {
+func checkInRAMDag(dag [][]herd.GraphEntry, actualDag string) {
 	// Names by op-constant present at each layer. Order within a layer is not
 	// guaranteed, so we assert as a set.
 	expected := [][]string{

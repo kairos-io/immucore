@@ -7,7 +7,7 @@ import (
 	"github.com/spectrocloud-labs/herd"
 )
 
-// RegisterInRamBoot registers the DAG for the kairos.ram workflow: the
+// RegisterInRAMBoot registers the DAG for the kairos.ram workflow: the
 // rootfs is a tmpfs staged by dracut's rd.live.ram (over the squashfs from ISO
 // or netboot), while COS_OEM and COS_PERSISTENT are still discovered and
 // mounted from local disk. Every workstation in a PXE-served fleet boots the
@@ -19,7 +19,7 @@ import (
 // stage, cos-layout.env loading, overlay/custom/bind mounts, sysext/confext,
 // fstab writing, and the initramfs stage — so the resulting system is
 // indistinguishable from a real Active install for cloud-init and userland.
-func RegisterInRamBoot(s *state.State, g *herd.Graph) error {
+func RegisterInRAMBoot(s *state.State, g *herd.Graph) error {
 	var err error
 
 	// Maybe LogIfErrorAndPanic ? If no sentinel, a lot of config files are not going to run

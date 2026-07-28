@@ -46,7 +46,7 @@ func main() {
 			TargetImage:   targetImage,
 			RootMountMode: utils.RootRW(),
 			OverlayBase:   utils.GetOverlayBase(),
-			InRam:         utils.BootInRam(),
+			InRAM:         utils.BootInRAM(),
 		}
 
 		// normalBoot tracks whether we took the full active/passive/recovery mount
@@ -55,7 +55,7 @@ func main() {
 		// shell from inside its own steps.
 		var normalBoot bool
 		switch {
-		case st.InRam:
+		case st.InRAM:
 			// kairos.ram must win over DisableImmucore below: an in-RAM boot
 			// still has live:LABEL / netboot on the cmdline (that is how the
 			// squashfs got copied into RAM in the first place), and we do NOT
@@ -63,7 +63,7 @@ func main() {
 			// persistent + apply cloud-init from disk.
 			utils.KLog.Logger.Info().Msg("Booting in-RAM (kairos.ram) with OEM+persistent from disk.")
 			normalBoot = true
-			err = dag.RegisterInRamBoot(st, g)
+			err = dag.RegisterInRAMBoot(st, g)
 		case utils.DisableImmucore():
 			utils.KLog.Logger.Info().Msg("Stanza rd.cos.disable/rd.immucore.disable on the cmdline or booting from CDROM/Netboot/Squash recovery. Disabling immucore.")
 			err = dag.RegisterLiveMedia(st, g)

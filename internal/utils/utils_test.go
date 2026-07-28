@@ -223,29 +223,29 @@ var _ = Describe("mount utils", func() {
 			Expect(utils.ConsoleDevices()).To(Equal([]string{"/dev/console"}))
 		})
 	})
-	Context("BootInRam", func() {
+	Context("BootInRAM", func() {
 		It("Returns false when kairos.ram is absent", func() {
-			Expect(utils.BootInRam()).To(BeFalse())
+			Expect(utils.BootInRAM()).To(BeFalse())
 		})
 		It("Returns true when kairos.ram is set on its own", func() {
 			err := fs.WriteFile("/proc/cmdline", []byte("kairos.ram\n"), os.ModePerm)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(utils.BootInRam()).To(BeTrue())
+			Expect(utils.BootInRAM()).To(BeTrue())
 		})
 		It("Returns true when kairos.ram is set alongside a live: cmdline", func() {
 			err := fs.WriteFile("/proc/cmdline", []byte("root=live:LABEL=COS_LIVE ro kairos.ram rd.live.ram=1\n"), os.ModePerm)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(utils.BootInRam()).To(BeTrue())
+			Expect(utils.BootInRAM()).To(BeTrue())
 		})
 		It("Returns true when kairos.ram is set alongside netboot", func() {
 			err := fs.WriteFile("/proc/cmdline", []byte("netboot kairos.ram\n"), os.ModePerm)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(utils.BootInRam()).To(BeTrue())
+			Expect(utils.BootInRAM()).To(BeTrue())
 		})
 		It("Does not match a substring token", func() {
 			err := fs.WriteFile("/proc/cmdline", []byte("kairos.ram_experimental=1\n"), os.ModePerm)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(utils.BootInRam()).To(BeFalse())
+			Expect(utils.BootInRAM()).To(BeFalse())
 		})
 	})
 	Context("ParseMount", func() {

@@ -121,13 +121,13 @@ const (
 	OpUkiExtractCerts      = "extract-certs"
 	OpUkiTransitionSysext  = "uki-transition-sysext"
 	OpUkiCopySysExtensions = "enable-sysext-confext"
-	// InRamSentinelName is the extra sentinel file written under /run/cos/ when
+	// InRAMSentinelName is the extra sentinel file written under /run/cos/ when
 	// the kairos.ram workflow is active. It is additive: WriteSentinelDagStep
 	// still writes the BootState-driven sentinel (which is active_mode for
 	// in-RAM boots because kairos-sdk forces BootState=Active) so existing
 	// cloud-init gates keep firing. Tooling that specifically needs to know the
 	// rootfs is on a tmpfs can stat this file.
-	InRamSentinelName = "in_ram_mode"
+	InRAMSentinelName = "in_ram_mode"
 
 	// OpEnsurePartitions runs early in the in-RAM DAG and either confirms that
 	// COS_OEM + COS_PERSISTENT already exist on disk, or auto-creates the

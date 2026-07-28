@@ -70,9 +70,9 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 			// them apart from a regular Active install. The BootState sentinel
 			// above is already active_mode (kairos-sdk forces BootState=Active
 			// when kairos.ram is present) so existing gates keep firing.
-			if s.InRam {
-				internalUtils.KLog.Logger.Info().Str("to", cnst.InRamSentinelName).Msg("Setting in-RAM sentinel file")
-				if err = os.WriteFile(filepath.Join("/run/cos/", cnst.InRamSentinelName), []byte("1"), os.ModePerm); err != nil {
+			if s.InRAM {
+				internalUtils.KLog.Logger.Info().Str("to", cnst.InRAMSentinelName).Msg("Setting in-RAM sentinel file")
+				if err = os.WriteFile(filepath.Join("/run/cos/", cnst.InRAMSentinelName), []byte("1"), os.ModePerm); err != nil {
 					return err
 				}
 			}
