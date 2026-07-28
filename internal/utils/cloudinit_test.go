@@ -56,6 +56,10 @@ var _ = Describe("Kairos cmdline parsing (kairos-sdk integration)", func() {
 			Expect(utils.KairosConfigURIFromCmdline()).To(Equal(""))
 		})
 		It("respects HOST_PROC_CMDLINE and returns empty on missing cmdline file", func() {
+			path, err := fs.RawPath("/proc/cmdline")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(os.Setenv("HOST_PROC_CMDLINE", path)).To(Succeed())
+
 			writeCmdline("root=LABEL=X kairos.config_url=https://example.com/from-env.yaml quiet")
 			Expect(utils.KairosConfigURIFromCmdline()).To(Equal("https://example.com/from-env.yaml"))
 
