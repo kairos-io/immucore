@@ -55,7 +55,10 @@ var _ = Describe("Kairos cmdline parsing (kairos-sdk integration)", func() {
 			writeCmdline("root=LABEL=X rd.immucore.debug quiet console=ttyS0")
 			Expect(utils.KairosConfigURIFromCmdline()).To(Equal(""))
 		})
-		It("returns empty on missing cmdline file", func() {
+		It("respects HOST_PROC_CMDLINE and returns empty on missing cmdline file", func() {
+			writeCmdline("root=LABEL=X kairos.config_url=https://example.com/from-env.yaml quiet")
+			Expect(utils.KairosConfigURIFromCmdline()).To(Equal("https://example.com/from-env.yaml"))
+
 			Expect(os.Setenv("HOST_PROC_CMDLINE", "/definitely/not/a/real/path/proc/cmdline")).To(Succeed())
 			Expect(utils.KairosConfigURIFromCmdline()).To(Equal(""))
 		})
