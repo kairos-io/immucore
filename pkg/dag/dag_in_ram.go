@@ -34,7 +34,7 @@ func RegisterInRamBoot(s *state.State, g *herd.Graph) error {
 
 	// First-boot partition provisioning. Idempotent: no-op when both
 	// COS_OEM and COS_PERSISTENT already exist. When either is missing this
-	// either creates them (if kairos.ram.auto_create_partitions is set) or
+	// either creates them (if kairos.ram.create_partitions is set) or
 	// halts the boot with an actionable message. Must run BEFORE every
 	// downstream step that expects those labels to exist (kcrypt, mount-oem,
 	// custom-mounts).

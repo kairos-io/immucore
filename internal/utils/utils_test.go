@@ -203,6 +203,26 @@ var _ = Describe("mount utils", func() {
 			Expect(utils.IsUKI()).To(BeTrue())
 		})
 	})
+	Context("ConsoleDevices", func() {
+		It("Falls back to the conventional trio when no console= present", func() {
+			Expect(utils.ConsoleDevices()).To(Equal([]string{"/dev/tty1", "/dev/ttyS0", "/dev/console"}))
+		})
+		It("Parses a single console= entry and appends /dev/console", func() {
+			err := fs.WriteFile("/proc/cmdline", []byte("console=ttyS1\n"), os.ModePerm)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(utils.ConsoleDevices()).To(Equal([]string{"/dev/ttyS1", "/dev/console"}))
+		})
+		It("Parses multiple console= entries and strips baud options", func() {
+			err := fs.WriteFile("/proc/cmdline", []byte("console=tty0 console=ttyS0,115200n8\n"), os.ModePerm)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(utils.ConsoleDevices()).To(Equal([]string{"/dev/tty0", "/dev/ttyS0", "/dev/console"}))
+		})
+		It("Does not duplicate /dev/console when explicitly listed", func() {
+			err := fs.WriteFile("/proc/cmdline", []byte("console=console\n"), os.ModePerm)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(utils.ConsoleDevices()).To(Equal([]string{"/dev/console"}))
+		})
+	})
 	Context("BootInRam", func() {
 		It("Returns false when kairos.ram is absent", func() {
 			Expect(utils.BootInRam()).To(BeFalse())

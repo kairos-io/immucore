@@ -93,6 +93,58 @@ The immutable rootfs can be configured with the following kernel parameters:
 
 * `rd.immucore.sysrootwait=<seconds>`: Waits for the sysroot to be mounted up to <seconds> before continuing with the boot process. This is useful when booting from CD/Netboot as immucore doesn't mount the /sysroot in those cases, but we want to run the initramfs stage once the system is ready. Sometimes dracut can be really slow and the default 1 minute of waiting is not enough. In those cases you can increase this value to wait more time. Defaults to 60s.
 
+### In-RAM boot (`kairos.ram.*`)
+
+---
+
+The in-RAM workflow boots the OS entirely from memory (livecd/PXE style) while
+still mounting the local `COS_OEM` and `COS_PERSISTENT` partitions from disk,
+so cloud-config and user data behave exactly like on an installed system. The
+typical user is a PXE-served fleet: every machine boots the same image over
+the network, per-machine state lives on the local disk, and "upgrading" means
+swapping the image on the PXE server and rebooting. No `COS_STATE` /
+`COS_ACTIVE` partitions are needed on the disk.
+
+Setting any `kairos.ram.*` stanza enables the mode; the bare `kairos.ram`
+token is only needed when no other stanza is present.
+
+* `kairos.ram`: Enables the in-RAM workflow.
+
+* `kairos.ram.create_partitions`: On first boot, if `COS_OEM` and/or
+  `COS_PERSISTENT` are missing, create (and format) them automatically. With
+  no value, the disk is auto-selected — but only when exactly one candidate
+  (non-removable, non-virtual) disk is visible; otherwise boot stops with a
+  message listing the candidates. Existing partitions are never touched: if
+  one of the two labels already exists, only the missing one is created.
+
+* `kairos.ram.create_partitions=<device>`: Same, but target an explicit disk
+  (e.g. `kairos.ram.create_partitions=/dev/vda`).
+
+* `kairos.ram.wipe`: Allow `create_partitions` to overwrite a disk that
+  already has a partition table. **Destroys all data on the disk.** Without
+  this flag a non-empty disk stops the boot with an explanation.
+
+* `kairos.ram.oem=<MiB>`: Size of the created `COS_OEM` partition in MiB.
+  Defaults to 64.
+
+* `kairos.ram.persistent=<MiB>`: Size of the created `COS_PERSISTENT`
+  partition in MiB. Defaults to 0, which means "expand to the end of the
+  disk".
+
+When something blocks the boot (missing partitions and no
+`create_partitions` flag, ambiguous disk selection, non-empty disk without
+`wipe`), immucore takes over the console with a full-screen message
+explaining what went wrong and the exact stanzas to fix it. On systemd
+systems, pressing any key reboots immediately, and with no input the system
+reboots automatically after 90 seconds through `systemd-reboot.service` (so
+boot-assessment sees the failed boot). On non-systemd systems (e.g. Alpine)
+the message is printed and the boot fails normally.
+
+Sentinel: in-RAM boots are classified as `active_boot` (the running system
+is the current install), so `/run/cos/active_mode` is written as usual, plus
+an additional `/run/cos/in_ram_mode` sentinel for tooling that needs to know
+the rootfs lives in a tmpfs.
+
 
 ### Configuration with an environment file
 

@@ -131,7 +131,7 @@ const (
 
 	// OpEnsurePartitions runs early in the in-RAM DAG and either confirms that
 	// COS_OEM + COS_PERSISTENT already exist on disk, or auto-creates the
-	// missing ones on the disk selected via kairos.ram.auto_create_partitions.
+	// missing ones on the disk selected via kairos.ram.create_partitions.
 	// After it completes, downstream mount steps behave as if the workstation
 	// had been installed normally with an empty OEM.
 	OpEnsurePartitions = "ensure-partitions"
@@ -156,7 +156,7 @@ const (
 	// kairos.ram.* namespace so they sit next to the kairos.ram flag that
 	// enables the in-RAM workflow in the first place. See
 	// EnsurePartitionsDagStep for the exact semantics of each.
-	CmdlineAutoCreatePartitions     = "kairos.ram.auto_create_partitions"
+	CmdlineAutoCreatePartitions     = "kairos.ram.create_partitions"
 	CmdlineAutoCreatePartitionsWipe = "kairos.ram.wipe"
 	CmdlineAutoCreateOemSize        = "kairos.ram.oem="
 	CmdlineAutoCreatePersistentSize = "kairos.ram.persistent="

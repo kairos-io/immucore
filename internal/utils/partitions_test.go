@@ -35,19 +35,19 @@ var _ = Describe("ensure-partitions helpers", func() {
 			Expect(explicit).To(BeEmpty())
 		})
 		It("Detects bare flag as set with no explicit disk", func() {
-			Expect(fs.WriteFile("/proc/cmdline", []byte("kairos.ram.auto_create_partitions\n"), 0o600)).To(Succeed())
+			Expect(fs.WriteFile("/proc/cmdline", []byte("kairos.ram.create_partitions\n"), 0o600)).To(Succeed())
 			explicit, set := utils.ParseAutoCreateDisk()
 			Expect(set).To(BeTrue())
 			Expect(explicit).To(BeEmpty())
 		})
 		It("Detects explicit disk path", func() {
-			Expect(fs.WriteFile("/proc/cmdline", []byte("kairos.ram.auto_create_partitions=/dev/vda\n"), 0o600)).To(Succeed())
+			Expect(fs.WriteFile("/proc/cmdline", []byte("kairos.ram.create_partitions=/dev/vda\n"), 0o600)).To(Succeed())
 			explicit, set := utils.ParseAutoCreateDisk()
 			Expect(set).To(BeTrue())
 			Expect(explicit).To(Equal("/dev/vda"))
 		})
 		It("Treats empty value as bare (set, no explicit)", func() {
-			Expect(fs.WriteFile("/proc/cmdline", []byte("kairos.ram.auto_create_partitions=\n"), 0o600)).To(Succeed())
+			Expect(fs.WriteFile("/proc/cmdline", []byte("kairos.ram.create_partitions=\n"), 0o600)).To(Succeed())
 			explicit, set := utils.ParseAutoCreateDisk()
 			Expect(set).To(BeTrue())
 			Expect(explicit).To(BeEmpty())
@@ -59,7 +59,7 @@ var _ = Describe("ensure-partitions helpers", func() {
 			Expect(utils.AutoCreateWipeEnabled()).To(BeFalse())
 		})
 		It("Trips when the wipe flag is present", func() {
-			Expect(fs.WriteFile("/proc/cmdline", []byte("kairos.ram.auto_create_partitions kairos.ram.wipe\n"), 0o600)).To(Succeed())
+			Expect(fs.WriteFile("/proc/cmdline", []byte("kairos.ram.create_partitions kairos.ram.wipe\n"), 0o600)).To(Succeed())
 			Expect(utils.AutoCreateWipeEnabled()).To(BeTrue())
 		})
 	})
@@ -111,22 +111,27 @@ var _ = Describe("ensure-partitions helpers", func() {
 	Context("Rendered operator messages", func() {
 		It("Missing-partitions message lists exactly what is missing and the flag syntax", func() {
 			out := utils.RenderMissingPartitionsMessage(false, false, []string{"/dev/vda", "/dev/vdb"})
-			Expect(out).To(ContainSubstring("COS_OEM (missing)"))
-			Expect(out).To(ContainSubstring("COS_PERSISTENT (missing)"))
-			Expect(out).To(ContainSubstring("kairos.ram.auto_create_partitions"))
+			Expect(out).To(ContainSubstring("KAIROS BOOT FAILED"))
+			Expect(out).To(ContainSubstring("kairos.ram"))
+			Expect(out).To(ContainSubstring("COS_OEM"))
+			Expect(out).To(ContainSubstring("COS_PERSISTENT"))
+			Expect(strings.Count(out, "MISSING")).To(BeNumerically(">=", 2))
+			Expect(out).To(ContainSubstring("kairos.ram.create_partitions"))
 			Expect(out).To(ContainSubstring("/dev/vda"))
 			Expect(out).To(ContainSubstring("/dev/vdb"))
 			Expect(out).To(ContainSubstring("kairos.ram.wipe"))
 		})
 		It("Missing-partitions message reflects partial state", func() {
 			out := utils.RenderMissingPartitionsMessage(true, false, nil)
-			Expect(out).To(ContainSubstring("COS_PERSISTENT (missing)"))
-			Expect(out).ToNot(ContainSubstring("COS_OEM (missing)"))
+			// Only PERSISTENT should be flagged MISSING; OEM shows as present.
+			Expect(strings.Count(out, "MISSING")).To(Equal(1))
+			Expect(out).To(MatchRegexp(`COS_PERSISTENT\s+MISSING`))
+			Expect(out).To(MatchRegexp(`COS_OEM\s+present`))
 			Expect(out).To(ContainSubstring("(none"))
 		})
 		It("Ambiguous-disk message names every candidate", func() {
 			out := utils.RenderAmbiguousDiskMessage([]string{"/dev/vda", "/dev/vdb", "/dev/nvme0n1"})
-			Expect(strings.Count(out, "kairos.ram.auto_create_partitions=")).To(Equal(3))
+			Expect(strings.Count(out, "kairos.ram.create_partitions=")).To(Equal(3))
 			Expect(out).To(ContainSubstring("/dev/nvme0n1"))
 		})
 		It("Wipe-required message names the offending disk and the flag", func() {
