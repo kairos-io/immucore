@@ -95,8 +95,19 @@ func (s *State) EnsurePartitionsDagStep(g *herd.Graph, deps ...string) error {
 			bothMissing := !oemFound && !persistentFound
 			initDisk := bothMissing
 
-			oemSize := internalUtils.ParseAutoCreateSize(cnst.CmdlineAutoCreateOemSize, uint64(sdkConstants.OEMSize))
-			persistentSize := internalUtils.ParseAutoCreateSize(cnst.CmdlineAutoCreatePersistentSize, uint64(sdkConstants.PersistentSize))
+			oemSize, oemErr := internalUtils.ParseAutoCreateSize(cnst.CmdlineAutoCreateOemSize, uint64(sdkConstants.OEMSize))
+			persistentSize, persistentErr := internalUtils.ParseAutoCreateSize(cnst.CmdlineAutoCreatePersistentSize, uint64(sdkConstants.PersistentSize))
+			if sizeErr := errors.Join(oemErr, persistentErr); sizeErr != nil {
+				internalUtils.HaltWithBanner(
+					internalUtils.RenderInvalidSizeMessage(sizeErr),
+					"invalid partition size on the cmdline",
+					sizeErr,
+				)
+				// Reached only on non-systemd hosts (Alpine/openrc), where
+				// HaltWithBanner paints the screen and returns so we can fail
+				// the step normally.
+				return fmt.Errorf("invalid partition size on the cmdline: %w", sizeErr)
+			}
 
 			internalUtils.KLog.Logger.Info().
 				Str("target", target).
@@ -109,7 +120,16 @@ func (s *State) EnsurePartitionsDagStep(g *herd.Graph, deps ...string) error {
 
 			yamlStage := internalUtils.BuildEnsurePartitionsStage(target, oemFound, persistentFound, oemSize, persistentSize, initDisk)
 			if err := internalUtils.RunYipStageInline("ensure-partitions", yamlStage); err != nil {
-				return fmt.Errorf("yip layout stage failed: %w", err)
+				failErr := fmt.Errorf("yip layout stage failed: %w", err)
+				internalUtils.HaltWithBanner(
+					internalUtils.RenderPartitioningFailedMessage(target, failErr),
+					"partition creation failed",
+					failErr,
+				)
+				// Reached only on non-systemd hosts (Alpine/openrc), where
+				// HaltWithBanner paints the screen and returns so we can fail
+				// the step normally.
+				return failErr
 			}
 
 			// yip's layout plugin already triggers a partition table reread,
@@ -118,7 +138,16 @@ func (s *State) EnsurePartitionsDagStep(g *herd.Graph, deps ...string) error {
 			waitCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 			defer cancel()
 			if err := internalUtils.WaitForKairosPartitions(waitCtx, 30*time.Second); err != nil {
-				return fmt.Errorf("waiting for new partitions to become visible: %w", err)
+				failErr := fmt.Errorf("waiting for new partitions to become visible: %w", err)
+				internalUtils.HaltWithBanner(
+					internalUtils.RenderPartitioningFailedMessage(target, failErr),
+					"new partitions never became visible",
+					failErr,
+				)
+				// Reached only on non-systemd hosts (Alpine/openrc), where
+				// HaltWithBanner paints the screen and returns so we can fail
+				// the step normally.
+				return failErr
 			}
 			internalUtils.KLog.Logger.Info().Msg("kairos partitions ready")
 			return nil

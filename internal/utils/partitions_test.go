@@ -1,6 +1,7 @@
 package utils_test
 
 import (
+	"errors"
 	"os"
 	"strings"
 
@@ -66,19 +67,33 @@ var _ = Describe("ensure-partitions helpers", func() {
 
 	Context("ParseAutoCreateSize", func() {
 		It("Returns fallback when flag absent", func() {
-			Expect(utils.ParseAutoCreateSize(constants.CmdlineAutoCreateOemSize, 64)).To(Equal(uint64(64)))
+			size, err := utils.ParseAutoCreateSize(constants.CmdlineAutoCreateOemSize, 64)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(size).To(Equal(uint64(64)))
 		})
 		It("Parses a plain MiB integer", func() {
 			Expect(fs.WriteFile("/proc/cmdline", []byte("kairos.ram.oem=128\n"), 0o600)).To(Succeed())
-			Expect(utils.ParseAutoCreateSize(constants.CmdlineAutoCreateOemSize, 64)).To(Equal(uint64(128)))
+			size, err := utils.ParseAutoCreateSize(constants.CmdlineAutoCreateOemSize, 64)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(size).To(Equal(uint64(128)))
 		})
-		It("Falls back on garbage input", func() {
+		It("Errors on garbage input", func() {
 			Expect(fs.WriteFile("/proc/cmdline", []byte("kairos.ram.oem=notanumber\n"), 0o600)).To(Succeed())
-			Expect(utils.ParseAutoCreateSize(constants.CmdlineAutoCreateOemSize, 64)).To(Equal(uint64(64)))
+			_, err := utils.ParseAutoCreateSize(constants.CmdlineAutoCreateOemSize, 64)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("notanumber"))
+			Expect(err.Error()).To(ContainSubstring("kairos.ram.oem"))
+		})
+		It("Errors on a unit suffix", func() {
+			Expect(fs.WriteFile("/proc/cmdline", []byte("kairos.ram.oem=64M\n"), 0o600)).To(Succeed())
+			_, err := utils.ParseAutoCreateSize(constants.CmdlineAutoCreateOemSize, 64)
+			Expect(err).To(HaveOccurred())
 		})
 		It("Accepts 0 (means expand-to-end for persistent)", func() {
 			Expect(fs.WriteFile("/proc/cmdline", []byte("kairos.ram.persistent=0\n"), 0o600)).To(Succeed())
-			Expect(utils.ParseAutoCreateSize(constants.CmdlineAutoCreatePersistentSize, 42)).To(Equal(uint64(0)))
+			size, err := utils.ParseAutoCreateSize(constants.CmdlineAutoCreatePersistentSize, 42)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(size).To(Equal(uint64(0)))
 		})
 	})
 
@@ -146,6 +161,21 @@ var _ = Describe("ensure-partitions helpers", func() {
 		It("Disk-not-found message handles zero available disks", func() {
 			out := utils.RenderDiskNotFoundMessage("/dev/tyop", nil)
 			Expect(out).To(ContainSubstring("no eligible disks found"))
+		})
+		It("Invalid-size message carries the parse error and the accepted format", func() {
+			Expect(fs.WriteFile("/proc/cmdline", []byte("kairos.ram.oem=sixty\n"), 0o600)).To(Succeed())
+			_, parseErr := utils.ParseAutoCreateSize(constants.CmdlineAutoCreateOemSize, 64)
+			Expect(parseErr).To(HaveOccurred())
+			out := utils.RenderInvalidSizeMessage(parseErr)
+			Expect(out).To(ContainSubstring("KAIROS BOOT FAILED"))
+			Expect(out).To(ContainSubstring("sixty"))
+			Expect(out).To(ContainSubstring("plain integers in MiB"))
+		})
+		It("Partitioning-failed message names the disk and the error", func() {
+			out := utils.RenderPartitioningFailedMessage("/dev/vda", errors.New("no space left for partition"))
+			Expect(out).To(ContainSubstring("KAIROS BOOT FAILED"))
+			Expect(out).To(ContainSubstring("/dev/vda"))
+			Expect(out).To(ContainSubstring("no space left for partition"))
 		})
 		It("Wipe-required message names the offending disk and the flag", func() {
 			out := utils.RenderWipeRequiredMessage("/dev/vda")

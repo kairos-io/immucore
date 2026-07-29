@@ -210,14 +210,18 @@ func AutoCreateWipeEnabled() bool {
 }
 
 // ParseAutoCreateSize reads a size override from the cmdline (in MiB) or
-// returns fallback. Accepts a plain integer number of MiB; the yip layout
-// plugin uses uint64 MiB natively so we do not translate units here.
-// Malformed values fall back silently — cmdline is not the place to fail
-// boot on typo.
-func ParseAutoCreateSize(cmdlineKey string, fallback uint64) uint64 {
+// returns fallback when the stanza is absent (or present with an empty
+// value). Accepts a plain integer number of MiB; the yip layout plugin uses
+// uint64 MiB natively so we do not translate units here.
+//
+// A malformed value (kairos.ram.oem=64M, =sixty, ...) returns an error
+// instead of silently falling back: the operator expressed an intent we
+// cannot honor, and creating a partition at a size they did not ask for is
+// worse than stopping the boot with an explanation.
+func ParseAutoCreateSize(cmdlineKey string, fallback uint64) (uint64, error) {
 	vals := ReadCMDLineArg(cmdlineKey)
 	if len(vals) == 0 {
-		return fallback
+		return fallback, nil
 	}
 	for _, v := range vals {
 		v = strings.TrimSpace(v)
@@ -225,12 +229,12 @@ func ParseAutoCreateSize(cmdlineKey string, fallback uint64) uint64 {
 			continue
 		}
 		n, err := strconv.ParseUint(v, 10, 64)
-		if err == nil {
-			return n
+		if err != nil {
+			return 0, fmt.Errorf("unparseable size %q for %s: expected a plain number of MiB", v, strings.TrimSuffix(cmdlineKey, "="))
 		}
-		KLog.Logger.Warn().Str("key", cmdlineKey).Str("value", v).Msg("unparseable size override; using default")
+		return n, nil
 	}
-	return fallback
+	return fallback, nil
 }
 
 // BuildEnsurePartitionsStage renders the yip cloud-init YAML that creates the
@@ -355,6 +359,47 @@ func RenderNoDisksMessage() string {
 
 	return RenderFailureScreen(
 		"RAM mode: no disk available for the OEM and PERSISTENT partitions",
+		ramModeIntro(),
+		FailureSection{Title: "What went wrong", Body: wrong.String()},
+		FailureSection{Title: "How to fix", Body: fix.String()},
+	)
+}
+
+// RenderInvalidSizeMessage explains that a size override on the cmdline could
+// not be parsed, with the exact accepted format.
+func RenderInvalidSizeMessage(parseErr error) string {
+	var wrong strings.Builder
+	fmt.Fprintf(&wrong, "%s.\n", parseErr)
+
+	var fix strings.Builder
+	fix.WriteString("Sizes are plain integers in MiB, no unit suffix:\n")
+	fmt.Fprintf(&fix, "  %s64        64 MiB OEM partition\n", constants.CmdlineAutoCreateOemSize)
+	fmt.Fprintf(&fix, "  %s10240 10 GiB PERSISTENT partition\n", constants.CmdlineAutoCreatePersistentSize)
+	fmt.Fprintf(&fix, "  %s0     expand PERSISTENT to the end of the disk\n", constants.CmdlineAutoCreatePersistentSize)
+
+	return RenderFailureScreen(
+		"RAM mode: invalid partition size on the cmdline",
+		ramModeIntro(),
+		FailureSection{Title: "What went wrong", Body: wrong.String()},
+		FailureSection{Title: "How to fix", Body: fix.String()},
+	)
+}
+
+// RenderPartitioningFailedMessage explains that partition creation itself
+// failed on the target disk — the layout stage errored or the new labels
+// never became visible to udev.
+func RenderPartitioningFailedMessage(target string, failErr error) string {
+	var wrong strings.Builder
+	fmt.Fprintf(&wrong, "Creating the OEM and PERSISTENT partitions on %s failed:\n", target)
+	fmt.Fprintf(&wrong, "  %s\n", failErr)
+
+	var fix strings.Builder
+	fix.WriteString("  - Check the requested sizes fit on the disk\n")
+	fmt.Fprintf(&fix, "  - Point auto-create at a different device: %s=/dev/xxx\n", constants.CmdlineAutoCreatePartitions)
+	fix.WriteString("  - Inspect the immucore logs on the next boot for the full error\n")
+
+	return RenderFailureScreen(
+		"RAM mode: partition creation failed",
 		ramModeIntro(),
 		FailureSection{Title: "What went wrong", Body: wrong.String()},
 		FailureSection{Title: "How to fix", Body: fix.String()},
