@@ -23,8 +23,14 @@ const (
 	ansiHeading = "\033[1;97m"    // bold white
 )
 
+// Conventional section titles used across the failure screens.
+const (
+	SectionWhatWentWrong = "What went wrong"
+	SectionHowToFix      = "How to fix"
+)
+
 // FailureSection is one titled block on a failure screen, e.g.
-// {Title: "What went wrong", Body: "..."} or {Title: "How to fix", ...}.
+// {Title: SectionWhatWentWrong, Body: "..."} or {Title: SectionHowToFix, ...}.
 // Body is free-form preformatted text; keep lines under ~76 columns so they
 // survive an 80-column console.
 type FailureSection struct {

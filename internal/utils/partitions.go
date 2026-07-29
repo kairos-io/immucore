@@ -337,8 +337,8 @@ func RenderMissingPartitionsMessage(oemFound, persistentFound bool, candidates [
 	return RenderFailureScreen(
 		"RAM mode: required disk partitions are missing",
 		ramModeIntro(),
-		FailureSection{Title: "What went wrong", Body: wrong.String()},
-		FailureSection{Title: "How to fix (add to your kernel cmdline)", Body: fix.String()},
+		FailureSection{Title: SectionWhatWentWrong, Body: wrong.String()},
+		FailureSection{Title: SectionHowToFix + " (add to your kernel cmdline)", Body: fix.String()},
 		FailureSection{Title: "Optional extra flags", Body: extra.String()},
 		FailureSection{Title: "Candidate disks visible on this host", Body: disks.String()},
 	)
@@ -360,8 +360,8 @@ func RenderNoDisksMessage() string {
 	return RenderFailureScreen(
 		"RAM mode: no disk available for the OEM and PERSISTENT partitions",
 		ramModeIntro(),
-		FailureSection{Title: "What went wrong", Body: wrong.String()},
-		FailureSection{Title: "How to fix", Body: fix.String()},
+		FailureSection{Title: SectionWhatWentWrong, Body: wrong.String()},
+		FailureSection{Title: SectionHowToFix, Body: fix.String()},
 	)
 }
 
@@ -380,8 +380,8 @@ func RenderInvalidSizeMessage(parseErr error) string {
 	return RenderFailureScreen(
 		"RAM mode: invalid partition size on the cmdline",
 		ramModeIntro(),
-		FailureSection{Title: "What went wrong", Body: wrong.String()},
-		FailureSection{Title: "How to fix", Body: fix.String()},
+		FailureSection{Title: SectionWhatWentWrong, Body: wrong.String()},
+		FailureSection{Title: SectionHowToFix, Body: fix.String()},
 	)
 }
 
@@ -401,8 +401,8 @@ func RenderPartitioningFailedMessage(target string, failErr error) string {
 	return RenderFailureScreen(
 		"RAM mode: partition creation failed",
 		ramModeIntro(),
-		FailureSection{Title: "What went wrong", Body: wrong.String()},
-		FailureSection{Title: "How to fix", Body: fix.String()},
+		FailureSection{Title: SectionWhatWentWrong, Body: wrong.String()},
+		FailureSection{Title: SectionHowToFix, Body: fix.String()},
 	)
 }
 
@@ -426,8 +426,8 @@ func RenderDiskNotFoundMessage(disk string, candidates []string) string {
 	return RenderFailureScreen(
 		"RAM mode: requested disk does not exist",
 		ramModeIntro(),
-		FailureSection{Title: "What went wrong", Body: wrong.String()},
-		FailureSection{Title: "How to fix (disks available on this host)", Body: fix.String()},
+		FailureSection{Title: SectionWhatWentWrong, Body: wrong.String()},
+		FailureSection{Title: SectionHowToFix + " (disks available on this host)", Body: fix.String()},
 	)
 }
 
@@ -445,7 +445,7 @@ func RenderWipeRequiredMessage(disk string) string {
 	return RenderFailureScreen(
 		"RAM mode: target disk not empty",
 		ramModeIntro(),
-		FailureSection{Title: "What went wrong", Body: wrong.String()},
-		FailureSection{Title: "How to fix (add to your kernel cmdline)", Body: fix.String()},
+		FailureSection{Title: SectionWhatWentWrong, Body: wrong.String()},
+		FailureSection{Title: SectionHowToFix + " (add to your kernel cmdline)", Body: fix.String()},
 	)
 }
