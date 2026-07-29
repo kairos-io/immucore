@@ -1,6 +1,6 @@
 ---
 name: qemu-boot-testing
-description: Use when a change to immucore (or kairos-agent) needs verification in a real boot — testing kernel cmdline flags (kairos.ram.*, rd.immucore.*), troubleshooting boot failures or red failure screens, checking which yip/cloud-init stages fired, verifying userdata ingestion, or gathering immucore and journald logs from a booted system.
+description: Use when a change to immucore or kairos-agent needs verification in a real boot — building a test ISO from a specific immucore/agent/sdk version or PR, testing kernel cmdline flags (kairos.ram.*, rd.immucore.*), troubleshooting boot failures or red failure screens, checking which yip/cloud-init stages fired, verifying userdata ingestion, or gathering immucore and journald logs from a booted system.
 ---
 
 # QEMU Boot Testing for Immucore
@@ -25,17 +25,39 @@ scripts already embed the serial-expect + screendump patterns from it.
 AGENT_REF=<branch|tag|sha> ./tests/build_test_iso.sh   # pin the agent
 ```
 
-Output: `build/immucore-test-<sha>.iso`. A `-dirty` suffix means uncommitted changes.
+Picking the versions under test:
+
+- **immucore** — always the local working tree, uncommitted changes included.
+  Output: `build/immucore-test-<sha>.iso`; a `-dirty` suffix means the tree
+  had uncommitted changes.
+- **kairos-agent** — any git ref of kairos-io/kairos-agent via `AGENT_REF`
+  (default `main`). For a PR, use its head sha or branch name. Forks need a
+  Dockerfile.test edit (the repo URL is hardcoded).
+- **kairos-sdk** — no knob. For immucore: `go mod edit -replace` or bump
+  `go.mod` locally, then rebuild. For the agent: push a branch of
+  kairos-agent with the sdk bump and point `AGENT_REF` at it.
+
+Confirm the booted binaries are the ones you built — stale ISOs are the #1
+source of confusing results:
+
+```bash
+CHECK_CMD="immucore version; kairos-agent version" ...   # plus login knobs
+```
+
+and compare against `git describe` / the agent ref you passed.
 
 **2. Boot it with your scenario** (~2 min per boot):
 
 ```bash
 CMDLINE="kairos.ram.create_partitions rd.immucore.debug" \
-USERDATA=./my-cloud-config.yaml \
+USERDATA=tests/qemu/userdata-login.yaml \
 LOGIN_USER=kairos LOGIN_PASS=kairos \
 CHECK_CMD="kairos-agent state" \
 ./tests/qemu/boot_and_capture.sh
 ```
+
+`tests/qemu/userdata-login.yaml` is a ready-made cloud-config creating the
+kairos/kairos user — use it verbatim or as the base for scenario userdata.
 
 All knobs are documented in the script header. Key ones:
 
