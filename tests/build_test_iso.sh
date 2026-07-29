@@ -9,24 +9,28 @@ set -euo pipefail
 # uses aurora to build an iso from there
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "${HERE}/.." && pwd)"
 
 # Tag artifacts with the current commit sha, appending -dirty when the working
 # tree has uncommitted changes. Falls back to "latest" if we can't reach git
 # (e.g. building from a tarball extract).
-VERSION="$(git -C "${HERE}" describe --always --dirty 2>/dev/null || echo latest)"
+VERSION="$(git -C "${ROOT}" describe --always --dirty 2>/dev/null || echo latest)"
 
 : "${IMAGE_TAG:=immucore-test:${VERSION}}"
-: "${OUTPUT_DIR:=${HERE}/build}"
+: "${OUTPUT_DIR:=${ROOT}/build}"
 : "${ISO_NAME:=immucore-test-${VERSION}}"
 : "${AURORABOOT_IMAGE:=quay.io/kairos/auroraboot:v0.25.0}"
+# kairos-agent ref (branch/tag/sha) baked into the test image
+: "${AGENT_REF:=main}"
 
 mkdir -p "${OUTPUT_DIR}"
 
 echo ">>> Building ${IMAGE_TAG} via Dockerfile.test"
 docker build \
   -f "${HERE}/Dockerfile.test" \
+  --build-arg "AGENT_REF=${AGENT_REF}" \
   -t "${IMAGE_TAG}" \
-  "${HERE}"
+  "${ROOT}"
 
 echo ">>> Cleaning stale artifacts in ${OUTPUT_DIR}"
 rm -rf "${OUTPUT_DIR:?}/temp-rootfs" \

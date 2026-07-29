@@ -15,8 +15,7 @@ immucore
 *.qcow2
 
 # The build script itself + its Dockerfile do not need to be inside the image.
-build_test_iso.sh
-Dockerfile.test
+tests/
 .dockerignore
 
 # Local scratch / editor cruft.
