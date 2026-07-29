@@ -197,6 +197,12 @@ Since the cmdline is part of the signed UKI (or a signed addon), the
 `kairos.ram.*` stanzas must be baked in at image build time — they cannot be
 edited interactively at boot.
 
+Because the sentinel is `uki_boot_mode`, the stock datasource cloud-config
+skips pulling providers (NoCloud/cidata etc.) — on an installed UKI system
+the config was baked into OEM at install time, but an in-RAM boot has no
+install. To feed per-machine config through a datasource instead of the OEM
+partition, also bake `kairos.pull_datasources` into the cmdline.
+
 
 ### Configuration with an environment file
 

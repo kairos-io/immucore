@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	cnst "github.com/kairos-io/immucore/internal/constants"
@@ -34,6 +35,12 @@ func (s *State) EnsurePartitionsDagStep(g *herd.Graph, deps ...string) error {
 	return g.Add(cnst.OpEnsurePartitions,
 		herd.WithDeps(deps...),
 		TimedCallback(cnst.OpEnsurePartitions, func(ctx context.Context) error {
+			// Under UKI immucore is PID1 and nothing has set PATH yet —
+			// yip's layout plugin and the encryption tooling resolve
+			// parted/mkfs/cryptsetup via LookPath. Same setup UKIUnlock does.
+			if internalUtils.IsUKI() {
+				_ = os.Setenv("PATH", "/usr/bin:/usr/sbin:/bin:/sbin")
+			}
 			oemFound, persistentFound, err := internalUtils.KairosPartitionsPresent()
 			if err != nil {
 				return fmt.Errorf("scanning disks for kairos partitions: %w", err)
@@ -156,6 +163,14 @@ func (s *State) EnsurePartitionsDagStep(g *herd.Graph, deps ...string) error {
 			// the LUKS header, so every later boot sees them present and this
 			// whole step no-ops.
 			if internalUtils.IsUKI() {
+				// systemd-cryptenroll reads the TPM SRK public key from
+				// /run/systemd/, where systemd-tpm2-setup normally puts it
+				// during boot — but immucore IS init here, so nobody has run
+				// it yet. Failure is only logged: cryptenroll surfaces the
+				// real error if the key is genuinely unobtainable.
+				if out, err := internalUtils.CommandWithPath("/usr/lib/systemd/systemd-tpm2-setup --early=yes"); err != nil {
+					internalUtils.KLog.Logger.Warn().Err(err).Str("out", out).Msg("systemd-tpm2-setup failed; TPM enrollment may not work")
+				}
 				for _, label := range internalUtils.PartitionsToEncrypt(oemFound, persistentFound) {
 					internalUtils.KLog.Logger.Info().Str("partition", label).Msg("encrypting freshly created partition with TPM policy")
 					if err := encryptPartitionFn(label); err != nil {
