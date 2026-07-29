@@ -177,6 +177,26 @@ is the current install), so `/run/cos/active_mode` is written as usual, plus
 an additional `/run/cos/in_ram_mode` sentinel for tooling that needs to know
 the rootfs lives in a tmpfs.
 
+#### Trusted boot (UKI)
+
+The same `kairos.ram.*` stanzas work under trusted boot. A UKI already runs
+entirely from RAM, so the regular UKI flow applies with three differences:
+
+* `create_partitions` encrypts the partitions it creates with the TPM PCR
+  policy (same `systemd-cryptenroll` enrollment kairos-agent performs on a
+  trusted-boot install), so every later boot unlocks them via TPM. There is
+  no plaintext fallback: if encryption fails the boot halts with a
+  full-screen message. Remote KMS (kcrypt-challenger) is not supported here —
+  the UKI initramfs has no network at unlock time.
+* Partition unlock runs even though the UKI was booted from removable or
+  network media (a regular UKI boot skips it in that case).
+* The UKI sentinel is `/run/cos/uki_boot_mode`, not `uki_install_mode`, so
+  installer cloud-init stages do not fire.
+
+Since the cmdline is part of the signed UKI (or a signed addon), the
+`kairos.ram.*` stanzas must be baked in at image build time — they cannot be
+edited interactively at boot.
+
 
 ### Configuration with an environment file
 

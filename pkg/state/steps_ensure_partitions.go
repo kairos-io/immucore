@@ -9,6 +9,7 @@ import (
 	cnst "github.com/kairos-io/immucore/internal/constants"
 	internalUtils "github.com/kairos-io/immucore/internal/utils"
 	sdkConstants "github.com/kairos-io/kairos-sdk/constants"
+	"github.com/kairos-io/kairos-sdk/kcrypt"
 	"github.com/spectrocloud-labs/herd"
 )
 
@@ -149,9 +150,44 @@ func (s *State) EnsurePartitionsDagStep(g *herd.Graph, deps ...string) error {
 				// the step normally.
 				return failErr
 			}
+			// Trusted boot: partitions created under UKI must be encrypted
+			// with the TPM PCR policy right away, exactly like kairos-agent
+			// does on a regular trusted-boot install. The label survives on
+			// the LUKS header, so every later boot sees them present and this
+			// whole step no-ops.
+			if internalUtils.IsUKI() {
+				for _, label := range internalUtils.PartitionsToEncrypt(oemFound, persistentFound) {
+					internalUtils.KLog.Logger.Info().Str("partition", label).Msg("encrypting freshly created partition with TPM policy")
+					if err := encryptPartitionFn(label); err != nil {
+						failErr := fmt.Errorf("encrypting partition %s: %w", label, err)
+						internalUtils.HaltWithBanner(
+							internalUtils.RenderEncryptionFailedMessage(label, failErr),
+							"partition encryption failed",
+							failErr,
+						)
+						// Reached only on non-systemd hosts (Alpine/openrc),
+						// where HaltWithBanner paints the screen and returns so
+						// we can fail the step normally.
+						return failErr
+					}
+				}
+			}
+
 			internalUtils.KLog.Logger.Info().Msg("kairos partitions ready")
 			return nil
 		}))
+}
+
+// encryptPartitionFn encrypts one freshly created partition by label using
+// the encryptor kcrypt derives from the system configuration — under UKI
+// that is the TPM PCR policy (remote KMS needs network, which UKI initramfs
+// does not set up yet). Package variable so tests can stub the TPM away.
+var encryptPartitionFn = func(label string) error {
+	encryptor, err := kcrypt.GetEncryptor(internalUtils.KLog)
+	if err != nil {
+		return err
+	}
+	return encryptor.Encrypt([]string{label})
 }
 
 // selectTargetDisk resolves the effective target disk. explicit wins when
