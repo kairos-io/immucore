@@ -77,7 +77,7 @@ func (s *State) WriteSentinelDagStep(g *herd.Graph, deps ...string) error {
 				}
 			}
 
-			// Lets add a uki sentinel as well! In-RAM UKI boots come from
+			// Let's add a uki sentinel as well! In-RAM UKI boots come from
 			// removable/network media but must behave like an installed
 			// Active system, so they get uki_boot_mode, never
 			// uki_install_mode (which would fire the installer stages).
