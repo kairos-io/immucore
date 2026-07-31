@@ -1,7 +1,13 @@
 package utils_test
 
 import (
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
+	"strings"
+	"sync"
 
 	"github.com/kairos-io/immucore/internal/utils"
 	. "github.com/onsi/ginkgo/v2"
@@ -99,6 +105,101 @@ var _ = Describe("Kairos cmdline parsing (kairos-sdk integration)", func() {
 				"kairos.config=install.auto=true kairos.config_url=https://x.example/cfg.yaml",
 				"https://x.example/cfg.yaml"),
 		)
+	})
+
+	// RunStage is the actual initramfs entrypoint. Since kairos-sdk PR #820 the
+	// kairos.config_url= URI is templated through collector.RenderConfigURL
+	// before yip fetches it, so operators can inject per-machine values
+	// (SMBIOS UUID, MAC, hostname, ...) into the discovery URL. These specs
+	// drive RunStage end-to-end via an httptest.Server so the assertion sees
+	// the exact URL yip fetched.
+	Context("RunStage config_url template rendering", func() {
+		type serverState struct {
+			mu   sync.Mutex
+			hits []string
+		}
+		var (
+			state *serverState
+			srv   *httptest.Server
+		)
+
+		BeforeEach(func() {
+			state = &serverState{}
+			srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				state.mu.Lock()
+				state.hits = append(state.hits, r.URL.RequestURI())
+				state.mu.Unlock()
+				// Minimal valid yip config so the DAG runs without producing
+				// noisy load errors. The stage body itself is a no-op.
+				_, _ = io.WriteString(w, "stages:\n  initramfs:\n    - name: noop\n")
+			}))
+		})
+		AfterEach(func() {
+			srv.Close()
+		})
+
+		snapshotHits := func() []string {
+			state.mu.Lock()
+			defer state.mu.Unlock()
+			out := make([]string, len(state.hits))
+			copy(out, state.hits)
+			return out
+		}
+
+		It("renders template variables before the URL reaches yip", func() {
+			// node.hostname is populated by sysinfo from /proc/sys/kernel/hostname
+			// which is always non-empty on Linux hosts. Sanity-check anyway so
+			// a truly bizarre CI environment skips the case instead of failing.
+			host, err := os.Hostname()
+			Expect(err).ToNot(HaveOccurred())
+			if strings.TrimSpace(host) == "" {
+				Skip("hostname is empty on this host; the templater would deliberately fail")
+			}
+
+			writeCmdline(fmt.Sprintf(
+				`root=LABEL=X kairos.config_url="%s/?h={{ .Values.node.hostname }}"`, srv.URL,
+			))
+			Expect(utils.RunStage("initramfs")).To(BeNil())
+
+			hits := snapshotHits()
+			Expect(hits).ToNot(BeEmpty(), "yip should have fetched the rendered URL")
+			for _, uri := range hits {
+				Expect(uri).ToNot(ContainSubstring("{{"), "template markers should not reach yip")
+				Expect(uri).ToNot(ContainSubstring("}}"))
+				Expect(uri).To(HavePrefix("/?h="))
+				// The substitution must be non-empty; RenderConfigURL rejects
+				// empty substitutions, so if we got a hit at all the value
+				// must have rendered.
+				Expect(uri).ToNot(Equal("/?h="))
+			}
+		})
+
+		It("skips the fetch when the template references an unknown value", func() {
+			writeCmdline(fmt.Sprintf(
+				`root=LABEL=X kairos.config_url="%s/should-not-be-hit?u={{ .Values.definitely_not_a_key }}"`,
+				srv.URL,
+			))
+			// RunStage currently returns nil unconditionally (see the comment
+			// in the source about not deciding yet which errors are
+			// permissible). We assert on the side effect that matters: no
+			// HTTP fetch happens.
+			Expect(utils.RunStage("initramfs")).To(BeNil())
+			Expect(snapshotHits()).To(BeEmpty(),
+				"yip must not fetch a URL whose template failed to render")
+		})
+
+		It("passes a non-templated URL through unchanged (regression)", func() {
+			writeCmdline(fmt.Sprintf(
+				`root=LABEL=X kairos.config_url=%s/plain`, srv.URL,
+			))
+			Expect(utils.RunStage("initramfs")).To(BeNil())
+
+			hits := snapshotHits()
+			Expect(hits).ToNot(BeEmpty(), "plain URLs must still reach yip")
+			for _, uri := range hits {
+				Expect(uri).To(Equal("/plain"))
+			}
+		})
 	})
 
 	Context("SDKDotNotationModifier", func() {

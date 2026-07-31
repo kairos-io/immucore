@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/kairos-io/immucore/internal/constants"
+	"github.com/kairos-io/kairos-sdk/collector"
 	"github.com/kairos-io/kairos-sdk/machine"
 	"github.com/mudler/yip/pkg/console"
 	"github.com/mudler/yip/pkg/executor"
@@ -36,11 +37,23 @@ func RunStage(stage string) error {
 	// resolve to a config source URI which we hand to yip as an additional stage source.
 	// Parsing is delegated to kairos-sdk/machine so immucore, kairos-agent and any other
 	// consumer stay in lockstep. See kairos-sdk PR #812.
+	//
+	// The URI is templated through collector.RenderConfigURL so operators can
+	// inject per-machine values (SMBIOS UUID, MAC, hostname, ...) into a
+	// discovery URL. If the template fails we accumulate the error and SKIP
+	// the fetch: handing a mangled URL to yip's http.Get would result in a
+	// silent 404 that hides the real cause. See kairos-sdk PR #820.
 	if uri := KairosConfigURIFromCmdline(); uri != "" {
-		for _, s := range []string{stageBefore, stage, stageAfter} {
-			err = yip.Run(s, vfs.OSFS, c, uri)
-			if err != nil {
-				allErrors = multierror.Append(allErrors, err)
+		var rendered string
+		rendered, err = collector.RenderConfigURL(uri)
+		if err != nil {
+			allErrors = multierror.Append(allErrors, fmt.Errorf("rendering kairos.config_url template: %w", err))
+		} else {
+			for _, s := range []string{stageBefore, stage, stageAfter} {
+				err = yip.Run(s, vfs.OSFS, c, rendered)
+				if err != nil {
+					allErrors = multierror.Append(allErrors, err)
+				}
 			}
 		}
 	}
