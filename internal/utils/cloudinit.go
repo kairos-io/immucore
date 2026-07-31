@@ -41,14 +41,17 @@ func RunStage(stage string) error {
 	// The URI is templated through collector.RenderConfigURL so operators can
 	// inject per-machine values (SMBIOS UUID, MAC, hostname, ...) into a
 	// discovery URL. If the template fails we accumulate the error and SKIP
-	// the fetch: handing a mangled URL to yip's http.Get would result in a
-	// silent 404 that hides the real cause. See kairos-sdk PR #820.
+	// the fetch: silently fetching an unintended endpoint would be worse than
+	// a boot-time error. See kairos-sdk PR #820.
 	if uri := KairosConfigURIFromCmdline(); uri != "" {
 		var rendered string
 		rendered, err = collector.RenderConfigURL(uri)
 		if err != nil {
-			allErrors = multierror.Append(allErrors, fmt.Errorf("rendering kairos.config_url template: %w", err))
+			allErrors = multierror.Append(allErrors, fmt.Errorf("rendering kairos.config_url=%q: %w", uri, err))
 		} else {
+			if rendered != uri {
+				KLog.Debugf("resolved kairos.config_url %q to %q", uri, rendered)
+			}
 			for _, s := range []string{stageBefore, stage, stageAfter} {
 				err = yip.Run(s, vfs.OSFS, c, rendered)
 				if err != nil {
