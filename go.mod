@@ -12,7 +12,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jaypipes/ghw v0.25.0
 	github.com/joho/godotenv v1.5.1
-	github.com/kairos-io/kairos-sdk v0.25.1
+	github.com/kairos-io/kairos-sdk v0.25.2-0.20260805143930-4d8b3f8e770b
 	github.com/moby/sys/mountinfo v0.7.2
 	github.com/mudler/yip v1.25.1
 	github.com/onsi/ginkgo/v2 v2.32.0
