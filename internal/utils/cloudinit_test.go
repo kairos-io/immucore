@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"sync"
 
 	"github.com/kairos-io/immucore/internal/utils"
@@ -147,31 +146,24 @@ var _ = Describe("Kairos cmdline parsing (kairos-sdk integration)", func() {
 		}
 
 		It("renders template variables before the URL reaches yip", func() {
-			// node.hostname is populated by sysinfo from /proc/sys/kernel/hostname
-			// which is always non-empty on Linux hosts. Sanity-check anyway so
-			// a truly bizarre CI environment skips the case instead of failing.
-			host, err := os.Hostname()
-			Expect(err).ToNot(HaveOccurred())
-			if strings.TrimSpace(host) == "" {
-				Skip("hostname is empty on this host; the templater would deliberately fail")
-			}
-
+			// A bare string literal piped through Sprig's upper keeps the
+			// spec fully deterministic on any host (the sysinfo-context
+			// path is covered at the SDK level with a mocked context).
+			// The pipe also makes it obvious to a skeptical reader that
+			// templating actually ran: if RenderConfigURL was bypassed,
+			// yip would receive the raw {{ ... }} markers and this
+			// assertion would fail with an unmistakable diff.
 			writeCmdline(fmt.Sprintf(
-				`root=LABEL=X kairos.config_url="%s/?h={{ .Values.node.hostname }}"`, srv.URL,
+				`root=LABEL=X kairos.config_url=%q`,
+				srv.URL+`/?h={{ "hello" | upper }}`,
 			))
 			Expect(utils.RunStage("initramfs")).To(BeNil())
 
+			// RunStage exercises the URI once each for stageBefore, stage,
+			// and stageAfter, so the server sees three identical hits.
 			hits := snapshotHits()
 			Expect(hits).ToNot(BeEmpty(), "yip should have fetched the rendered URL")
-			for _, uri := range hits {
-				Expect(uri).ToNot(ContainSubstring("{{"), "template markers should not reach yip")
-				Expect(uri).ToNot(ContainSubstring("}}"))
-				Expect(uri).To(HavePrefix("/?h="))
-				// The substitution must be non-empty; RenderConfigURL rejects
-				// empty substitutions, so if we got a hit at all the value
-				// must have rendered.
-				Expect(uri).ToNot(Equal("/?h="))
-			}
+			Expect(hits).To(HaveEach("/?h=HELLO"))
 		})
 
 		It("skips the fetch when the template references an unknown value", func() {
