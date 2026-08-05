@@ -40,9 +40,11 @@ func RunStage(stage string) error {
 	//
 	// The URI is templated through collector.RenderConfigURL so operators can
 	// inject per-machine values (SMBIOS UUID, MAC, hostname, ...) into a
-	// discovery URL. If the template fails we accumulate the error and SKIP
-	// the fetch: silently fetching an unintended endpoint would be worse than
-	// a boot-time error. See kairos-sdk PR #820.
+	// discovery URL. On template error we append to allErrors and SKIP the
+	// fetch loop for this URI: silently fetching an unintended endpoint is
+	// worse than skipping. Note that RunStage itself always returns nil
+	// today (see the tail comment), so allErrors currently lives only as an
+	// accumulated debug trail. See kairos-sdk PR #820.
 	if uri := KairosConfigURIFromCmdline(); uri != "" {
 		var rendered string
 		rendered, err = collector.RenderConfigURL(uri)

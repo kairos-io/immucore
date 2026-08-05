@@ -160,9 +160,11 @@ var _ = Describe("Kairos cmdline parsing (kairos-sdk integration)", func() {
 			Expect(utils.RunStage("initramfs")).To(BeNil())
 
 			// RunStage exercises the URI once each for stageBefore, stage,
-			// and stageAfter, so the server sees three identical hits.
+			// and stageAfter, so the server must see exactly three identical
+			// hits. Asserting the count catches regressions that drop one
+			// or two of the sub-stages.
 			hits := snapshotHits()
-			Expect(hits).ToNot(BeEmpty(), "yip should have fetched the rendered URL")
+			Expect(hits).To(HaveLen(3), "expected one fetch per stageBefore/stage/stageAfter")
 			Expect(hits).To(HaveEach("/?h=HELLO"))
 		})
 
