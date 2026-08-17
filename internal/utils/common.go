@@ -24,16 +24,8 @@ import (
 // bootStateToSysrootLabel maps a boot state to the filesystem label of the
 // image that becomes sysroot. It returns an empty string for a state we cannot
 // mount from (LiveCD, Unknown), which callers treat as "no target".
-//
-// AutoReset is the statereset boot. It runs the recovery image and then resets,
-// so it resolves exactly like Recovery. kairos-sdk only reported AutoReset for
-// UKI boots until v0.25.0, when getNonUKIBootState started matching
-// kairos.reset ahead of COS_SYSTEM. A non-UKI statereset boot therefore reaches
-// this function as AutoReset, and without this arm sysroot got an empty label
-// and the boot died in the initramfs.
-//
-// It is split from BootStateToLabelDevice because the state lookup reads the
-// real /proc/cmdline, which a unit test cannot stub.
+// AutoReset runs the recovery image and then resets, so it resolves like
+// Recovery.
 func bootStateToSysrootLabel(b state.Boot) string {
 	switch b {
 	case state.Active:
@@ -49,7 +41,7 @@ func bootStateToSysrootLabel(b state.Boot) string {
 
 // bootStateToImagesLabel maps a boot state to the label of the partition that
 // holds the boot images. AutoReset boots the recovery image, so its images live
-// on the recovery partition. See bootStateToSysrootLabel.
+// on the recovery partition.
 func bootStateToImagesLabel(b state.Boot) string {
 	switch b {
 	case state.Active, state.Passive:

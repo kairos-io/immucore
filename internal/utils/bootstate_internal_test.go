@@ -1,49 +1,33 @@
 package utils
 
 import (
-	"testing"
-
 	"github.com/kairos-io/kairos-sdk/state"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-// The statereset GRUB entry boots the recovery image with kairos.reset on the
-// cmdline. kairos-sdk v0.25.0 started reporting that boot as AutoReset instead
-// of Recovery for non-UKI systems, which left both label lookups falling
-// through to their empty/error default. sysroot then had no device, the boot
-// died in the initramfs, and the machine rebooted into the old system with the
-// persistent partition untouched.
-func TestBootStateToSysrootLabel(t *testing.T) {
-	for _, tt := range []struct {
-		boot state.Boot
-		want string
-	}{
-		{state.Active, "COS_ACTIVE"},
-		{state.Passive, "COS_PASSIVE"},
-		{state.Recovery, "COS_SYSTEM"},
-		{state.AutoReset, "COS_SYSTEM"},
-		{state.LiveCD, ""},
-		{state.Unknown, ""},
-	} {
-		if got := bootStateToSysrootLabel(tt.boot); got != tt.want {
-			t.Errorf("bootStateToSysrootLabel(%q) = %q, want %q", tt.boot, got, tt.want)
-		}
-	}
-}
+var _ = Describe("boot state to label", func() {
+	DescribeTable("resolves the sysroot label",
+		func(boot state.Boot, expected string) {
+			Expect(bootStateToSysrootLabel(boot)).To(Equal(expected))
+		},
+		Entry("active", state.Active, "COS_ACTIVE"),
+		Entry("passive", state.Passive, "COS_PASSIVE"),
+		Entry("recovery", state.Recovery, "COS_SYSTEM"),
+		Entry("autoreset boots the recovery image", state.AutoReset, "COS_SYSTEM"),
+		Entry("livecd has no target", state.LiveCD, ""),
+		Entry("unknown has no target", state.Unknown, ""),
+	)
 
-func TestBootStateToImagesLabel(t *testing.T) {
-	for _, tt := range []struct {
-		boot state.Boot
-		want string
-	}{
-		{state.Active, "COS_STATE"},
-		{state.Passive, "COS_STATE"},
-		{state.Recovery, "COS_RECOVERY"},
-		{state.AutoReset, "COS_RECOVERY"},
-		{state.LiveCD, ""},
-		{state.Unknown, ""},
-	} {
-		if got := bootStateToImagesLabel(tt.boot); got != tt.want {
-			t.Errorf("bootStateToImagesLabel(%q) = %q, want %q", tt.boot, got, tt.want)
-		}
-	}
-}
+	DescribeTable("resolves the images label",
+		func(boot state.Boot, expected string) {
+			Expect(bootStateToImagesLabel(boot)).To(Equal(expected))
+		},
+		Entry("active", state.Active, "COS_STATE"),
+		Entry("passive", state.Passive, "COS_STATE"),
+		Entry("recovery", state.Recovery, "COS_RECOVERY"),
+		Entry("autoreset boots the recovery image", state.AutoReset, "COS_RECOVERY"),
+		Entry("livecd has no target", state.LiveCD, ""),
+		Entry("unknown has no target", state.Unknown, ""),
+	)
+})
