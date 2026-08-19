@@ -1,3 +1,40 @@
+> ## This repository has been archived pending migration into kairos-io/kairos
+>
+> Immucore is being absorbed into the
+> [kairos-io/kairos](https://github.com/kairos-io/kairos) monorepo as
+> part of the plan tracked in
+> [kairos-io/kairos#4301](https://github.com/kairos-io/kairos/issues/4301).
+> Every existing tag remains resolvable via the Go module proxy and
+> installable with the same
+> `go get github.com/kairos-io/immucore@vX.Y.Z` as before, so anything
+> already published keeps working.
+>
+> New development happens at
+> [github.com/kairos-io/kairos/immucore](https://github.com/kairos-io/kairos/tree/master/immucore).
+> If that link returns 404, the subtree import is not yet complete; see
+> the tracking issue above for the current state and timeline.
+>
+> **To pick up newer immucore code,** update your imports:
+>
+> ```
+> find . -type f -name '*.go' -exec sed -i \
+>   's|github.com/kairos-io/immucore|github.com/kairos-io/kairos/immucore|g' {} +
+> go mod tidy
+> go get github.com/kairos-io/kairos@<latest>
+> ```
+>
+> **On backports to older lines.** The default answer is: consume the
+> latest release. We will only unarchive this repository for fixes we
+> judge important enough (typically security fixes or breakage with no
+> reasonable workaround). Convenience backports and feature backports
+> do not qualify. To request one, open an issue on
+> [kairos-io/kairos](https://github.com/kairos-io/kairos/issues)
+> describing the immucore version, the fix, and why moving to the
+> latest release is not viable. If we agree the fix meets the bar, we
+> will unarchive temporarily to land it and cut a new patch tag.
+
+---
+
 <h1 align="center">
   <br>
      <img width="184" alt="kairos-white-column 5bc2fe34" src="https://user-images.githubusercontent.com/2420543/193010398-72d4ba6e-7efe-4c2e-b7ba-d3a826a55b7d.png"><br>
